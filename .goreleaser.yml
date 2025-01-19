@@ -1,0 +1,48 @@
+version: 2
+before:
+  hooks:
+    - go mod download
+
+builds:
+  - env:
+      - CGO_ENABLED=0
+    ldflags:
+      - -X github.com/sgaunet/pplx/cmd.version={{.Version}}
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm
+      - arm64
+    goarm:
+      - "6"
+      - "7"
+    id: lin
+    # hooks:
+    #   post:
+    #     - upx "{{ .Path }}"
+
+archives:
+  - name_template: '{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}{{ if .Arm }}v{{ .Arm }}{{ end }}'
+    format: binary
+
+checksum:
+  name_template: 'checksums.txt'
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
+
+brews:
+  - homepage: 'https://github.com/sgaunet/homebrew-tools'
+    commit_author:
+      name: sgaunet
+      email: sgaunet@gmail.com
+    repository:
+      owner: sgaunet
+      name: homebrew-tools
