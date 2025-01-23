@@ -8,6 +8,8 @@ import (
 	"github.com/sgaunet/perplexity-go/v2"
 )
 
+const DefaultTimeout = 30 * time.Second
+
 type Chat struct {
 	Messages perplexity.Messages
 	client   *perplexity.Client
@@ -16,7 +18,8 @@ type Chat struct {
 func NewChat(systemMessage string) *Chat {
 	msg := perplexity.NewMessages(perplexity.WithSystemMessage(systemMessage))
 	client := perplexity.NewClient(os.Getenv("PPLX_API_KEY"))
-	client.SetHTTPTimeout(30 * time.Second)
+	client.SetHTTPTimeout(DefaultTimeout)
+
 	return &Chat{
 		Messages: msg,
 		client:   client,
