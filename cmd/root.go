@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/spf13/cobra"
 )
@@ -13,6 +14,8 @@ var (
 	userPrompt   string
 	apiKey       string
 )
+
+const DefaultTimeout = 30 * time.Second
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
@@ -38,7 +41,7 @@ func init() {
 	rootCmd.AddCommand(queryCmd)
 	queryCmd.PersistentFlags().StringVar(&model, "m", "small", "Online model to use: small, large, huge")
 	queryCmd.PersistentFlags().StringVar(&systemPrompt, "sys", "", "system prompt")
-	queryCmd.PersistentFlags().StringVar(&userPrompt, "p", "", "user prompt")
+	queryCmd.PersistentFlags().StringVar(&userPrompt, "u", "", "user prompt")
 
 	// Check env var PPLX_API_KEY exists
 	if os.Getenv("PPLX_API_KEY") == "" {
