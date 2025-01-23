@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 
-	markdown "github.com/MichaelMure/go-term-markdown"
 	"github.com/pterm/pterm"
 	"github.com/sgaunet/pplx/pkg/chat"
 	"github.com/sgaunet/pplx/pkg/console"
@@ -48,16 +47,23 @@ You can ask questions and get answers from the API. As long as you don't enter a
 				fmt.Fprintf(os.Stderr, "error running chat: %v\n", err)
 				os.Exit(1)
 			}
-			spinnerInfo.Info() // Resolve spinner with information message.
+			spinnerInfo.Success("Response received")
 
 			err = c.AddAgentMessage(response.GetLastContent())
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "error adding agent message: %v\n", err)
 				os.Exit(1)
 			}
-			// fmt.Println(response.GetLastContent())
-			result := markdown.Render(response.GetLastContent(), 80, 6)
-			fmt.Println(string(result))
+			err = console.RenderAsMarkdown(response, os.Stdout)
+			if err != nil {
+				fmt.Printf("Error: %v\n", err)
+				os.Exit(1)
+			}
+			err = console.RenderCitations(response, os.Stdout)
+			if err != nil {
+				fmt.Printf("Error: %v\n", err)
+				os.Exit(1)
+			}
 		}
 	},
 }
