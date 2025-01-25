@@ -1,10 +1,26 @@
 # pplx
 
+[![GitHub release](https://img.shields.io/github/release/sgaunet/pplx.svg)](https://github.com/sgaunet/pplx/releases/latest)
+[![Go Report Card](https://goreportcard.com/badge/github.com/sgaunet/pplx)](https://goreportcard.com/report/github.com/sgaunet/pplx)
+![GitHub Downloads](https://img.shields.io/github/downloads/sgaunet/pplx/total)
+[![GoDoc](https://godoc.org/github.com/sgaunet/pplx?status.svg)](https://godoc.org/github.com/sgaunet/pplx)
+[![License](https://img.shields.io/github/license/sgaunet/pplx.svg)](LICENSE)
+
 It's an unofficial CLI program to query/chat with the [perplexity API](https://www.perplexity.ai/).
 
 ## Installation
 
-Download the latest release from the [releases page](https://github.com/sgaunet/pplx/releases).
+## Option 1
+
+* Download the latest release from the [releases page](https://github.com/sgaunet/pplx/releases).
+* Install the binary in /usr/local/bin or any other directory in your PATH.
+
+## Option 2: With brew
+
+```sh
+brew tap sgaunet/homebrew-tools
+brew install pplx
+```
 
 ## Usage
 
