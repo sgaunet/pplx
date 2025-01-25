@@ -1,0 +1,25 @@
+# https://taskfile.dev
+version: '3'
+
+tasks:
+  default:
+    desc: "List tasks"
+    cmds:
+      - task -a
+
+  doc:
+    desc: "Start godoc server"
+    cmds:
+      - echo http://localhost:6060 
+      - godoc -http=:6060
+
+  snapshot:
+    desc: "Create a snapshot release"
+    cmds:
+      - GITLAB_TOKEN="" goreleaser --clean --snapshot
+    
+  release:
+    desc: "Create a release"
+    cmds:
+      - GITLAB_TOKEN="" goreleaser --clean
+    
