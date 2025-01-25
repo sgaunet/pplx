@@ -20,14 +20,14 @@ const DefaultTimeout = 30 * time.Second
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use:   "pplx",
-	Short: "",
-	Long:  ``,
-	// Uncomment the following line if your bare application
-	// has an action associated with it:
-	// Run: func(cmd *cobra.Command, args []string) { },
+	Short: "Program to interact with the Perplexity API",
+	Long: `Program to interact with the Perplexity API.
+	
+	You can use it to chat with the AI or to query it.`,
 }
 
 func Execute() {
+	rootCmd.CompletionOptions.DisableDefaultCmd = true
 	err := rootCmd.Execute()
 	if err != nil {
 		os.Exit(1)
@@ -36,12 +36,12 @@ func Execute() {
 
 func init() {
 	rootCmd.AddCommand(chatCmd)
-	chatCmd.PersistentFlags().StringVar(&model, "m", "small", "Online model to use: small, large, huge")
+	chatCmd.PersistentFlags().StringVarP(&model, "model", "m", "basic", "Online model to use: basic pro")
 
 	rootCmd.AddCommand(queryCmd)
-	queryCmd.PersistentFlags().StringVar(&model, "m", "small", "Online model to use: small, large, huge")
-	queryCmd.PersistentFlags().StringVar(&systemPrompt, "sys", "", "system prompt")
-	queryCmd.PersistentFlags().StringVar(&userPrompt, "u", "", "user prompt")
+	queryCmd.PersistentFlags().StringVarP(&model, "model", "m", "basic", "Online model to use: basic pro")
+	queryCmd.PersistentFlags().StringVarP(&systemPrompt, "sys-prompt", "s", "", "system prompt")
+	queryCmd.PersistentFlags().StringVarP(&userPrompt, "user-prompt", "p", "", "user prompt")
 
 	// Check env var PPLX_API_KEY exists
 	if os.Getenv("PPLX_API_KEY") == "" {
