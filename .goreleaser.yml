@@ -40,6 +40,7 @@ changelog:
 
 brews:
   - homepage: 'https://github.com/sgaunet/homebrew-tools'
+    directory: Formula
     commit_author:
       name: sgaunet
       email: sgaunet@gmail.com
