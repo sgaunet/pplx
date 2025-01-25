@@ -2,27 +2,28 @@ package chat
 
 import (
 	"fmt"
-	"os"
-	"time"
 
 	"github.com/sgaunet/perplexity-go/v2"
 )
 
-const DefaultTimeout = 30 * time.Second
-
 type Chat struct {
 	Messages perplexity.Messages
 	client   *perplexity.Client
+	model    string
 }
 
-func NewChat(systemMessage string) *Chat {
-	msg := perplexity.NewMessages(perplexity.WithSystemMessage(systemMessage))
-	client := perplexity.NewClient(os.Getenv("PPLX_API_KEY"))
-	client.SetHTTPTimeout(DefaultTimeout)
+func NewChat(client *perplexity.Client, model string, systemMessage string) *Chat {
+	if model == "pro" {
+		model = perplexity.ProModel
+	} else {
+		model = perplexity.DefaultModel
+	}
 
+	msg := perplexity.NewMessages(perplexity.WithSystemMessage(systemMessage))
 	return &Chat{
 		Messages: msg,
 		client:   client,
+		model:    model,
 	}
 }
 
@@ -43,7 +44,8 @@ func (c *Chat) AddAgentMessage(message string) error {
 }
 
 func (c *Chat) Run() (*perplexity.CompletionResponse, error) {
-	req := perplexity.NewCompletionRequest(perplexity.WithMessages(c.Messages.GetMessages()))
+	req := perplexity.NewCompletionRequest(perplexity.WithMessages(c.Messages.GetMessages()),
+		perplexity.WithModel(c.model))
 	err := req.Validate()
 	if err != nil {
 		return nil, fmt.Errorf("error validating completion request: %w", err)

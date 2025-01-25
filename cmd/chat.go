@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/pterm/pterm"
+	"github.com/sgaunet/perplexity-go/v2"
 	"github.com/sgaunet/pplx/pkg/chat"
 	"github.com/sgaunet/pplx/pkg/console"
 	"github.com/spf13/cobra"
@@ -17,12 +18,15 @@ var chatCmd = &cobra.Command{
 You can ask questions and get answers from the API. As long as you don't enter an empty question,
  the chat will continue.`,
 	Run: func(cmd *cobra.Command, args []string) {
+		client := perplexity.NewClient(os.Getenv("PPLX_API_KEY"))
+		client.SetHTTPTimeout(DefaultTimeout)
+
 		systemMessage, err := console.Input("system message (optional - enter to skip)")
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "error reading system message: %v\n", err)
 			os.Exit(1)
 		}
-		c := chat.NewChat(systemMessage)
+		c := chat.NewChat(client, model, systemMessage)
 
 		// discussion loop
 	loop:
