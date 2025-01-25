@@ -14,7 +14,7 @@ const DefaultLineLength = 80
 const DefaultLeftMargin = 6
 
 func Input(label string) (string, error) {
-	fmt.Printf("%s:\n", label)
+	fmt.Printf("%s: (set an empty line to validate the entry)\n", label)
 
 	scanner := bufio.NewScanner(os.Stdin)
 	var lines string
