@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"fmt"
 	"os"
 	"time"
 
@@ -12,7 +11,6 @@ var (
 	model        string
 	systemPrompt string
 	userPrompt   string
-	apiKey       string
 )
 
 const DefaultTimeout = 30 * time.Second
@@ -42,11 +40,4 @@ func init() {
 	queryCmd.PersistentFlags().StringVarP(&model, "model", "m", "basic", "Online model to use: basic pro")
 	queryCmd.PersistentFlags().StringVarP(&systemPrompt, "sys-prompt", "s", "", "system prompt")
 	queryCmd.PersistentFlags().StringVarP(&userPrompt, "user-prompt", "p", "", "user prompt")
-
-	// Check env var PPLX_API_KEY exists
-	if os.Getenv("PPLX_API_KEY") == "" {
-		fmt.Fprintf(os.Stderr, "Error: PPLX_API_KEY env var is not set\n")
-		os.Exit(1)
-	}
-	apiKey = os.Getenv("PPLX_API_KEY")
 }

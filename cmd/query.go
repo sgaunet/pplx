@@ -15,6 +15,12 @@ var queryCmd = &cobra.Command{
 	Short: "",
 	Long:  ``,
 	Run: func(cmd *cobra.Command, args []string) {
+		// Check env var PPLX_API_KEY exists
+		if os.Getenv("PPLX_API_KEY") == "" {
+			fmt.Fprintf(os.Stderr, "Error: PPLX_API_KEY env var is not set\n")
+			os.Exit(1)
+		}
+
 		if model == "pro" {
 			model = perplexity.ProModel
 		} else {

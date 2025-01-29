@@ -18,6 +18,12 @@ var chatCmd = &cobra.Command{
 You can ask questions and get answers from the API. As long as you don't enter an empty question,
  the chat will continue.`,
 	Run: func(cmd *cobra.Command, args []string) {
+		// Check env var PPLX_API_KEY exists
+		if os.Getenv("PPLX_API_KEY") == "" {
+			fmt.Fprintf(os.Stderr, "Error: PPLX_API_KEY env var is not set\n")
+			os.Exit(1)
+		}
+
 		client := perplexity.NewClient(os.Getenv("PPLX_API_KEY"))
 		client.SetHTTPTimeout(DefaultTimeout)
 
