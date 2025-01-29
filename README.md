@@ -19,7 +19,7 @@ It's an unofficial CLI program to query/chat with the [perplexity API](https://w
 
 ```sh
 brew tap sgaunet/homebrew-tools
-brew install pplx
+brew install sgaunet/tools/pplx
 ```
 
 ## Usage
