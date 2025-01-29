@@ -59,3 +59,7 @@ Query the Perplexity API.
 ```sh
 pplx query -p "what are the best citations of Jean Marc Jancovici ?" -s "you're a politician"
 ```
+
+The above command will return in console a result that looks like:
+
+![pplx query](img/cli.png)
