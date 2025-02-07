@@ -21,11 +21,6 @@ var queryCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
-		if model == "pro" {
-			model = perplexity.ProModel
-		} else {
-			model = perplexity.DefaultModel
-		}
 		client := perplexity.NewClient(os.Getenv("PPLX_API_KEY"))
 		client.SetHTTPTimeout(DefaultTimeout)
 
@@ -37,7 +32,15 @@ var queryCmd = &cobra.Command{
 		msg := perplexity.NewMessages(perplexity.WithSystemMessage(systemPrompt))
 		msg.AddUserMessage(userPrompt)
 
-		req := perplexity.NewCompletionRequest(perplexity.WithMessages(msg.GetMessages()), perplexity.WithModel(model))
+		req := perplexity.NewCompletionRequest(perplexity.WithMessages(msg.GetMessages()),
+			perplexity.WithModel(model),
+			perplexity.WithFrequencyPenalty(frequencyPenalty),
+			perplexity.WithMaxTokens(maxTokens),
+			perplexity.WithPresencePenalty(presencePenalty),
+			perplexity.WithTemperature(temperature),
+			perplexity.WithTopK(topK),
+			perplexity.WithTopP(topP),
+		)
 		err := req.Validate()
 		if err != nil {
 			fmt.Printf("Error: %v\n", err)

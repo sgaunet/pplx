@@ -32,7 +32,8 @@ You can ask questions and get answers from the API. As long as you don't enter a
 			fmt.Fprintf(os.Stderr, "error reading system message: %v\n", err)
 			os.Exit(1)
 		}
-		c := chat.NewChat(client, model, systemMessage)
+		c := chat.NewChat(client, model, systemMessage, frequencyPenalty,
+			maxTokens, presencePenalty, temperature, topK, topP)
 
 		// discussion loop
 	loop:

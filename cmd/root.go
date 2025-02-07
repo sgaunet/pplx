@@ -4,13 +4,20 @@ import (
 	"os"
 	"time"
 
+	"github.com/sgaunet/perplexity-go/v2"
 	"github.com/spf13/cobra"
 )
 
 var (
-	model        string
-	systemPrompt string
-	userPrompt   string
+	systemPrompt     string
+	userPrompt       string
+	model            string  = perplexity.DefaultModel
+	frequencyPenalty float64 = perplexity.DefaultFrequencyPenalty
+	maxTokens        int     = perplexity.DefaultMaxTokens
+	presencePenalty  float64 = perplexity.DefaultPresencePenalty
+	temperature      float64 = perplexity.DefaultTemperature
+	topK             int     = perplexity.DefaultTopK
+	topP             float64 = perplexity.DefaultTopP
 )
 
 const DefaultTimeout = 30 * time.Second
@@ -34,10 +41,24 @@ func Execute() {
 
 func init() {
 	rootCmd.AddCommand(chatCmd)
-	chatCmd.PersistentFlags().StringVarP(&model, "model", "m", "basic", "Online model to use: basic pro")
+	chatCmd.PersistentFlags().StringVarP(&model, "model", "m", perplexity.DefaultModel, "List of models: https://docs.perplexity.ai/guides/model-cards")
+
+	chatCmd.PersistentFlags().Float64Var(&frequencyPenalty, "frequency-penalty", frequencyPenalty, "Frequency penalty")
+	chatCmd.PersistentFlags().IntVar(&maxTokens, "max-tokens", maxTokens, "Max tokens")
+	chatCmd.PersistentFlags().Float64Var(&presencePenalty, "presence-penalty", presencePenalty, "Presence penalty")
+	chatCmd.PersistentFlags().Float64Var(&temperature, "temperature", temperature, "Temperature")
+	chatCmd.PersistentFlags().IntVar(&topK, "top-k", topK, "Top K")
+	chatCmd.PersistentFlags().Float64Var(&topP, "top-p", topP, "Top P")
 
 	rootCmd.AddCommand(queryCmd)
-	queryCmd.PersistentFlags().StringVarP(&model, "model", "m", "basic", "Online model to use: basic pro")
+	queryCmd.PersistentFlags().StringVarP(&model, "model", "m", perplexity.DefaultModel, "List of models: https://docs.perplexity.ai/guides/model-cards")
 	queryCmd.PersistentFlags().StringVarP(&systemPrompt, "sys-prompt", "s", "", "system prompt")
 	queryCmd.PersistentFlags().StringVarP(&userPrompt, "user-prompt", "p", "", "user prompt")
+
+	queryCmd.PersistentFlags().Float64Var(&frequencyPenalty, "frequency-penalty", frequencyPenalty, "Frequency penalty")
+	queryCmd.PersistentFlags().IntVar(&maxTokens, "max-tokens", maxTokens, "Max tokens")
+	queryCmd.PersistentFlags().Float64Var(&presencePenalty, "presence-penalty", presencePenalty, "Presence penalty")
+	queryCmd.PersistentFlags().Float64Var(&temperature, "temperature", temperature, "Temperature")
+	queryCmd.PersistentFlags().IntVar(&topK, "top-k", topK, "Top K")
+	queryCmd.PersistentFlags().Float64Var(&topP, "top-p", topP, "Top P")
 }

@@ -24,7 +24,7 @@
       // "env": {
       //     "DBDSN": "postgres://postgres:password@localhost:5432/postgres?sslmode=disable"
       // },
-      "args": ["query","--u","what are the best citations of Jancovici ?","--sys","you're a politician" ]
+      "args": ["query","-p","what are the best citations of Jancovici ?","-s","you're a politician" ]
     }
   ]
 }
