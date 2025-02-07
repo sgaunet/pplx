@@ -129,6 +129,8 @@ github.com/sgaunet/perplexity-go/v2 v2.3.1 h1:ITFMi+2dNNT5BxejNdl4nB8ehoabCOf14P
 github.com/sgaunet/perplexity-go/v2 v2.3.1/go.mod h1:glA8IDM0kOgp4ueL9QxCWRzUCFhLBkcC/m8b/lU0q5Q=
 github.com/sgaunet/perplexity-go/v2 v2.4.0 h1:w2s7hPEtIa35YOXjKCrPb7H//UOyUhsq48TsZd/Y4d4=
 github.com/sgaunet/perplexity-go/v2 v2.4.0/go.mod h1:glA8IDM0kOgp4ueL9QxCWRzUCFhLBkcC/m8b/lU0q5Q=
+github.com/sgaunet/perplexity-go/v2 v2.5.0 h1:T/JARYSbNnEFYNUGT+C7vB0B6MyK0knM9EzaUTEnhKo=
+github.com/sgaunet/perplexity-go/v2 v2.5.0/go.mod h1:glA8IDM0kOgp4ueL9QxCWRzUCFhLBkcC/m8b/lU0q5Q=
 github.com/spf13/cobra v1.8.1 h1:e5/vxKd/rZsfSJMUX1agtjeTDf+qv1/JdBF8gg5k9ZM=
 github.com/spf13/cobra v1.8.1/go.mod h1:wHxEcudfqmLYa8iTfL+OuZPbBZkmvliBWKIezN3kD9Y=
 github.com/spf13/pflag v1.0.5 h1:iy+VFUOCP1a+8yFto/drg2CJ5u0yRoB7fZw3DKv/JXA=
