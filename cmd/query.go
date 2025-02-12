@@ -22,7 +22,7 @@ var queryCmd = &cobra.Command{
 		}
 
 		client := perplexity.NewClient(os.Getenv("PPLX_API_KEY"))
-		client.SetHTTPTimeout(DefaultTimeout)
+		client.SetHTTPTimeout(timeout)
 
 		if userPrompt == "" {
 			fmt.Println("Error: user prompt is required")
