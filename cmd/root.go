@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"os"
-	"time"
 
 	"github.com/sgaunet/perplexity-go/v2"
 	"github.com/spf13/cobra"
@@ -18,9 +17,8 @@ var (
 	temperature      float64 = perplexity.DefaultTemperature
 	topK             int     = perplexity.DefaultTopK
 	topP             float64 = perplexity.DefaultTopP
+	timeout                  = perplexity.DefaultTimeout
 )
-
-const DefaultTimeout = 30 * time.Second
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
@@ -49,6 +47,7 @@ func init() {
 	chatCmd.PersistentFlags().Float64Var(&temperature, "temperature", temperature, "Temperature")
 	chatCmd.PersistentFlags().IntVar(&topK, "top-k", topK, "Top K")
 	chatCmd.PersistentFlags().Float64Var(&topP, "top-p", topP, "Top P")
+	chatCmd.PersistentFlags().DurationVar(&timeout, "timeout", timeout, "HTTP timeout")
 
 	rootCmd.AddCommand(queryCmd)
 	queryCmd.PersistentFlags().StringVarP(&model, "model", "m", perplexity.DefaultModel, "List of models: https://docs.perplexity.ai/guides/model-cards")
@@ -61,4 +60,5 @@ func init() {
 	queryCmd.PersistentFlags().Float64Var(&temperature, "temperature", temperature, "Temperature")
 	queryCmd.PersistentFlags().IntVar(&topK, "top-k", topK, "Top K")
 	queryCmd.PersistentFlags().Float64Var(&topP, "top-p", topP, "Top P")
+	queryCmd.PersistentFlags().DurationVar(&timeout, "timeout", timeout, "HTTP timeout")
 }

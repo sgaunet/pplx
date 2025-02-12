@@ -25,7 +25,7 @@ You can ask questions and get answers from the API. As long as you don't enter a
 		}
 
 		client := perplexity.NewClient(os.Getenv("PPLX_API_KEY"))
-		client.SetHTTPTimeout(DefaultTimeout)
+		client.SetHTTPTimeout(timeout)
 
 		systemMessage, err := console.Input("system message (optional - enter to skip)")
 		if err != nil {
