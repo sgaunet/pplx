@@ -5,7 +5,7 @@ go 1.23.2
 require (
 	github.com/MichaelMure/go-term-markdown v0.1.4
 	github.com/pterm/pterm v0.12.80
-	github.com/sgaunet/perplexity-go/v2 v2.7.0
+	github.com/sgaunet/perplexity-go/v2 v2.8.0
 	github.com/spf13/cobra v1.9.1
 )
 
