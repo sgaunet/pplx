@@ -3,6 +3,8 @@
 [![GitHub release](https://img.shields.io/github/release/sgaunet/pplx.svg)](https://github.com/sgaunet/pplx/releases/latest)
 [![Go Report Card](https://goreportcard.com/badge/github.com/sgaunet/pplx)](https://goreportcard.com/report/github.com/sgaunet/pplx)
 ![GitHub Downloads](https://img.shields.io/github/downloads/sgaunet/pplx/total)
+[![Snapshot](https://github.com/sgaunet/pplx/actions/workflows/snapshot.yml/badge.svg)](https://github.com/sgaunet/pplx/actions/workflows/snapshot.yml)
+[![Release](https://github.com/sgaunet/pplx/actions/workflows/release.yml/badge.svg)](https://github.com/sgaunet/pplx/actions/workflows/release.yml)
 [![GoDoc](https://godoc.org/github.com/sgaunet/pplx?status.svg)](https://godoc.org/github.com/sgaunet/pplx)
 [![License](https://img.shields.io/github/license/sgaunet/pplx.svg)](LICENSE)
 
