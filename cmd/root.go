@@ -18,6 +18,22 @@ var (
 	topK             int     = perplexity.DefaultTopK
 	topP             float64 = perplexity.DefaultTopP
 	timeout                  = perplexity.DefaultTimeout
+
+	// Search/Web options
+	searchDomains    []string
+	searchRecency    string
+	locationLat      float64
+	locationLon      float64
+	locationCountry  string
+
+	// Response enhancement options
+	returnImages    bool
+	returnRelated   bool
+	stream          bool
+
+	// Image filtering options
+	imageDomains []string
+	imageFormats []string
 )
 
 // rootCmd represents the base command when called without any subcommands
@@ -49,6 +65,22 @@ func init() {
 	chatCmd.PersistentFlags().Float64Var(&topP, "top-p", topP, "Top P")
 	chatCmd.PersistentFlags().DurationVar(&timeout, "timeout", timeout, "HTTP timeout")
 
+	// Search/Web options
+	chatCmd.PersistentFlags().StringSliceVar(&searchDomains, "search-domains", searchDomains, "Filter search results to specific domains")
+	chatCmd.PersistentFlags().StringVar(&searchRecency, "search-recency", searchRecency, "Filter by time: day, week, month, year")
+	chatCmd.PersistentFlags().Float64Var(&locationLat, "location-lat", locationLat, "User location latitude")
+	chatCmd.PersistentFlags().Float64Var(&locationLon, "location-lon", locationLon, "User location longitude")
+	chatCmd.PersistentFlags().StringVar(&locationCountry, "location-country", locationCountry, "User location country code")
+
+	// Response enhancement options
+	chatCmd.PersistentFlags().BoolVar(&returnImages, "return-images", returnImages, "Include images in response")
+	chatCmd.PersistentFlags().BoolVar(&returnRelated, "return-related", returnRelated, "Include related questions")
+	chatCmd.PersistentFlags().BoolVar(&stream, "stream", stream, "Enable streaming responses")
+
+	// Image filtering options
+	chatCmd.PersistentFlags().StringSliceVar(&imageDomains, "image-domains", imageDomains, "Filter images by domains")
+	chatCmd.PersistentFlags().StringSliceVar(&imageFormats, "image-formats", imageFormats, "Filter images by formats (jpg, png, etc.)")
+
 	rootCmd.AddCommand(queryCmd)
 	queryCmd.PersistentFlags().StringVarP(&model, "model", "m", perplexity.DefaultModel, "List of models: https://docs.perplexity.ai/guides/model-cards")
 	queryCmd.PersistentFlags().StringVarP(&systemPrompt, "sys-prompt", "s", "", "system prompt")
@@ -61,4 +93,20 @@ func init() {
 	queryCmd.PersistentFlags().IntVar(&topK, "top-k", topK, "Top K")
 	queryCmd.PersistentFlags().Float64Var(&topP, "top-p", topP, "Top P")
 	queryCmd.PersistentFlags().DurationVar(&timeout, "timeout", timeout, "HTTP timeout")
+
+	// Search/Web options
+	queryCmd.PersistentFlags().StringSliceVar(&searchDomains, "search-domains", searchDomains, "Filter search results to specific domains")
+	queryCmd.PersistentFlags().StringVar(&searchRecency, "search-recency", searchRecency, "Filter by time: day, week, month, year")
+	queryCmd.PersistentFlags().Float64Var(&locationLat, "location-lat", locationLat, "User location latitude")
+	queryCmd.PersistentFlags().Float64Var(&locationLon, "location-lon", locationLon, "User location longitude")
+	queryCmd.PersistentFlags().StringVar(&locationCountry, "location-country", locationCountry, "User location country code")
+
+	// Response enhancement options
+	queryCmd.PersistentFlags().BoolVar(&returnImages, "return-images", returnImages, "Include images in response")
+	queryCmd.PersistentFlags().BoolVar(&returnRelated, "return-related", returnRelated, "Include related questions")
+	queryCmd.PersistentFlags().BoolVar(&stream, "stream", stream, "Enable streaming responses")
+
+	// Image filtering options
+	queryCmd.PersistentFlags().StringSliceVar(&imageDomains, "image-domains", imageDomains, "Filter images by domains")
+	queryCmd.PersistentFlags().StringSliceVar(&imageFormats, "image-formats", imageFormats, "Filter images by formats (jpg, png, etc.)")
 }

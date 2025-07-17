@@ -32,8 +32,27 @@ You can ask questions and get answers from the API. As long as you don't enter a
 			fmt.Fprintf(os.Stderr, "error reading system message: %v\n", err)
 			os.Exit(1)
 		}
-		c := chat.NewChat(client, model, systemMessage, frequencyPenalty,
-			maxTokens, presencePenalty, temperature, topK, topP)
+		// Create chat options
+		chatOptions := chat.ChatOptions{
+			Model:            model,
+			FrequencyPenalty: frequencyPenalty,
+			MaxTokens:        maxTokens,
+			PresencePenalty:  presencePenalty,
+			Temperature:      temperature,
+			TopK:             topK,
+			TopP:             topP,
+			SearchDomains:    searchDomains,
+			SearchRecency:    searchRecency,
+			LocationLat:      locationLat,
+			LocationLon:      locationLon,
+			LocationCountry:  locationCountry,
+			ReturnImages:     returnImages,
+			ReturnRelated:    returnRelated,
+			Stream:           stream,
+			ImageDomains:     imageDomains,
+			ImageFormats:     imageFormats,
+		}
+		c := chat.NewChatWithOptions(client, systemMessage, chatOptions)
 
 		// discussion loop
 	loop:
@@ -71,6 +90,16 @@ You can ask questions and get answers from the API. As long as you don't enter a
 				os.Exit(1)
 			}
 			err = console.RenderCitations(response, os.Stdout)
+			if err != nil {
+				fmt.Printf("Error: %v\n", err)
+				os.Exit(1)
+			}
+			err = console.RenderImages(response, os.Stdout)
+			if err != nil {
+				fmt.Printf("Error: %v\n", err)
+				os.Exit(1)
+			}
+			err = console.RenderRelatedQuestions(response, os.Stdout)
 			if err != nil {
 				fmt.Printf("Error: %v\n", err)
 				os.Exit(1)
