@@ -34,6 +34,23 @@ var (
 	// Image filtering options
 	imageDomains []string
 	imageFormats []string
+
+	// Response format options
+	responseFormatJSONSchema string
+	responseFormatRegex      string
+
+	// Search mode options
+	searchMode        string
+	searchContextSize string
+
+	// Date filtering options
+	searchAfterDate     string
+	searchBeforeDate    string
+	lastUpdatedAfter    string
+	lastUpdatedBefore   string
+
+	// Deep research options
+	reasoningEffort string
 )
 
 // rootCmd represents the base command when called without any subcommands
@@ -81,6 +98,23 @@ func init() {
 	chatCmd.PersistentFlags().StringSliceVar(&imageDomains, "image-domains", imageDomains, "Filter images by domains")
 	chatCmd.PersistentFlags().StringSliceVar(&imageFormats, "image-formats", imageFormats, "Filter images by formats (jpg, png, etc.)")
 
+	// Response format options
+	chatCmd.PersistentFlags().StringVar(&responseFormatJSONSchema, "response-format-json-schema", responseFormatJSONSchema, "JSON schema for structured output (sonar model only)")
+	chatCmd.PersistentFlags().StringVar(&responseFormatRegex, "response-format-regex", responseFormatRegex, "Regex pattern for structured output (sonar model only)")
+
+	// Search mode options
+	chatCmd.PersistentFlags().StringVar(&searchMode, "search-mode", searchMode, "Search mode: web (default) or academic")
+	chatCmd.PersistentFlags().StringVar(&searchContextSize, "search-context-size", searchContextSize, "Search context size: low, medium, or high")
+
+	// Date filtering options
+	chatCmd.PersistentFlags().StringVar(&searchAfterDate, "search-after-date", searchAfterDate, "Filter results published after date (MM/DD/YYYY)")
+	chatCmd.PersistentFlags().StringVar(&searchBeforeDate, "search-before-date", searchBeforeDate, "Filter results published before date (MM/DD/YYYY)")
+	chatCmd.PersistentFlags().StringVar(&lastUpdatedAfter, "last-updated-after", lastUpdatedAfter, "Filter results last updated after date (MM/DD/YYYY)")
+	chatCmd.PersistentFlags().StringVar(&lastUpdatedBefore, "last-updated-before", lastUpdatedBefore, "Filter results last updated before date (MM/DD/YYYY)")
+
+	// Deep research options
+	chatCmd.PersistentFlags().StringVar(&reasoningEffort, "reasoning-effort", reasoningEffort, "Reasoning effort for sonar-deep-research: low, medium, or high")
+
 	rootCmd.AddCommand(queryCmd)
 	queryCmd.PersistentFlags().StringVarP(&model, "model", "m", perplexity.DefaultModel, "List of models: https://docs.perplexity.ai/guides/model-cards")
 	queryCmd.PersistentFlags().StringVarP(&systemPrompt, "sys-prompt", "s", "", "system prompt")
@@ -109,4 +143,21 @@ func init() {
 	// Image filtering options
 	queryCmd.PersistentFlags().StringSliceVar(&imageDomains, "image-domains", imageDomains, "Filter images by domains")
 	queryCmd.PersistentFlags().StringSliceVar(&imageFormats, "image-formats", imageFormats, "Filter images by formats (jpg, png, etc.)")
+
+	// Response format options
+	queryCmd.PersistentFlags().StringVar(&responseFormatJSONSchema, "response-format-json-schema", responseFormatJSONSchema, "JSON schema for structured output (sonar model only)")
+	queryCmd.PersistentFlags().StringVar(&responseFormatRegex, "response-format-regex", responseFormatRegex, "Regex pattern for structured output (sonar model only)")
+
+	// Search mode options
+	queryCmd.PersistentFlags().StringVar(&searchMode, "search-mode", searchMode, "Search mode: web (default) or academic")
+	queryCmd.PersistentFlags().StringVar(&searchContextSize, "search-context-size", searchContextSize, "Search context size: low, medium, or high")
+
+	// Date filtering options
+	queryCmd.PersistentFlags().StringVar(&searchAfterDate, "search-after-date", searchAfterDate, "Filter results published after date (MM/DD/YYYY)")
+	queryCmd.PersistentFlags().StringVar(&searchBeforeDate, "search-before-date", searchBeforeDate, "Filter results published before date (MM/DD/YYYY)")
+	queryCmd.PersistentFlags().StringVar(&lastUpdatedAfter, "last-updated-after", lastUpdatedAfter, "Filter results last updated after date (MM/DD/YYYY)")
+	queryCmd.PersistentFlags().StringVar(&lastUpdatedBefore, "last-updated-before", lastUpdatedBefore, "Filter results last updated before date (MM/DD/YYYY)")
+
+	// Deep research options
+	queryCmd.PersistentFlags().StringVar(&reasoningEffort, "reasoning-effort", reasoningEffort, "Reasoning effort for sonar-deep-research: low, medium, or high")
 }

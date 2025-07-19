@@ -1,9 +1,12 @@
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
+	"strings"
 	"sync"
+	"time"
 
 	"github.com/pterm/pterm"
 	"github.com/sgaunet/perplexity-go/v2"
@@ -94,6 +97,101 @@ var queryCmd = &cobra.Command{
 				}
 			}
 			opts = append(opts, perplexity.WithImageFormatFilter(imageFormats))
+		}
+
+		// Add response format options
+		if responseFormatJSONSchema != "" && responseFormatRegex != "" {
+			fmt.Println("Error: Cannot use both --response-format-json-schema and --response-format-regex")
+			os.Exit(1)
+		}
+		if responseFormatJSONSchema != "" || responseFormatRegex != "" {
+			// Validate model supports response formats
+			if !strings.HasPrefix(model, "sonar") {
+				fmt.Printf("Error: Response formats (JSON schema and regex) are only supported by sonar models\n")
+				os.Exit(1)
+			}
+		}
+		if responseFormatJSONSchema != "" {
+			// Parse JSON schema
+			var schema interface{}
+			err := json.Unmarshal([]byte(responseFormatJSONSchema), &schema)
+			if err != nil {
+				fmt.Printf("Error: Invalid JSON schema: %v\n", err)
+				os.Exit(1)
+			}
+			opts = append(opts, perplexity.WithJSONSchemaResponseFormat(schema))
+		}
+		if responseFormatRegex != "" {
+			opts = append(opts, perplexity.WithRegexResponseFormat(responseFormatRegex))
+		}
+
+		// Add search mode options
+		if searchMode != "" {
+			// Validate search mode
+			validModes := map[string]bool{"web": true, "academic": true}
+			if !validModes[searchMode] {
+				fmt.Printf("Error: Invalid search mode '%s'. Must be one of: web, academic\n", searchMode)
+				os.Exit(1)
+			}
+			opts = append(opts, perplexity.WithSearchMode(searchMode))
+		}
+		if searchContextSize != "" {
+			// Validate search context size
+			validSizes := map[string]bool{"low": true, "medium": true, "high": true}
+			if !validSizes[searchContextSize] {
+				fmt.Printf("Error: Invalid search context size '%s'. Must be one of: low, medium, high\n", searchContextSize)
+				os.Exit(1)
+			}
+			opts = append(opts, perplexity.WithSearchContextSize(searchContextSize))
+		}
+
+		// Add date filtering options
+		if searchAfterDate != "" {
+			date, err := time.Parse("01/02/2006", searchAfterDate)
+			if err != nil {
+				fmt.Printf("Error: Invalid search-after-date format '%s'. Use MM/DD/YYYY\n", searchAfterDate)
+				os.Exit(1)
+			}
+			opts = append(opts, perplexity.WithSearchAfterDateFilter(date))
+		}
+		if searchBeforeDate != "" {
+			date, err := time.Parse("01/02/2006", searchBeforeDate)
+			if err != nil {
+				fmt.Printf("Error: Invalid search-before-date format '%s'. Use MM/DD/YYYY\n", searchBeforeDate)
+				os.Exit(1)
+			}
+			opts = append(opts, perplexity.WithSearchBeforeDateFilter(date))
+		}
+		if lastUpdatedAfter != "" {
+			date, err := time.Parse("01/02/2006", lastUpdatedAfter)
+			if err != nil {
+				fmt.Printf("Error: Invalid last-updated-after format '%s'. Use MM/DD/YYYY\n", lastUpdatedAfter)
+				os.Exit(1)
+			}
+			opts = append(opts, perplexity.WithLastUpdatedAfterFilter(date))
+		}
+		if lastUpdatedBefore != "" {
+			date, err := time.Parse("01/02/2006", lastUpdatedBefore)
+			if err != nil {
+				fmt.Printf("Error: Invalid last-updated-before format '%s'. Use MM/DD/YYYY\n", lastUpdatedBefore)
+				os.Exit(1)
+			}
+			opts = append(opts, perplexity.WithLastUpdatedBeforeFilter(date))
+		}
+
+		// Add deep research options
+		if reasoningEffort != "" {
+			// Validate reasoning effort
+			validEfforts := map[string]bool{"low": true, "medium": true, "high": true}
+			if !validEfforts[reasoningEffort] {
+				fmt.Printf("Error: Invalid reasoning effort '%s'. Must be one of: low, medium, high\n", reasoningEffort)
+				os.Exit(1)
+			}
+			// Check if the model supports reasoning effort
+			if !strings.Contains(model, "deep-research") {
+				fmt.Printf("Warning: reasoning-effort is only supported by sonar-deep-research model\n")
+			}
+			opts = append(opts, perplexity.WithReasoningEffort(reasoningEffort))
 		}
 
 		req := perplexity.NewCompletionRequest(opts...)

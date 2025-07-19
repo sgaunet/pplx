@@ -51,6 +51,19 @@ You can ask questions and get answers from the API. As long as you don't enter a
 			Stream:           stream,
 			ImageDomains:     imageDomains,
 			ImageFormats:     imageFormats,
+			// Response format options
+			ResponseFormatJSONSchema: responseFormatJSONSchema,
+			ResponseFormatRegex:      responseFormatRegex,
+			// Search mode options
+			SearchMode:        searchMode,
+			SearchContextSize: searchContextSize,
+			// Date filtering options
+			SearchAfterDate:   searchAfterDate,
+			SearchBeforeDate:  searchBeforeDate,
+			LastUpdatedAfter:  lastUpdatedAfter,
+			LastUpdatedBefore: lastUpdatedBefore,
+			// Deep research options
+			ReasoningEffort: reasoningEffort,
 		}
 		c := chat.NewChatWithOptions(client, systemMessage, chatOptions)
 
