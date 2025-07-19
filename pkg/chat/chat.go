@@ -1,7 +1,10 @@
 package chat
 
 import (
+	"encoding/json"
 	"fmt"
+	"strings"
+	"time"
 
 	"github.com/sgaunet/perplexity-go/v2"
 )
@@ -24,6 +27,23 @@ type ChatOptions struct {
 	Stream           bool
 	ImageDomains     []string
 	ImageFormats     []string
+	
+	// Response format options
+	ResponseFormatJSONSchema string
+	ResponseFormatRegex      string
+	
+	// Search mode options
+	SearchMode        string
+	SearchContextSize string
+	
+	// Date filtering options
+	SearchAfterDate   string
+	SearchBeforeDate  string
+	LastUpdatedAfter  string
+	LastUpdatedBefore string
+	
+	// Deep research options
+	ReasoningEffort string
 }
 
 type Chat struct {
@@ -118,6 +138,92 @@ func (c *Chat) Run() (*perplexity.CompletionResponse, error) {
 	}
 	if len(c.options.ImageFormats) > 0 {
 		opts = append(opts, perplexity.WithImageFormatFilter(c.options.ImageFormats))
+	}
+
+	// Add response format options
+	if c.options.ResponseFormatJSONSchema != "" && c.options.ResponseFormatRegex != "" {
+		return nil, fmt.Errorf("cannot use both JSON schema and regex response formats")
+	}
+	if c.options.ResponseFormatJSONSchema != "" || c.options.ResponseFormatRegex != "" {
+		// Validate model supports response formats
+		if !strings.HasPrefix(c.options.Model, "sonar") {
+			return nil, fmt.Errorf("response formats (JSON schema and regex) are only supported by sonar models")
+		}
+	}
+	if c.options.ResponseFormatJSONSchema != "" {
+		// Parse JSON schema
+		var schema interface{}
+		err := json.Unmarshal([]byte(c.options.ResponseFormatJSONSchema), &schema)
+		if err != nil {
+			return nil, fmt.Errorf("invalid JSON schema: %w", err)
+		}
+		opts = append(opts, perplexity.WithJSONSchemaResponseFormat(schema))
+	}
+	if c.options.ResponseFormatRegex != "" {
+		opts = append(opts, perplexity.WithRegexResponseFormat(c.options.ResponseFormatRegex))
+	}
+
+	// Add search mode options
+	if c.options.SearchMode != "" {
+		// Validate search mode
+		validModes := map[string]bool{"web": true, "academic": true}
+		if !validModes[c.options.SearchMode] {
+			return nil, fmt.Errorf("invalid search mode '%s'. Must be one of: web, academic", c.options.SearchMode)
+		}
+		opts = append(opts, perplexity.WithSearchMode(c.options.SearchMode))
+	}
+	if c.options.SearchContextSize != "" {
+		// Validate search context size
+		validSizes := map[string]bool{"low": true, "medium": true, "high": true}
+		if !validSizes[c.options.SearchContextSize] {
+			return nil, fmt.Errorf("invalid search context size '%s'. Must be one of: low, medium, high", c.options.SearchContextSize)
+		}
+		opts = append(opts, perplexity.WithSearchContextSize(c.options.SearchContextSize))
+	}
+
+	// Add date filtering options
+	if c.options.SearchAfterDate != "" {
+		date, err := time.Parse("01/02/2006", c.options.SearchAfterDate)
+		if err != nil {
+			return nil, fmt.Errorf("invalid search-after-date format '%s'. Use MM/DD/YYYY", c.options.SearchAfterDate)
+		}
+		opts = append(opts, perplexity.WithSearchAfterDateFilter(date))
+	}
+	if c.options.SearchBeforeDate != "" {
+		date, err := time.Parse("01/02/2006", c.options.SearchBeforeDate)
+		if err != nil {
+			return nil, fmt.Errorf("invalid search-before-date format '%s'. Use MM/DD/YYYY", c.options.SearchBeforeDate)
+		}
+		opts = append(opts, perplexity.WithSearchBeforeDateFilter(date))
+	}
+	if c.options.LastUpdatedAfter != "" {
+		date, err := time.Parse("01/02/2006", c.options.LastUpdatedAfter)
+		if err != nil {
+			return nil, fmt.Errorf("invalid last-updated-after format '%s'. Use MM/DD/YYYY", c.options.LastUpdatedAfter)
+		}
+		opts = append(opts, perplexity.WithLastUpdatedAfterFilter(date))
+	}
+	if c.options.LastUpdatedBefore != "" {
+		date, err := time.Parse("01/02/2006", c.options.LastUpdatedBefore)
+		if err != nil {
+			return nil, fmt.Errorf("invalid last-updated-before format '%s'. Use MM/DD/YYYY", c.options.LastUpdatedBefore)
+		}
+		opts = append(opts, perplexity.WithLastUpdatedBeforeFilter(date))
+	}
+
+	// Add deep research options
+	if c.options.ReasoningEffort != "" {
+		// Validate reasoning effort
+		validEfforts := map[string]bool{"low": true, "medium": true, "high": true}
+		if !validEfforts[c.options.ReasoningEffort] {
+			return nil, fmt.Errorf("invalid reasoning effort '%s'. Must be one of: low, medium, high", c.options.ReasoningEffort)
+		}
+		// Check if the model supports reasoning effort
+		if !strings.Contains(c.options.Model, "deep-research") {
+			// Just a warning in chat mode, not an error
+			fmt.Printf("Warning: reasoning-effort is only supported by sonar-deep-research model\n")
+		}
+		opts = append(opts, perplexity.WithReasoningEffort(c.options.ReasoningEffort))
 	}
 
 	req := perplexity.NewCompletionRequest(opts...)

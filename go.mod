@@ -5,7 +5,7 @@ go 1.23.2
 require (
 	github.com/MichaelMure/go-term-markdown v0.1.4
 	github.com/pterm/pterm v0.12.81
-	github.com/sgaunet/perplexity-go/v2 v2.10.0
+	github.com/sgaunet/perplexity-go/v2 v2.11.0
 	github.com/spf13/cobra v1.9.1
 )
 
@@ -35,7 +35,7 @@ require (
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mattn/go-runewidth v0.0.16 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
-	github.com/spf13/pflag v1.0.6 // indirect
+	github.com/spf13/pflag v1.0.7 // indirect
 	github.com/xo/terminfo v0.0.0-20220910002029-abceb7e1c41e // indirect
 	golang.org/x/crypto v0.40.0 // indirect
 	golang.org/x/image v0.29.0 // indirect
