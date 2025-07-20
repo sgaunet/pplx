@@ -160,4 +160,6 @@ func init() {
 
 	// Deep research options
 	queryCmd.PersistentFlags().StringVar(&reasoningEffort, "reasoning-effort", reasoningEffort, "Reasoning effort for sonar-deep-research: low, medium, or high")
+
+	rootCmd.AddCommand(mcpStdioCmd)
 }

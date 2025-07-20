@@ -177,3 +177,212 @@ pplx query -p "Write a short story about AI" \
 |--------|-------|------|-------------|
 | `--user-prompt` | `-p` | string | User question/prompt (required) |
 | `--sys-prompt` | `-s` | string | System prompt to set AI behavior |
+
+## MCP Server (Model Context Protocol)
+
+The `pplx mcp-stdio` command provides an MCP server that exposes Perplexity AI functionality to Claude Code and other MCP-compatible clients.
+
+### Quick Start with Claude Code
+
+```bash
+# Install the server
+brew install sgaunet/tools/pplx
+# or download from releases and place in PATH
+
+# Add to Claude Code
+claude mcp add perplexity-ai -s user -- pplx mcp-stdio
+```
+
+### Manual Configuration
+
+#### For Claude Code (via config file)
+
+Add to your Claude Code MCP configuration:
+
+```json
+{
+  "mcpServers": {
+    "perplexity-ai": {
+      "command": "pplx",
+      "args": ["mcp-stdio"],
+      "env": {
+        "PPLX_API_KEY": "your_perplexity_api_key_here"
+      }
+    }
+  }
+}
+```
+
+Configure `PPLX_API_KEY` with your Perplexity AI API key in your environment or directly in the MCP config.
+
+#### For Claude Desktop
+
+Add to `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS) or equivalent location:
+
+```json
+{
+  "mcpServers": {
+    "perplexity-ai": {
+      "command": "/usr/local/bin/pplx",
+      "args": ["mcp-stdio"],
+      "env": {
+        "PPLX_API_KEY": "your_perplexity_api_key_here"
+      }
+    }
+  }
+}
+```
+
+#### For Other MCP Clients
+
+Any MCP-compatible client can use this server by executing:
+
+```bash
+PPLX_API_KEY=your_key /path/to/pplx mcp-stdio
+```
+
+### MCP Tool: `query`
+
+The MCP server exposes a single powerful tool called `query` with the following parameters:
+
+#### Required Parameters
+- `user_prompt` (string): The user question/prompt
+
+#### Optional Parameters
+
+**Core Parameters:**
+- `system_prompt` (string): System prompt to guide AI behavior
+- `model` (string): AI model to use (default: sonar-small-online)
+- `temperature` (number): Response randomness (0.0-2.0)
+- `max_tokens` (number): Maximum tokens in response
+- `frequency_penalty` (number): Penalize frequent tokens (0.0-2.0)
+- `presence_penalty` (number): Penalize already present tokens (0.0-2.0)
+- `top_k` (number): Consider only top K tokens
+- `top_p` (number): Nucleus sampling threshold
+- `timeout` (number): HTTP timeout in seconds
+
+**Search & Web Options:**
+- `search_domains` (array): Filter search to specific domains
+- `search_recency` (string): Filter by time: "day", "week", "month", "year", "hour"
+- `location_lat` (number): User location latitude
+- `location_lon` (number): User location longitude
+- `location_country` (string): User location country code
+- `search_mode` (string): Search mode: "web" or "academic"
+- `search_context_size` (string): Context size: "low", "medium", "high"
+
+**Response Enhancement:**
+- `return_images` (boolean): Include images in response
+- `return_related` (boolean): Include related questions
+- `stream` (boolean): Enable streaming (collected into complete response)
+
+**Image Filtering:**
+- `image_domains` (array): Filter images by domains
+- `image_formats` (array): Filter images by formats (jpg, png, etc.)
+
+**Response Formats (Sonar models only):**
+- `response_format_json_schema` (string): JSON schema for structured output
+- `response_format_regex` (string): Regex pattern for structured output
+
+**Date Filtering:**
+- `search_after_date` (string): Filter results published after date (MM/DD/YYYY)
+- `search_before_date` (string): Filter results published before date (MM/DD/YYYY)
+- `last_updated_after` (string): Filter results last updated after date (MM/DD/YYYY)
+- `last_updated_before` (string): Filter results last updated before date (MM/DD/YYYY)
+
+**Deep Research:**
+- `reasoning_effort` (string): For sonar-deep-research model: "low", "medium", "high"
+
+### Example Usage in Claude Code
+
+Once configured, you can use the Perplexity MCP server directly in Claude Code:
+
+```
+Search for recent AI developments in computer vision with images
+```
+
+Claude Code will automatically use the MCP server to:
+1. Query Perplexity AI with your prompt
+2. Filter for recent information
+3. Include relevant images
+4. Return structured results with citations
+
+### Response Format
+
+The MCP server returns JSON with the following structure:
+
+```json
+{
+  "content": "AI response text with markdown formatting",
+  "model": "model_used_for_generation",
+  "usage": {
+    "prompt_tokens": 123,
+    "completion_tokens": 456,
+    "total_tokens": 579
+  },
+  "search_results": [
+    {
+      "title": "Article Title",
+      "url": "https://example.com/article",
+      "snippet": "Relevant excerpt..."
+    }
+  ],
+  "images": [
+    {
+      "url": "https://example.com/image.jpg",
+      "description": "Image description"
+    }
+  ],
+  "related_questions": [
+    "What are the latest AI breakthroughs?",
+    "How is computer vision evolving?"
+  ]
+}
+```
+
+### Environment Variables
+
+- `PPLX_API_KEY` (required): Your Perplexity AI API key
+
+### Troubleshooting
+
+1. **Server not starting**: Verify `PPLX_API_KEY` is set
+2. **Command not found**: Ensure `pplx` is in your PATH
+3. **Configuration issues**: Check JSON syntax in MCP config files
+4. **API errors**: Verify your API key is valid and has sufficient credits
+
+### Advanced Configuration Examples
+
+#### High-quality research with academic sources
+```json
+{
+  "user_prompt": "Latest quantum computing breakthroughs",
+  "search_mode": "academic",
+  "search_context_size": "high",
+  "search_recency": "month",
+  "return_related": true,
+  "max_tokens": 2000
+}
+```
+
+#### Location-based search with images
+```json
+{
+  "user_prompt": "Best restaurants in Tokyo",
+  "location_lat": 35.6762,
+  "location_lon": 139.6503,
+  "location_country": "JP",
+  "return_images": true,
+  "image_formats": ["jpg", "png"],
+  "search_recency": "week"
+}
+```
+
+#### Structured output for data processing
+```json
+{
+  "user_prompt": "List top 5 programming languages",
+  "model": "sonar-small-online",
+  "response_format_json_schema": "{\"type\":\"object\",\"properties\":{\"languages\":{\"type\":\"array\",\"items\":{\"type\":\"string\"}}}}",
+  "max_tokens": 500
+}
+```
