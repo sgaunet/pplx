@@ -131,8 +131,8 @@ github.com/russross/blackfriday/v2 v2.1.0/go.mod h1:+Rmxgy9KzJVeS9/2gXHxylqXiyQD
 github.com/sergi/go-diff v1.0.0/go.mod h1:0CfEIISq7TuYL3j771MWULgwwjU+GofnZX9QAmXWZgo=
 github.com/sergi/go-diff v1.2.0 h1:XU+rvMAioB0UC3q1MFrIQy4Vo5/4VsRDQQXHsEya6xQ=
 github.com/sergi/go-diff v1.2.0/go.mod h1:STckp+ISIX8hZLjrqAeVduY0gWCT9IjLuqbuNXdaHfM=
-github.com/sgaunet/perplexity-go/v2 v2.11.0 h1:iN1+Suz21RPGQFIXh5o1GOJRAPYAoMv9xcM0jDPgEYM=
-github.com/sgaunet/perplexity-go/v2 v2.11.0/go.mod h1:MSks4RNuivCi0GqJyylhFdgSJFVEwZHjAhrf86Wkynk=
+github.com/sgaunet/perplexity-go/v2 v2.11.1 h1:j+Oe3yPEccJyY3kgynuZhw6XsW6ZxN8Tx8YwvvhFiGI=
+github.com/sgaunet/perplexity-go/v2 v2.11.1/go.mod h1:MSks4RNuivCi0GqJyylhFdgSJFVEwZHjAhrf86Wkynk=
 github.com/spf13/cast v1.7.1 h1:cuNEagBQEHWN1FnbGEjCXL2szYEXqfJPbP2HNUaca9Y=
 github.com/spf13/cast v1.7.1/go.mod h1:ancEpBxwJDODSW/UG4rDrAqiKolqNNh2DX3mk86cAdo=
 github.com/spf13/cobra v1.9.1 h1:CXSaggrXdbHK9CF+8ywj8Amf7PBRmPCOJugH954Nnlo=
