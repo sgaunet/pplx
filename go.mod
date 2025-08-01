@@ -6,7 +6,7 @@ require (
 	github.com/MichaelMure/go-term-markdown v0.1.4
 	github.com/mark3labs/mcp-go v0.33.0
 	github.com/pterm/pterm v0.12.81
-	github.com/sgaunet/perplexity-go/v2 v2.11.0
+	github.com/sgaunet/perplexity-go/v2 v2.11.1
 	github.com/spf13/cobra v1.9.1
 )
 
