@@ -52,6 +52,6 @@ brews:
       token: '{{ .Env.HOMEBREW_TAP_TOKEN }}'
     url_template: 'https://github.com/sgaunet/pplx/releases/download/{{ .Tag }}/{{ .ArtifactName }}'
     install: |
-      bin.install "pplx"
+      bin.install "{{ .ArtifactName }}" => "pplx"
     test: |
       system "#{bin}/pplx", "--help"
