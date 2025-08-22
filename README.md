@@ -186,6 +186,7 @@ The `pplx mcp-stdio` command provides an MCP server that exposes Perplexity AI f
 
 ```bash
 # Install the server
+brew tap sgaunet/homebrew-tools
 brew install sgaunet/tools/pplx
 # or download from releases and place in PATH
 
