@@ -23,11 +23,16 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: '>=1.24'
-      - name: Install devbox
-        uses: jetify-com/devbox-install-action@v0.13.0
+      - name: Install task
+        uses: jaxxstorm/action-install-gh-release@v1.12.0
         with:
-          enable-cache: true
-          devbox-version: 0.14.0
+          repo: go-task/task
+          # tag: 
+      - name: Install goreleaser
+        uses: jaxxstorm/action-install-gh-release@v1.12.0
+        with:
+          repo: goreleaser/goreleaser
+          # tag: 
 
       -
         # Add support for more platforms with QEMU (optional)
@@ -45,11 +50,10 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Install prerequisites
+      - name: Create release
         shell: /usr/bin/bash {0}
         run: |
-          devbox install
-          devbox run release
+          task release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # Your GoReleaser Pro key, if you are using the 'goreleaser-pro' distribution
