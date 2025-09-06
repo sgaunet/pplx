@@ -1,11 +1,10 @@
 name: snapshot
 
 on:
-  pull_request:
   push:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   goreleaser-snapshot:
@@ -20,12 +19,19 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: '>=1.24'
-      - name: Install devbox
-        uses: jetify-com/devbox-install-action@v0.13.0
+      - name: Install task
+        uses: jaxxstorm/action-install-gh-release@v1.12.0
         with:
-          enable-cache: true
-          devbox-version: 0.14.0
-  
+          repo: go-task/task
+          cache: true
+          # tag: 
+      - name: Install goreleaser
+        uses: jaxxstorm/action-install-gh-release@v1.12.0
+        with:
+          repo: goreleaser/goreleaser
+          cache: true
+          # tag: 
+
       -
         # Add support for more platforms with QEMU (optional)
         # https://github.com/docker/setup-qemu-action
@@ -42,11 +48,10 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Install prerequisites
+      - name: Create snapshot release
         shell: /usr/bin/bash {0}
         run: |
-          devbox install
-          devbox run snapshot
+          task snapshot
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # Your GoReleaser Pro key, if you are using the 'goreleaser-pro' distribution
