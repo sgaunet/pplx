@@ -1,0 +1,34 @@
+name: linter
+
+on:
+  push:
+
+permissions:
+  contents: read
+
+jobs:
+  linter:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v5
+        with:
+          go-version: stable
+      - name: Install task
+        uses: jaxxstorm/action-install-gh-release@v1.12.0
+        with:
+          repo: go-task/task
+          cache: enable
+          # tag: 
+      - name: Install golangci-lint
+        uses: jaxxstorm/action-install-gh-release@v1.12.0
+        with:
+          repo: golangci/golangci-lint
+          tag: v2.2.2
+          cache: enable
+          binaries-location: golangci-lint-2.2.2-linux-amd64
+
+      - name: Run linter
+        shell: /usr/bin/bash {0}
+        run: |
+          task linter
