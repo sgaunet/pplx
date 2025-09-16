@@ -1,3 +1,4 @@
+// Package cmd provides command-line interface commands for the Perplexity API.
 package cmd
 
 import (
@@ -17,7 +18,7 @@ var chatCmd = &cobra.Command{
 	Long: `With chat subcommand you can interactively chat with the Perplexity API.
 You can ask questions and get answers from the API. As long as you don't enter an empty question,
  the chat will continue.`,
-	Run: func(cmd *cobra.Command, args []string) {
+	Run: func(_ *cobra.Command, _ []string) {
 		// Check env var PPLX_API_KEY exists
 		if os.Getenv("PPLX_API_KEY") == "" {
 			fmt.Fprintf(os.Stderr, "Error: PPLX_API_KEY env var is not set\n")
@@ -33,7 +34,7 @@ You can ask questions and get answers from the API. As long as you don't enter a
 			os.Exit(1)
 		}
 		// Create chat options
-		chatOptions := chat.ChatOptions{
+		chatOptions := chat.Options{
 			Model:            model,
 			FrequencyPenalty: frequencyPenalty,
 			MaxTokens:        maxTokens,

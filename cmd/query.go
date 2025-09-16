@@ -18,7 +18,7 @@ var queryCmd = &cobra.Command{
 	Use:   "query",
 	Short: "",
 	Long:  ``,
-	Run: func(cmd *cobra.Command, args []string) {
+	Run: func(cmd *cobra.Command, _ []string) {
 		// Check env var PPLX_API_KEY exists
 		if os.Getenv("PPLX_API_KEY") == "" {
 			fmt.Fprintf(os.Stderr, "Error: PPLX_API_KEY env var is not set\n")
@@ -30,11 +30,11 @@ var queryCmd = &cobra.Command{
 
 		if userPrompt == "" {
 			fmt.Println("Error: user prompt is required")
-			cmd.Usage()
+			_ = cmd.Usage()
 			os.Exit(1)
 		}
 		msg := perplexity.NewMessages(perplexity.WithSystemMessage(systemPrompt))
-		msg.AddUserMessage(userPrompt)
+		_ = msg.AddUserMessage(userPrompt)
 
 		// Build options list
 		opts := []perplexity.CompletionRequestOption{
@@ -56,7 +56,8 @@ var queryCmd = &cobra.Command{
 			// Validate search recency
 			validRecency := map[string]bool{"day": true, "week": true, "month": true, "year": true, "hour": true}
 			if !validRecency[searchRecency] {
-				fmt.Printf("Error: Invalid search-recency value '%s'. Must be one of: day, week, month, year, hour\n", searchRecency)
+				fmt.Printf("Error: Invalid search-recency value '%s'. Must be one of: day, week, month, year, hour\n",
+					searchRecency)
 				os.Exit(1)
 			}
 			// Search recency filter is incompatible with images
@@ -90,10 +91,15 @@ var queryCmd = &cobra.Command{
 		}
 		if len(imageFormats) > 0 {
 			// Validate image formats
-			validFormats := map[string]bool{"jpg": true, "jpeg": true, "png": true, "gif": true, "webp": true, "svg": true, "bmp": true}
+			validFormats := map[string]bool{
+				"jpg": true, "jpeg": true, "png": true, "gif": true,
+				"webp": true, "svg": true, "bmp": true,
+			}
 			for _, format := range imageFormats {
 				if !validFormats[format] {
-					fmt.Printf("Warning: Image format '%s' may not be supported. Common formats are: jpg, jpeg, png, gif, webp, svg, bmp\n", format)
+					warnMsg := "Warning: Image format '%s' may not be supported. " +
+						"Common formats are: jpg, jpeg, png, gif, webp, svg, bmp\n"
+					fmt.Printf(warnMsg, format)
 				}
 			}
 			opts = append(opts, perplexity.WithImageFormatFilter(imageFormats))

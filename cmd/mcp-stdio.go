@@ -20,7 +20,7 @@ var mcpStdioCmd = &cobra.Command{
 	Use:   "mcp-stdio",
 	Short: "Start MCP server in stdio mode",
 	Long:  `Start an MCP (Model Context Protocol) server that exposes Perplexity query functionality`,
-	Run: func(cmd *cobra.Command, args []string) {
+	Run: func(_ *cobra.Command, _ []string) {
 		// Check env var PPLX_API_KEY exists
 		if os.Getenv("PPLX_API_KEY") == "" {
 			fmt.Fprintf(os.Stderr, "Error: PPLX_API_KEY env var is not set\n")
@@ -138,7 +138,7 @@ var mcpStdioCmd = &cobra.Command{
 		)
 
 		// Add query tool handler
-		s.AddTool(queryTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		s.AddTool(queryTool, func(_ context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			args := request.GetArguments()
 
 			// Extract required user_prompt
@@ -250,8 +250,8 @@ var mcpStdioCmd = &cobra.Command{
 			}
 
 			var imageFormats []string
-			if if_, ok := args["image_formats"].([]any); ok {
-				for _, format := range if_ {
+			if imageFormatsSlice, ok := args["image_formats"].([]any); ok {
+				for _, format := range imageFormatsSlice {
 					if formatStr, ok := format.(string); ok {
 						imageFormats = append(imageFormats, formatStr)
 					}
@@ -313,7 +313,7 @@ var mcpStdioCmd = &cobra.Command{
 
 			// Build messages
 			msg := perplexity.NewMessages(perplexity.WithSystemMessage(systemPrompt))
-			msg.AddUserMessage(userPrompt)
+			_ = msg.AddUserMessage(userPrompt)
 
 			// Build options list
 			opts := []perplexity.CompletionRequestOption{
@@ -335,7 +335,9 @@ var mcpStdioCmd = &cobra.Command{
 				// Validate search recency
 				validRecency := map[string]bool{"day": true, "week": true, "month": true, "year": true, "hour": true}
 				if !validRecency[searchRecency] {
-					return mcp.NewToolResultError(fmt.Sprintf("Invalid search-recency value '%s'. Must be one of: day, week, month, year, hour", searchRecency)), nil
+					errMsg := fmt.Sprintf("Invalid search-recency value '%s'. Must be one of: day, week, month, year, hour",
+						searchRecency)
+					return mcp.NewToolResultError(errMsg), nil
 				}
 				// Search recency filter is incompatible with images
 				if returnImages {
@@ -369,11 +371,16 @@ var mcpStdioCmd = &cobra.Command{
 			}
 			if len(imageFormats) > 0 {
 				// Validate image formats
-				validFormats := map[string]bool{"jpg": true, "jpeg": true, "png": true, "gif": true, "webp": true, "svg": true, "bmp": true}
+				validFormats := map[string]bool{
+					"jpg": true, "jpeg": true, "png": true, "gif": true,
+					"webp": true, "svg": true, "bmp": true,
+				}
 				for _, format := range imageFormats {
 					if !validFormats[format] {
 						// Just warn, don't error
-						log.Printf("Warning: Image format '%s' may not be supported. Common formats are: jpg, jpeg, png, gif, webp, svg, bmp", format)
+						warnMsg := "Warning: Image format '%s' may not be supported. " +
+							"Common formats are: jpg, jpeg, png, gif, webp, svg, bmp"
+						log.Printf(warnMsg, format)
 					}
 				}
 				opts = append(opts, perplexity.WithImageFormatFilter(imageFormats))
@@ -407,7 +414,8 @@ var mcpStdioCmd = &cobra.Command{
 				// Validate search mode
 				validModes := map[string]bool{"web": true, "academic": true}
 				if !validModes[searchMode] {
-					return mcp.NewToolResultError(fmt.Sprintf("Invalid search mode '%s'. Must be one of: web, academic", searchMode)), nil
+					errMsg := fmt.Sprintf("Invalid search mode '%s'. Must be one of: web, academic", searchMode)
+					return mcp.NewToolResultError(errMsg), nil
 				}
 				opts = append(opts, perplexity.WithSearchMode(searchMode))
 			}
@@ -415,7 +423,8 @@ var mcpStdioCmd = &cobra.Command{
 				// Validate search context size
 				validSizes := map[string]bool{"low": true, "medium": true, "high": true}
 				if !validSizes[searchContextSize] {
-					return mcp.NewToolResultError(fmt.Sprintf("Invalid search context size '%s'. Must be one of: low, medium, high", searchContextSize)), nil
+					errMsg := fmt.Sprintf("Invalid search context size '%s'. Must be one of: low, medium, high", searchContextSize)
+					return mcp.NewToolResultError(errMsg), nil
 				}
 				opts = append(opts, perplexity.WithSearchContextSize(searchContextSize))
 			}
@@ -424,28 +433,32 @@ var mcpStdioCmd = &cobra.Command{
 			if searchAfterDate != "" {
 				date, err := time.Parse("01/02/2006", searchAfterDate)
 				if err != nil {
-					return mcp.NewToolResultError(fmt.Sprintf("Invalid search-after-date format '%s'. Use MM/DD/YYYY", searchAfterDate)), nil
+					errMsg := fmt.Sprintf("Invalid search-after-date format '%s'. Use MM/DD/YYYY", searchAfterDate)
+					return mcp.NewToolResultError(errMsg), nil
 				}
 				opts = append(opts, perplexity.WithSearchAfterDateFilter(date))
 			}
 			if searchBeforeDate != "" {
 				date, err := time.Parse("01/02/2006", searchBeforeDate)
 				if err != nil {
-					return mcp.NewToolResultError(fmt.Sprintf("Invalid search-before-date format '%s'. Use MM/DD/YYYY", searchBeforeDate)), nil
+					errMsg := fmt.Sprintf("Invalid search-before-date format '%s'. Use MM/DD/YYYY", searchBeforeDate)
+					return mcp.NewToolResultError(errMsg), nil
 				}
 				opts = append(opts, perplexity.WithSearchBeforeDateFilter(date))
 			}
 			if lastUpdatedAfter != "" {
 				date, err := time.Parse("01/02/2006", lastUpdatedAfter)
 				if err != nil {
-					return mcp.NewToolResultError(fmt.Sprintf("Invalid last-updated-after format '%s'. Use MM/DD/YYYY", lastUpdatedAfter)), nil
+					errMsg := fmt.Sprintf("Invalid last-updated-after format '%s'. Use MM/DD/YYYY", lastUpdatedAfter)
+					return mcp.NewToolResultError(errMsg), nil
 				}
 				opts = append(opts, perplexity.WithLastUpdatedAfterFilter(date))
 			}
 			if lastUpdatedBefore != "" {
 				date, err := time.Parse("01/02/2006", lastUpdatedBefore)
 				if err != nil {
-					return mcp.NewToolResultError(fmt.Sprintf("Invalid last-updated-before format '%s'. Use MM/DD/YYYY", lastUpdatedBefore)), nil
+					errMsg := fmt.Sprintf("Invalid last-updated-before format '%s'. Use MM/DD/YYYY", lastUpdatedBefore)
+					return mcp.NewToolResultError(errMsg), nil
 				}
 				opts = append(opts, perplexity.WithLastUpdatedBeforeFilter(date))
 			}
@@ -455,7 +468,8 @@ var mcpStdioCmd = &cobra.Command{
 				// Validate reasoning effort
 				validEfforts := map[string]bool{"low": true, "medium": true, "high": true}
 				if !validEfforts[reasoningEffort] {
-					return mcp.NewToolResultError(fmt.Sprintf("Invalid reasoning effort '%s'. Must be one of: low, medium, high", reasoningEffort)), nil
+					errMsg := fmt.Sprintf("Invalid reasoning effort '%s'. Must be one of: low, medium, high", reasoningEffort)
+					return mcp.NewToolResultError(errMsg), nil
 				}
 				// Check if the model supports reasoning effort
 				if !strings.Contains(model, "deep-research") {
@@ -517,9 +531,9 @@ var mcpStdioCmd = &cobra.Command{
 			// Add search results if available (preferred over deprecated Citations)
 			if response.SearchResults != nil && len(*response.SearchResults) > 0 {
 				result["search_results"] = *response.SearchResults
-			} else if response.Citations != nil && len(*response.Citations) > 0 {
+			} else if response.Citations != nil && len(*response.Citations) > 0 { //nolint:staticcheck // fallback
 				// Fallback to citations for backwards compatibility
-				result["citations"] = *response.Citations
+				result["citations"] = *response.Citations //nolint:staticcheck // fallback for compatibility
 			}
 
 			// Add images if available

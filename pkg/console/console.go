@@ -1,3 +1,4 @@
+// Package console provides console input/output utilities for the Perplexity CLI.
 package console
 
 import (
@@ -10,9 +11,13 @@ import (
 	"github.com/sgaunet/perplexity-go/v2"
 )
 
+// DefaultLineLength is the default line length for markdown rendering.
 const DefaultLineLength = 80
+
+// DefaultLeftMargin is the default left margin for markdown rendering.
 const DefaultLeftMargin = 6
 
+// Input prompts the user for input and returns the entered text.
 func Input(label string) (string, error) {
 	fmt.Printf("%s: (set an empty line to validate the entry)\n", label)
 
@@ -27,10 +32,13 @@ func Input(label string) (string, error) {
 		lines = lines + " " + line
 	}
 
-	err := scanner.Err()
-	return lines, err
+	if err := scanner.Err(); err != nil {
+		return lines, fmt.Errorf("error reading input: %w", err)
+	}
+	return lines, nil
 }
 
+// RenderAsMarkdown renders the response content as markdown.
 func RenderAsMarkdown(pplxResponse *perplexity.CompletionResponse, output io.Writer) error {
 	result := markdown.Render(pplxResponse.GetLastContent(), DefaultLineLength, DefaultLeftMargin)
 	_, err := fmt.Fprintln(output, string(result))
@@ -40,6 +48,7 @@ func RenderAsMarkdown(pplxResponse *perplexity.CompletionResponse, output io.Wri
 	return nil
 }
 
+// RenderCitations renders the citations from the response.
 func RenderCitations(pplxResponse *perplexity.CompletionResponse, output io.Writer) error {
 	searchResults := pplxResponse.GetSearchResults()
 	if len(searchResults) == 0 {
@@ -68,6 +77,7 @@ func RenderCitations(pplxResponse *perplexity.CompletionResponse, output io.Writ
 	return nil
 }
 
+// RenderImages renders the images from the response.
 func RenderImages(pplxResponse *perplexity.CompletionResponse, output io.Writer) error {
 	images := pplxResponse.GetImages()
 	if len(images) == 0 {
@@ -80,7 +90,8 @@ func RenderImages(pplxResponse *perplexity.CompletionResponse, output io.Writer)
 	}
 	
 	for i, img := range images {
-		_, err := fmt.Fprintf(output, "[%d]: %s (origin: %s) - %dx%d\n", i+1, img.ImageURL, img.OriginURL, img.Width, img.Height)
+		_, err := fmt.Fprintf(output, "[%d]: %s (origin: %s) - %dx%d\n",
+			i+1, img.ImageURL, img.OriginURL, img.Width, img.Height)
 		if err != nil {
 			return fmt.Errorf("error writing image to output: %w", err)
 		}
@@ -88,18 +99,24 @@ func RenderImages(pplxResponse *perplexity.CompletionResponse, output io.Writer)
 	return nil
 }
 
-func RenderRelatedQuestions(pplxResponse *perplexity.CompletionResponse, output io.Writer) error {
-	// TODO: Implement when the correct API is available
+// RenderRelatedQuestions renders the related questions from the response.
+// Currently not implemented as the Perplexity API does not provide related questions functionality.
+// This function exists for future compatibility when the API feature becomes available.
+func RenderRelatedQuestions(_ *perplexity.CompletionResponse, _ io.Writer) error {
+	// NOTE: Related questions functionality is not available in the current Perplexity API.
+	// Implementation will be added when the API supports this feature.
+	//
+	// Expected implementation when available:
 	// related := pplxResponse.GetRelatedQuestions()
 	// if len(related) == 0 {
 	// 	return nil
 	// }
-	
+	//
 	// _, err := fmt.Fprintf(output, "\n❓ Related Questions:\n")
 	// if err != nil {
 	// 	return fmt.Errorf("error writing related questions header to output: %w", err)
 	// }
-	
+	//
 	// for i, question := range related {
 	// 	_, err := fmt.Fprintf(output, "%d. %s\n", i+1, question)
 	// 	if err != nil {
@@ -109,13 +126,13 @@ func RenderRelatedQuestions(pplxResponse *perplexity.CompletionResponse, output 
 	return nil
 }
 
-// StreamingRenderer handles incremental rendering of streaming content
+// StreamingRenderer handles incremental rendering of streaming content.
 type StreamingRenderer struct {
 	lastContentLength int
 	output           io.Writer
 }
 
-// NewStreamingRenderer creates a new streaming renderer
+// NewStreamingRenderer creates a new streaming renderer.
 func NewStreamingRenderer(output io.Writer) *StreamingRenderer {
 	return &StreamingRenderer{
 		lastContentLength: 0,
@@ -123,7 +140,7 @@ func NewStreamingRenderer(output io.Writer) *StreamingRenderer {
 	}
 }
 
-// RenderIncremental renders only the new content since last render
+// RenderIncremental renders only the new content since last render.
 func (sr *StreamingRenderer) RenderIncremental(pplxResponse *perplexity.CompletionResponse) error {
 	content := pplxResponse.GetLastContent()
 	if content == "" {
@@ -145,7 +162,7 @@ func (sr *StreamingRenderer) RenderIncremental(pplxResponse *perplexity.Completi
 	return nil
 }
 
-// RenderStreamingContent renders streaming content as it arrives (for backward compatibility)
+// RenderStreamingContent renders streaming content as it arrives (for backward compatibility).
 func RenderStreamingContent(pplxResponse *perplexity.CompletionResponse, output io.Writer) error {
 	// This function is kept for backward compatibility but shouldn't be used directly
 	// Use StreamingRenderer instead
