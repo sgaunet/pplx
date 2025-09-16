@@ -7,6 +7,12 @@ tasks:
     cmds:
       - task -a
 
+  linter:
+    desc: "Run linter"
+    cmds:
+      - go generate ./...
+      - golangci-lint run
+
   doc:
     desc: "Start godoc server"
     cmds:
