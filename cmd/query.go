@@ -212,74 +212,66 @@ var queryCmd = &cobra.Command{
 			responseChannel := make(chan perplexity.CompletionResponse)
 			var wg sync.WaitGroup
 			wg.Add(1)
-			
+
 			// Start goroutine to handle streaming responses
 			go func() {
 				defer wg.Done()
 				var lastResponse *perplexity.CompletionResponse
-				renderer := console.NewStreamingRenderer(os.Stdout)
-				
-				for response := range responseChannel {
-					// Render the streaming content incrementally
-					err := renderer.RenderIncremental(&response)
-					if err != nil {
-						fmt.Printf("Error rendering streaming content: %v\n", err)
+
+				if outputJSON {
+					// For JSON output, just collect the final response
+					for response := range responseChannel {
+						lastResponse = &response
 					}
-					lastResponse = &response
+				} else {
+					// For console output, render incrementally
+					renderer := console.NewStreamingRenderer(os.Stdout)
+					for response := range responseChannel {
+						err := renderer.RenderIncremental(&response)
+						if err != nil {
+							fmt.Printf("Error rendering streaming content: %v\n", err)
+						}
+						lastResponse = &response
+					}
 				}
-				
-				// After streaming is complete, render citations and other metadata
+
+				// After streaming is complete, render output
 				if lastResponse != nil {
-					fmt.Println() // Add newline after streaming content
-					err := console.RenderCitations(lastResponse, os.Stdout)
-					if err != nil {
-						fmt.Printf("Error: %v\n", err)
+					if !outputJSON {
+						fmt.Println() // Add newline after streaming content
 					}
-					err = console.RenderImages(lastResponse, os.Stdout)
-					if err != nil {
-						fmt.Printf("Error: %v\n", err)
-					}
-					err = console.RenderRelatedQuestions(lastResponse, os.Stdout)
+					err := console.RenderResponse(lastResponse, os.Stdout, outputJSON)
 					if err != nil {
 						fmt.Printf("Error: %v\n", err)
 					}
 				}
 			}()
-			
+
 			// Send the streaming request
 			err = client.SendSSEHTTPRequest(&wg, req, responseChannel)
 			if err != nil {
 				fmt.Printf("Error: %v\n", err)
 				os.Exit(1)
 			}
-			
+
 			// Wait for streaming to complete
 			wg.Wait()
 		} else {
 			// Handle non-streaming response
-			spinnerInfo, _ := pterm.DefaultSpinner.Start("Waiting after the response from perplexity...")
+			var spinnerInfo *pterm.SpinnerPrinter
+			if !outputJSON {
+				spinnerInfo, _ = pterm.DefaultSpinner.Start("Waiting after the response from perplexity...")
+			}
 			res, err := client.SendCompletionRequest(req)
 			if err != nil {
 				fmt.Printf("Error: %v\n", err)
 				os.Exit(1)
 			}
-			spinnerInfo.Success("Response received")
-			err = console.RenderAsMarkdown(res, os.Stdout)
-			if err != nil {
-				fmt.Printf("Error: %v\n", err)
-				os.Exit(1)
+			if !outputJSON {
+				spinnerInfo.Success("Response received")
 			}
-			err = console.RenderCitations(res, os.Stdout)
-			if err != nil {
-				fmt.Printf("Error: %v\n", err)
-				os.Exit(1)
-			}
-			err = console.RenderImages(res, os.Stdout)
-			if err != nil {
-				fmt.Printf("Error: %v\n", err)
-				os.Exit(1)
-			}
-			err = console.RenderRelatedQuestions(res, os.Stdout)
+
+			err = console.RenderResponse(res, os.Stdout, outputJSON)
 			if err != nil {
 				fmt.Printf("Error: %v\n", err)
 				os.Exit(1)

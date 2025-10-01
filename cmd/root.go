@@ -51,6 +51,9 @@ var (
 
 	// Deep research options.
 	reasoningEffort string
+
+	// Output options.
+	outputJSON bool
 )
 
 // rootCmd represents the base command when called without any subcommands.
@@ -131,6 +134,10 @@ func addResearchFlags(cmd *cobra.Command) {
 		"Reasoning effort for sonar-deep-research: low, medium, or high")
 }
 
+func addOutputFlags(cmd *cobra.Command) {
+	cmd.PersistentFlags().BoolVar(&outputJSON, "json", outputJSON, "Output response in JSON format")
+}
+
 func init() {
 	rootCmd.AddCommand(chatCmd)
 	addChatFlags(chatCmd)
@@ -151,6 +158,7 @@ func init() {
 	addFormatFlags(queryCmd)
 	addDateFlags(queryCmd)
 	addResearchFlags(queryCmd)
+	addOutputFlags(queryCmd)
 
 	rootCmd.AddCommand(mcpStdioCmd)
 }

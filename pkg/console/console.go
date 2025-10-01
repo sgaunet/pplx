@@ -3,6 +3,7 @@ package console
 
 import (
 	"bufio"
+	"encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -170,11 +171,82 @@ func RenderStreamingContent(pplxResponse *perplexity.CompletionResponse, output 
 	if content == "" {
 		return nil
 	}
-	
+
 	_, err := fmt.Fprint(output, content)
 	if err != nil {
 		return fmt.Errorf("error writing streaming content to output: %w", err)
 	}
-	
+
+	return nil
+}
+
+// RenderJSON formats and outputs the response as JSON.
+func RenderJSON(pplxResponse *perplexity.CompletionResponse, output io.Writer) error {
+	result := buildJSONResponse(pplxResponse)
+
+	// Convert to JSON with indentation for readability
+	jsonData, err := json.MarshalIndent(result, "", "  ")
+	if err != nil {
+		return fmt.Errorf("failed to format JSON output: %w", err)
+	}
+
+	_, err = fmt.Fprintln(output, string(jsonData))
+	if err != nil {
+		return fmt.Errorf("error writing JSON to output: %w", err)
+	}
+
+	return nil
+}
+
+// buildJSONResponse creates a structured JSON response from the Perplexity API response.
+func buildJSONResponse(pplxResponse *perplexity.CompletionResponse) map[string]any {
+	result := map[string]any{
+		"content": pplxResponse.Choices[0].Message.Content,
+		"model":   pplxResponse.Model,
+		"usage":   pplxResponse.Usage,
+	}
+
+	// Add search results if available (preferred over deprecated Citations)
+	if pplxResponse.SearchResults != nil && len(*pplxResponse.SearchResults) > 0 {
+		result["search_results"] = *pplxResponse.SearchResults
+	} else if pplxResponse.Citations != nil && len(*pplxResponse.Citations) > 0 { //nolint:staticcheck // fallback
+		// Fallback to citations for backwards compatibility
+		result["citations"] = *pplxResponse.Citations //nolint:staticcheck // fallback for compatibility
+	}
+
+	// Add images if available
+	if pplxResponse.Images != nil && len(*pplxResponse.Images) > 0 {
+		result["images"] = *pplxResponse.Images
+	}
+
+	// Add related questions if available
+	if pplxResponse.RelatedQuestions != nil && len(*pplxResponse.RelatedQuestions) > 0 {
+		result["related_questions"] = *pplxResponse.RelatedQuestions
+	}
+
+	return result
+}
+
+// RenderResponse renders the response in the specified format (JSON or console).
+// This is a unified rendering function that handles both output formats.
+func RenderResponse(pplxResponse *perplexity.CompletionResponse, output io.Writer, asJSON bool) error {
+	if asJSON {
+		return RenderJSON(pplxResponse, output)
+	}
+
+	// Render as console output (markdown + citations + images + related questions)
+	if err := RenderAsMarkdown(pplxResponse, output); err != nil {
+		return err
+	}
+	if err := RenderCitations(pplxResponse, output); err != nil {
+		return err
+	}
+	if err := RenderImages(pplxResponse, output); err != nil {
+		return err
+	}
+	if err := RenderRelatedQuestions(pplxResponse, output); err != nil {
+		return err
+	}
+
 	return nil
 }
