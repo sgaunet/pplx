@@ -78,18 +78,18 @@ func addChatFlags(cmd *cobra.Command) {
 	cmd.PersistentFlags().StringVarP(&model, "model", "m", perplexity.DefaultModel,
 		"List of models: https://docs.perplexity.ai/guides/model-cards")
 	cmd.PersistentFlags().Float64Var(&frequencyPenalty, "frequency-penalty", frequencyPenalty, "Frequency penalty")
-	cmd.PersistentFlags().IntVar(&maxTokens, "max-tokens", maxTokens, "Max tokens")
+	cmd.PersistentFlags().IntVarP(&maxTokens, "max-tokens", "T", maxTokens, "Max tokens")
 	cmd.PersistentFlags().Float64Var(&presencePenalty, "presence-penalty", presencePenalty, "Presence penalty")
-	cmd.PersistentFlags().Float64Var(&temperature, "temperature", temperature, "Temperature")
-	cmd.PersistentFlags().IntVar(&topK, "top-k", topK, "Top K")
+	cmd.PersistentFlags().Float64VarP(&temperature, "temperature", "t", temperature, "Temperature")
+	cmd.PersistentFlags().IntVarP(&topK, "top-k", "k", topK, "Top K")
 	cmd.PersistentFlags().Float64Var(&topP, "top-p", topP, "Top P")
 	cmd.PersistentFlags().DurationVar(&timeout, "timeout", timeout, "HTTP timeout")
 }
 
 func addSearchFlags(cmd *cobra.Command) {
-	cmd.PersistentFlags().StringSliceVar(&searchDomains, "search-domains", searchDomains,
+	cmd.PersistentFlags().StringSliceVarP(&searchDomains, "search-domains", "d", searchDomains,
 		"Filter search results to specific domains")
-	cmd.PersistentFlags().StringVar(&searchRecency, "search-recency", searchRecency,
+	cmd.PersistentFlags().StringVarP(&searchRecency, "search-recency", "r", searchRecency,
 		"Filter by time: day, week, month, year")
 	cmd.PersistentFlags().Float64Var(&locationLat, "location-lat", locationLat, "User location latitude")
 	cmd.PersistentFlags().Float64Var(&locationLon, "location-lon", locationLon, "User location longitude")
@@ -97,9 +97,9 @@ func addSearchFlags(cmd *cobra.Command) {
 }
 
 func addResponseFlags(cmd *cobra.Command) {
-	cmd.PersistentFlags().BoolVar(&returnImages, "return-images", returnImages, "Include images in response")
-	cmd.PersistentFlags().BoolVar(&returnRelated, "return-related", returnRelated, "Include related questions")
-	cmd.PersistentFlags().BoolVar(&stream, "stream", stream, "Enable streaming responses")
+	cmd.PersistentFlags().BoolVarP(&returnImages, "return-images", "i", returnImages, "Include images in response")
+	cmd.PersistentFlags().BoolVarP(&returnRelated, "return-related", "q", returnRelated, "Include related questions")
+	cmd.PersistentFlags().BoolVarP(&stream, "stream", "S", stream, "Enable streaming responses")
 }
 
 func addImageFlags(cmd *cobra.Command) {
@@ -113,8 +113,8 @@ func addFormatFlags(cmd *cobra.Command) {
 		responseFormatJSONSchema, "JSON schema for structured output (sonar model only)")
 	cmd.PersistentFlags().StringVar(&responseFormatRegex, "response-format-regex",
 		responseFormatRegex, "Regex pattern for structured output (sonar model only)")
-	cmd.PersistentFlags().StringVar(&searchMode, "search-mode", searchMode, "Search mode: web (default) or academic")
-	cmd.PersistentFlags().StringVar(&searchContextSize, "search-context-size", searchContextSize,
+	cmd.PersistentFlags().StringVarP(&searchMode, "search-mode", "a", searchMode, "Search mode: web (default) or academic")
+	cmd.PersistentFlags().StringVarP(&searchContextSize, "search-context-size", "c", searchContextSize,
 		"Search context size: low, medium, or high")
 }
 

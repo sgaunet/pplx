@@ -84,11 +84,11 @@ pplx query -p "Latest AI news" --model "llama-3.1-sonar-large-128k-online"
 #### Advanced Search Options
 
 ```sh
-# Search only from specific domains
-pplx query -p "climate change research" --search-domains nature.com,science.org
+# Search only from specific domains (using short flag)
+pplx query -p "climate change research" -d nature.com,science.org
 
-# Get recent information only (last week)
-pplx query -p "stock market updates" --search-recency week
+# Get recent information only (last week) - using short flag
+pplx query -p "stock market updates" -r week
 
 # Location-based query
 pplx query -p "weather forecast" --location-lat 48.8566 --location-lon 2.3522 --location-country FR
@@ -97,24 +97,24 @@ pplx query -p "weather forecast" --location-lat 48.8566 --location-lon 2.3522 --
 #### Response Enhancement
 
 ```sh
-# Include images in the response
-pplx query -p "Famous landmarks in Paris" --return-images
+# Include images in the response (using short flag)
+pplx query -p "Famous landmarks in Paris" -i
 
-# Get related questions
-pplx query -p "How to learn programming" --return-related
+# Get related questions (using short flag)
+pplx query -p "How to learn programming" -q
 
 # Filter images by format and domain
-pplx query -p "Nature photography" --return-images --image-formats jpg,png --image-domains unsplash.com,pexels.com
+pplx query -p "Nature photography" -i --image-formats jpg,png --image-domains unsplash.com,pexels.com
 ```
 
 #### Generation Parameters
 
 ```sh
-# Control response length
-pplx query -p "Summarize War and Peace" --max-tokens 500
+# Control response length (using short flag)
+pplx query -p "Summarize War and Peace" -T 500
 
-# Fine-tune creativity and randomness
-pplx query -p "Write a haiku about coding" --temperature 0.8 --top-p 0.95
+# Fine-tune creativity and randomness (using short flags)
+pplx query -p "Write a haiku about coding" -t 0.8 --top-p 0.95
 
 # Adjust frequency and presence penalties
 pplx query -p "Explain machine learning concepts" --frequency-penalty 0.5 --presence-penalty 0.3
@@ -123,27 +123,27 @@ pplx query -p "Explain machine learning concepts" --frequency-penalty 0.5 --pres
 #### Combined Examples
 
 ```sh
-# Technical research with specific sources and recent data
+# Technical research with specific sources and recent data (using short flags)
 pplx query -p "Latest developments in quantum computing" \
-  --search-domains arxiv.org,nature.com \
-  --search-recency month \
-  --return-related \
-  --max-tokens 1000
+  -d arxiv.org,nature.com \
+  -r month \
+  -q \
+  -T 1000
 
-# Local business search with images
+# Local business search with images (using short flags)
 pplx query -p "Best restaurants near me" \
   --location-lat 40.7128 \
   --location-lon -74.0060 \
   --location-country US \
-  --return-images \
-  --search-recency week
+  -i \
+  -r week
 
-# Creative writing with custom parameters
+# Creative writing with custom parameters (using short flags)
 pplx query -p "Write a short story about AI" \
   -s "You are a creative science fiction writer" \
-  --temperature 0.9 \
-  --top-k 50 \
-  --max-tokens 2000
+  -t 0.9 \
+  -k 50 \
+  -T 2000
 ```
 
 ## Available Options
@@ -154,20 +154,22 @@ pplx query -p "Write a short story about AI" \
 |--------|-------|------|-------------|
 | `--model` | `-m` | string | AI model to use |
 | `--frequency-penalty` | | float64 | Penalize frequent tokens (0.0-2.0) |
-| `--max-tokens` | | int | Maximum tokens in response |
+| `--max-tokens` | `-T` | int | Maximum tokens in response |
 | `--presence-penalty` | | float64 | Penalize already present tokens (0.0-2.0) |
-| `--temperature` | | float64 | Response randomness (0.0-2.0) |
-| `--top-k` | | int | Consider only top K tokens |
+| `--temperature` | `-t` | float64 | Response randomness (0.0-2.0) |
+| `--top-k` | `-k` | int | Consider only top K tokens |
 | `--top-p` | | float64 | Nucleus sampling threshold |
 | `--timeout` | | duration | HTTP request timeout |
-| `--search-domains` | | []string | Filter search to specific domains |
-| `--search-recency` | | string | Filter by time: day, week, month, year |
+| `--search-domains` | `-d` | []string | Filter search to specific domains |
+| `--search-recency` | `-r` | string | Filter by time: day, week, month, year |
+| `--search-mode` | `-a` | string | Search mode: web (default) or academic |
+| `--search-context-size` | `-c` | string | Search context size: low, medium, or high |
 | `--location-lat` | | float64 | User location latitude |
 | `--location-lon` | | float64 | User location longitude |
 | `--location-country` | | string | User location country code |
-| `--return-images` | | bool | Include images in response |
-| `--return-related` | | bool | Include related questions |
-| `--stream` | | bool | Enable streaming responses |
+| `--return-images` | `-i` | bool | Include images in response |
+| `--return-related` | `-q` | bool | Include related questions |
+| `--stream` | `-S` | bool | Enable streaming responses |
 | `--image-domains` | | []string | Filter images by domains |
 | `--image-formats` | | []string | Filter images by formats |
 
