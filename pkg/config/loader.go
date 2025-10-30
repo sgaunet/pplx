@@ -1,6 +1,7 @@
 package config
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -8,20 +9,23 @@ import (
 	"github.com/spf13/viper"
 )
 
-// ConfigPaths defines the standard locations where config files are searched
+// ErrNoConfigFound is returned when no config file is found in standard locations.
+var ErrNoConfigFound = errors.New("no config file found in standard locations")
+
+// ConfigPaths defines the standard locations where config files are searched.
 var ConfigPaths = []string{
-	".",                          // Current directory
-	"$HOME/.config/pplx",        // User config directory
-	"/etc/pplx",                 // System-wide config directory
+	".",                  // Current directory
+	"$HOME/.config/pplx", // User config directory
+	"/etc/pplx",          // System-wide config directory
 }
 
-// Loader handles loading configuration from files
+// Loader handles loading configuration from files.
 type Loader struct {
 	viper *viper.Viper
 	data  *ConfigData
 }
 
-// NewLoader creates a new configuration loader
+// NewLoader creates a new configuration loader.
 func NewLoader() *Loader {
 	return &Loader{
 		viper: viper.New(),
@@ -30,7 +34,7 @@ func NewLoader() *Loader {
 }
 
 // Load loads configuration from standard locations
-// Searches in order: ./pplx.yaml, ~/.config/pplx/config.yaml, /etc/pplx/config.yaml
+// Searches in order: ./pplx.yaml, ~/.config/pplx/config.yaml, /etc/pplx/config.yaml.
 func (l *Loader) Load() error {
 	l.viper.SetConfigName("pplx")
 	l.viper.SetConfigType("yaml")
@@ -54,7 +58,8 @@ func (l *Loader) Load() error {
 	// Try to read config file
 	if err := l.viper.ReadInConfig(); err != nil {
 		// It's okay if config file doesn't exist
-		if _, ok := err.(viper.ConfigFileNotFoundError); !ok {
+		var configFileNotFoundError viper.ConfigFileNotFoundError
+		if !errors.As(err, &configFileNotFoundError) {
 			return fmt.Errorf("error reading config file: %w", err)
 		}
 	}
@@ -67,7 +72,7 @@ func (l *Loader) Load() error {
 	return nil
 }
 
-// LoadFrom loads configuration from a specific file path
+// LoadFrom loads configuration from a specific file path.
 func (l *Loader) LoadFrom(path string) error {
 	l.viper.SetConfigFile(path)
 
@@ -82,17 +87,17 @@ func (l *Loader) LoadFrom(path string) error {
 	return nil
 }
 
-// Data returns the loaded configuration data
+// Data returns the loaded configuration data.
 func (l *Loader) Data() *ConfigData {
 	return l.data
 }
 
-// Viper returns the underlying viper instance
+// Viper returns the underlying viper instance.
 func (l *Loader) Viper() *viper.Viper {
 	return l.viper
 }
 
-// FindConfigFile searches for a config file in standard locations
+// FindConfigFile searches for a config file in standard locations.
 func FindConfigFile() (string, error) {
 	for _, basePath := range ConfigPaths {
 		expandedPath := os.ExpandEnv(basePath)
@@ -122,10 +127,10 @@ func FindConfigFile() (string, error) {
 		}
 	}
 
-	return "", fmt.Errorf("no config file found in standard locations")
+	return "", ErrNoConfigFound
 }
 
-// fileExists checks if a file exists
+// fileExists checks if a file exists.
 func fileExists(path string) bool {
 	info, err := os.Stat(path)
 	if os.IsNotExist(err) {
@@ -134,7 +139,7 @@ func fileExists(path string) bool {
 	return !info.IsDir()
 }
 
-// GetDefaultConfigPath returns the default path where config should be created
+// GetDefaultConfigPath returns the default path where config should be created.
 func GetDefaultConfigPath() string {
 	home, err := os.UserHomeDir()
 	if err != nil {

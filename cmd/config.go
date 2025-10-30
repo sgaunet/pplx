@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -12,13 +13,44 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+// Errors for config operations.
+var (
+	ErrConfigFileExists = errors.New("configuration file already exists")
+	ErrValidationFailed = errors.New("validation failed")
+)
+
+const (
+	// File permission constants.
+	configFilePermission = 0600
+	configDirPermission  = 0750
+)
+
 var (
 	configFilePath string
 	jsonOutput     bool
 	profileName    string
 )
 
-// configCmd represents the config command
+// saveConfigData saves configuration data to a file.
+func saveConfigData(data *config.ConfigData) error {
+	configPath, err := config.FindConfigFile()
+	if err != nil {
+		configPath = config.GetDefaultConfigPath()
+	}
+
+	yamlData, err := yaml.Marshal(data)
+	if err != nil {
+		return fmt.Errorf("failed to marshal config: %w", err)
+	}
+
+	if err := os.WriteFile(configPath, yamlData, configFilePermission); err != nil {
+		return fmt.Errorf("failed to save config: %w", err)
+	}
+
+	return nil
+}
+
+// configCmd represents the config command.
 var configCmd = &cobra.Command{
 	Use:   "config",
 	Short: "Manage pplx configuration",
@@ -32,12 +64,12 @@ Configuration files are searched in the following order:
 Use subcommands to initialize, view, validate, or edit configuration.`,
 }
 
-// configInitCmd initializes a new configuration file
+// configInitCmd initializes a new configuration file.
 var configInitCmd = &cobra.Command{
 	Use:   "init",
 	Short: "Initialize a new configuration file",
 	Long:  `Create a new configuration file with default values at ~/.config/pplx/config.yaml`,
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(_ *cobra.Command, _ []string) error {
 		configPath := config.GetDefaultConfigPath()
 		if configFilePath != "" {
 			configPath = configFilePath
@@ -45,12 +77,12 @@ var configInitCmd = &cobra.Command{
 
 		// Check if file already exists
 		if _, err := os.Stat(configPath); err == nil {
-			return fmt.Errorf("configuration file already exists at %s", configPath)
+			return fmt.Errorf("%w at %s", ErrConfigFileExists, configPath)
 		}
 
 		// Create directory if it doesn't exist
 		configDir := filepath.Dir(configPath)
-		if err := os.MkdirAll(configDir, 0755); err != nil {
+		if err := os.MkdirAll(configDir, configDirPermission); err != nil {
 			return fmt.Errorf("failed to create config directory: %w", err)
 		}
 
@@ -67,7 +99,7 @@ var configInitCmd = &cobra.Command{
 		}
 
 		// Write to file
-		if err := os.WriteFile(configPath, data, 0644); err != nil {
+		if err := os.WriteFile(configPath, data, configFilePermission); err != nil {
 			return fmt.Errorf("failed to write config file: %w", err)
 		}
 
@@ -76,12 +108,12 @@ var configInitCmd = &cobra.Command{
 	},
 }
 
-// configShowCmd displays the current configuration
+// configShowCmd displays the current configuration.
 var configShowCmd = &cobra.Command{
 	Use:   "show",
 	Short: "Show current configuration",
 	Long:  `Display the current configuration, either from file or defaults.`,
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(_ *cobra.Command, _ []string) error {
 		loader := config.NewLoader()
 
 		if configFilePath != "" {
@@ -139,12 +171,12 @@ var configShowCmd = &cobra.Command{
 	},
 }
 
-// configValidateCmd validates the configuration file
+// configValidateCmd validates the configuration file.
 var configValidateCmd = &cobra.Command{
 	Use:   "validate",
 	Short: "Validate configuration file",
 	Long:  `Check the configuration file for syntax errors and invalid values.`,
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(_ *cobra.Command, _ []string) error {
 		loader := config.NewLoader()
 
 		if configFilePath != "" {
@@ -164,7 +196,7 @@ var configValidateCmd = &cobra.Command{
 		if err := validator.Validate(cfg); err != nil {
 			fmt.Println("Configuration validation failed:")
 			fmt.Println(err.Error())
-			return fmt.Errorf("validation failed")
+			return ErrValidationFailed
 		}
 
 		fmt.Println("Configuration is valid ✓")
@@ -172,12 +204,12 @@ var configValidateCmd = &cobra.Command{
 	},
 }
 
-// configEditCmd opens the configuration file in an editor
+// configEditCmd opens the configuration file in an editor.
 var configEditCmd = &cobra.Command{
 	Use:   "edit",
 	Short: "Edit configuration file",
 	Long:  `Open the configuration file in your default editor ($EDITOR).`,
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(_ *cobra.Command, _ []string) error {
 		// Find config file
 		configPath := configFilePath
 		if configPath == "" {
@@ -196,7 +228,7 @@ var configEditCmd = &cobra.Command{
 		}
 
 		// Open editor
-		editorCmd := exec.Command(editor, configPath)
+		editorCmd := exec.Command(editor, configPath) //nolint:gosec // Editor command from $EDITOR is intentional.
 		editorCmd.Stdin = os.Stdin
 		editorCmd.Stdout = os.Stdout
 		editorCmd.Stderr = os.Stderr
@@ -223,18 +255,18 @@ var configEditCmd = &cobra.Command{
 	},
 }
 
-// configProfileCmd manages profiles
+// configProfileCmd manages profiles.
 var configProfileCmd = &cobra.Command{
 	Use:   "profile",
 	Short: "Manage configuration profiles",
 	Long:  `Create, list, switch, and delete configuration profiles.`,
 }
 
-// configProfileListCmd lists all profiles
+// configProfileListCmd lists all profiles.
 var configProfileListCmd = &cobra.Command{
 	Use:   "list",
 	Short: "List all profiles",
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(_ *cobra.Command, _ []string) error {
 		loader := config.NewLoader()
 		if err := loader.Load(); err != nil {
 			return fmt.Errorf("failed to load config: %w", err)
@@ -258,12 +290,12 @@ var configProfileListCmd = &cobra.Command{
 	},
 }
 
-// configProfileCreateCmd creates a new profile
+// configProfileCreateCmd creates a new profile.
 var configProfileCreateCmd = &cobra.Command{
 	Use:   "create [name]",
 	Short: "Create a new profile",
 	Args:  cobra.ExactArgs(1),
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(_ *cobra.Command, args []string) error {
 		profileName := args[0]
 
 		loader := config.NewLoader()
@@ -287,7 +319,7 @@ var configProfileCreateCmd = &cobra.Command{
 			return fmt.Errorf("failed to marshal config: %w", err)
 		}
 
-		if err := os.WriteFile(configPath, data, 0644); err != nil {
+		if err := os.WriteFile(configPath, data, configFilePermission); err != nil {
 			return fmt.Errorf("failed to save config: %w", err)
 		}
 
@@ -296,12 +328,12 @@ var configProfileCreateCmd = &cobra.Command{
 	},
 }
 
-// configProfileSwitchCmd switches the active profile
+// configProfileSwitchCmd switches the active profile.
 var configProfileSwitchCmd = &cobra.Command{
 	Use:   "switch [name]",
 	Short: "Switch to a different profile",
 	Args:  cobra.ExactArgs(1),
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(_ *cobra.Command, args []string) error {
 		profileName := args[0]
 
 		loader := config.NewLoader()
@@ -315,18 +347,8 @@ var configProfileSwitchCmd = &cobra.Command{
 		}
 
 		// Save config
-		configPath, err := config.FindConfigFile()
-		if err != nil {
-			configPath = config.GetDefaultConfigPath()
-		}
-
-		data, err := yaml.Marshal(loader.Data())
-		if err != nil {
-			return fmt.Errorf("failed to marshal config: %w", err)
-		}
-
-		if err := os.WriteFile(configPath, data, 0644); err != nil {
-			return fmt.Errorf("failed to save config: %w", err)
+		if err := saveConfigData(loader.Data()); err != nil {
+			return err
 		}
 
 		fmt.Printf("Switched to profile '%s'\n", profileName)
@@ -334,12 +356,12 @@ var configProfileSwitchCmd = &cobra.Command{
 	},
 }
 
-// configProfileDeleteCmd deletes a profile
+// configProfileDeleteCmd deletes a profile.
 var configProfileDeleteCmd = &cobra.Command{
 	Use:   "delete [name]",
 	Short: "Delete a profile",
 	Args:  cobra.ExactArgs(1),
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(_ *cobra.Command, args []string) error {
 		profileName := args[0]
 
 		loader := config.NewLoader()
@@ -353,18 +375,8 @@ var configProfileDeleteCmd = &cobra.Command{
 		}
 
 		// Save config
-		configPath, err := config.FindConfigFile()
-		if err != nil {
-			configPath = config.GetDefaultConfigPath()
-		}
-
-		data, err := yaml.Marshal(loader.Data())
-		if err != nil {
-			return fmt.Errorf("failed to marshal config: %w", err)
-		}
-
-		if err := os.WriteFile(configPath, data, 0644); err != nil {
-			return fmt.Errorf("failed to save config: %w", err)
+		if err := saveConfigData(loader.Data()); err != nil {
+			return err
 		}
 
 		fmt.Printf("Profile '%s' deleted successfully\n", profileName)

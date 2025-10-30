@@ -1,15 +1,27 @@
 package config
 
 import (
+	"errors"
 	"fmt"
 )
 
-// ProfileManager manages configuration profiles
+// Errors for profile operations.
+var (
+	ErrProfileNameEmpty     = errors.New("profile name cannot be empty")
+	ErrProfileNameReserved  = errors.New("cannot create profile with reserved name '" + DefaultProfileName + "'")
+	ErrProfileNotFound      = errors.New("profile not found")
+	ErrProfileAlreadyExists = errors.New("profile already exists")
+	ErrDeleteDefaultProfile = errors.New("cannot delete default profile")
+	ErrUpdateDefaultProfile = errors.New("cannot update default profile directly")
+	ErrImportReservedName   = errors.New("cannot import profile with reserved name '" + DefaultProfileName + "'")
+)
+
+// ProfileManager manages configuration profiles.
 type ProfileManager struct {
 	data *ConfigData
 }
 
-// NewProfileManager creates a new profile manager
+// NewProfileManager creates a new profile manager.
 func NewProfileManager(data *ConfigData) *ProfileManager {
 	if data.Profiles == nil {
 		data.Profiles = make(map[string]*Profile)
@@ -19,18 +31,18 @@ func NewProfileManager(data *ConfigData) *ProfileManager {
 	}
 }
 
-// CreateProfile creates a new profile
+// CreateProfile creates a new profile.
 func (pm *ProfileManager) CreateProfile(name, description string) (*Profile, error) {
 	if name == "" {
-		return nil, fmt.Errorf("profile name cannot be empty")
+		return nil, ErrProfileNameEmpty
 	}
 
-	if name == "default" {
-		return nil, fmt.Errorf("cannot create profile with reserved name 'default'")
+	if name == DefaultProfileName {
+		return nil, ErrProfileNameReserved
 	}
 
 	if _, exists := pm.data.Profiles[name]; exists {
-		return nil, fmt.Errorf("profile '%s' already exists", name)
+		return nil, fmt.Errorf("%w: '%s'", ErrProfileAlreadyExists, name)
 	}
 
 	profile := &Profile{
@@ -42,27 +54,27 @@ func (pm *ProfileManager) CreateProfile(name, description string) (*Profile, err
 	return profile, nil
 }
 
-// LoadProfile retrieves a profile by name
+// LoadProfile retrieves a profile by name.
 func (pm *ProfileManager) LoadProfile(name string) (*Profile, error) {
 	// Handle default profile
-	if name == "default" || name == "" {
+	if name == DefaultProfileName || name == "" {
 		return pm.getDefaultProfile(), nil
 	}
 
 	profile, exists := pm.data.Profiles[name]
 	if !exists {
-		return nil, fmt.Errorf("profile '%s' not found", name)
+		return nil, fmt.Errorf("%w: '%s'", ErrProfileNotFound, name)
 	}
 
 	return profile, nil
 }
 
-// ListProfiles returns all available profiles
+// ListProfiles returns all available profiles.
 func (pm *ProfileManager) ListProfiles() []string {
-	profiles := []string{"default"}
+	profiles := []string{DefaultProfileName}
 
 	for name := range pm.data.Profiles {
-		if name != "default" {
+		if name != DefaultProfileName {
 			profiles = append(profiles, name)
 		}
 	}
@@ -70,30 +82,30 @@ func (pm *ProfileManager) ListProfiles() []string {
 	return profiles
 }
 
-// DeleteProfile removes a profile
+// DeleteProfile removes a profile.
 func (pm *ProfileManager) DeleteProfile(name string) error {
-	if name == "default" {
-		return fmt.Errorf("cannot delete default profile")
+	if name == DefaultProfileName {
+		return ErrDeleteDefaultProfile
 	}
 
 	if _, exists := pm.data.Profiles[name]; !exists {
-		return fmt.Errorf("profile '%s' not found", name)
+		return fmt.Errorf("%w: '%s'", ErrProfileNotFound, name)
 	}
 
 	// If deleting the active profile, switch to default
 	if pm.data.ActiveProfile == name {
-		pm.data.ActiveProfile = "default"
+		pm.data.ActiveProfile = DefaultProfileName
 	}
 
 	delete(pm.data.Profiles, name)
 	return nil
 }
 
-// SetActiveProfile sets the active profile
+// SetActiveProfile sets the active profile.
 func (pm *ProfileManager) SetActiveProfile(name string) error {
-	if name != "default" {
+	if name != DefaultProfileName {
 		if _, exists := pm.data.Profiles[name]; !exists {
-			return fmt.Errorf("profile '%s' not found", name)
+			return fmt.Errorf("%w: '%s'", ErrProfileNotFound, name)
 		}
 	}
 
@@ -101,31 +113,31 @@ func (pm *ProfileManager) SetActiveProfile(name string) error {
 	return nil
 }
 
-// GetActiveProfile returns the currently active profile
+// GetActiveProfile returns the currently active profile.
 func (pm *ProfileManager) GetActiveProfile() (*Profile, error) {
-	if pm.data.ActiveProfile == "" || pm.data.ActiveProfile == "default" {
+	if pm.data.ActiveProfile == "" || pm.data.ActiveProfile == DefaultProfileName {
 		return pm.getDefaultProfile(), nil
 	}
 
 	return pm.LoadProfile(pm.data.ActiveProfile)
 }
 
-// GetActiveProfileName returns the name of the active profile
+// GetActiveProfileName returns the name of the active profile.
 func (pm *ProfileManager) GetActiveProfileName() string {
 	if pm.data.ActiveProfile == "" {
-		return "default"
+		return DefaultProfileName
 	}
 	return pm.data.ActiveProfile
 }
 
-// UpdateProfile updates an existing profile
+// UpdateProfile updates an existing profile.
 func (pm *ProfileManager) UpdateProfile(name string, profile *Profile) error {
-	if name == "default" {
-		return fmt.Errorf("cannot update default profile directly")
+	if name == DefaultProfileName {
+		return ErrUpdateDefaultProfile
 	}
 
 	if _, exists := pm.data.Profiles[name]; !exists {
-		return fmt.Errorf("profile '%s' not found", name)
+		return fmt.Errorf("%w: '%s'", ErrProfileNotFound, name)
 	}
 
 	// Ensure name consistency
@@ -134,7 +146,7 @@ func (pm *ProfileManager) UpdateProfile(name string, profile *Profile) error {
 	return nil
 }
 
-// ExportProfile exports a profile for sharing
+// ExportProfile exports a profile for sharing.
 func (pm *ProfileManager) ExportProfile(name string) (*Profile, error) {
 	profile, err := pm.LoadProfile(name)
 	if err != nil {
@@ -153,18 +165,18 @@ func (pm *ProfileManager) ExportProfile(name string) (*Profile, error) {
 	return exported, nil
 }
 
-// ImportProfile imports a profile
+// ImportProfile imports a profile.
 func (pm *ProfileManager) ImportProfile(profile *Profile, overwrite bool) error {
 	if profile.Name == "" {
-		return fmt.Errorf("profile name cannot be empty")
+		return ErrProfileNameEmpty
 	}
 
-	if profile.Name == "default" {
-		return fmt.Errorf("cannot import profile with reserved name 'default'")
+	if profile.Name == DefaultProfileName {
+		return ErrImportReservedName
 	}
 
 	if _, exists := pm.data.Profiles[profile.Name]; exists && !overwrite {
-		return fmt.Errorf("profile '%s' already exists (use overwrite=true to replace)", profile.Name)
+		return fmt.Errorf("%w: '%s' (use overwrite=true to replace)", ErrProfileAlreadyExists, profile.Name)
 	}
 
 	pm.data.Profiles[profile.Name] = profile
@@ -172,7 +184,8 @@ func (pm *ProfileManager) ImportProfile(profile *Profile, overwrite bool) error 
 }
 
 // MergeProfile merges a profile with the base configuration
-// Returns a new ConfigData with the profile settings applied
+// Returns a new ConfigData with the profile settings applied.
+//nolint:cyclop // Function complexity is inherent - it merges multiple config sections.
 func (pm *ProfileManager) MergeProfile(profileName string) (*ConfigData, error) {
 	profile, err := pm.LoadProfile(profileName)
 	if err != nil {
@@ -237,10 +250,10 @@ func (pm *ProfileManager) MergeProfile(profileName string) (*ConfigData, error) 
 	return merged, nil
 }
 
-// getDefaultProfile returns the default profile (constructed from base config)
+// getDefaultProfile returns the default profile (constructed from base config).
 func (pm *ProfileManager) getDefaultProfile() *Profile {
 	return &Profile{
-		Name:        "default",
+		Name:        DefaultProfileName,
 		Description: "Default configuration",
 		Defaults:    pm.data.Defaults,
 		Search:      pm.data.Search,

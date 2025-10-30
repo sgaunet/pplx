@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"os"
 	"time"
 
@@ -8,13 +9,13 @@ import (
 	"github.com/spf13/viper"
 )
 
-// Merger handles merging configuration from files with CLI flags
+// Merger handles merging configuration from files with CLI flags.
 type Merger struct {
 	viper *viper.Viper
 	data  *ConfigData
 }
 
-// NewMerger creates a new configuration merger
+// NewMerger creates a new configuration merger.
 func NewMerger(data *ConfigData) *Merger {
 	v := viper.New()
 	return &Merger{
@@ -23,23 +24,24 @@ func NewMerger(data *ConfigData) *Merger {
 	}
 }
 
-// BindFlags binds cobra command flags to viper keys
+// BindFlags binds cobra command flags to viper keys.
 func (m *Merger) BindFlags(cmd *cobra.Command) error {
 	// Bind all persistent flags
 	if err := m.viper.BindPFlags(cmd.PersistentFlags()); err != nil {
-		return err
+		return fmt.Errorf("failed to bind persistent flags: %w", err)
 	}
 
 	// Bind local flags
 	if err := m.viper.BindPFlags(cmd.Flags()); err != nil {
-		return err
+		return fmt.Errorf("failed to bind local flags: %w", err)
 	}
 
 	return nil
 }
 
 // MergeWithFlags merges configuration data with CLI flags
-// Precedence: CLI flags > environment variables > config file > defaults
+// Precedence: CLI flags > environment variables > config file > defaults.
+//nolint:cyclop,funlen // Function complexity is inherent - it checks 29 different CLI flags.
 func (m *Merger) MergeWithFlags(cmd *cobra.Command) *ConfigData {
 	// Start with config file data as base
 	merged := m.data
@@ -139,7 +141,8 @@ func (m *Merger) MergeWithFlags(cmd *cobra.Command) *ConfigData {
 }
 
 // ApplyToGlobals applies merged configuration to global variables
-// This maintains compatibility with existing code that uses global vars
+// This maintains compatibility with existing code that uses global vars.
+//nolint:gocognit,gocyclo,cyclop,funlen // Function complexity is inherent - it applies config to many global variables.
 func ApplyToGlobals(cfg *ConfigData,
 	model *string,
 	temperature *float64,
@@ -224,7 +227,7 @@ func ApplyToGlobals(cfg *ConfigData,
 }
 
 // ExpandEnvVars expands environment variables in configuration values
-// Supports ${VAR_NAME} and $VAR_NAME syntax
+// Supports ${VAR_NAME} and $VAR_NAME syntax.
 func ExpandEnvVars(cfg *ConfigData) {
 	// Expand in API config
 	cfg.API.Key = expandString(cfg.API.Key)
@@ -249,12 +252,12 @@ func ExpandEnvVars(cfg *ConfigData) {
 	}
 }
 
-// expandString expands environment variables in a string
+// expandString expands environment variables in a string.
 func expandString(s string) string {
 	return os.ExpandEnv(s)
 }
 
-// LoadAndMergeConfig loads configuration and merges with CLI flags
+// LoadAndMergeConfig loads configuration and merges with CLI flags.
 func LoadAndMergeConfig(cmd *cobra.Command, configPath string) (*ConfigData, error) {
 	loader := NewLoader()
 

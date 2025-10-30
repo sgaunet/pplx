@@ -1,10 +1,15 @@
+// Package config provides configuration management for the pplx application.
+// It supports YAML configuration files, profiles, and CLI flag integration.
 package config
 
 import (
 	"time"
 )
 
-// Config interface defines methods for configuration management
+// DefaultProfileName is the name of the default profile.
+const DefaultProfileName = "default"
+
+// Config interface defines methods for configuration management.
 type Config interface {
 	// Get retrieves a configuration value by key
 	Get(key string) interface{}
@@ -28,97 +33,98 @@ type Config interface {
 	SetActiveProfile(name string) error
 }
 
-// ConfigData represents the complete configuration structure
+// ConfigData represents the complete configuration structure.
+//nolint:revive // ConfigData name is part of public API; renaming would be a breaking change.
 type ConfigData struct {
 	// Defaults contains default values for CLI flags
-	Defaults DefaultsConfig `mapstructure:"defaults" yaml:"defaults,omitempty"`
+	Defaults DefaultsConfig `json:"defaults,omitempty" mapstructure:"defaults" yaml:"defaults,omitempty"`
 
 	// Search contains search-related preferences
-	Search SearchConfig `mapstructure:"search" yaml:"search,omitempty"`
+	Search SearchConfig `json:"search,omitempty" mapstructure:"search" yaml:"search,omitempty"`
 
 	// Output contains output-related preferences
-	Output OutputConfig `mapstructure:"output" yaml:"output,omitempty"`
+	Output OutputConfig `json:"output,omitempty" mapstructure:"output" yaml:"output,omitempty"`
 
 	// API contains API configuration
-	API APIConfig `mapstructure:"api" yaml:"api,omitempty"`
+	API APIConfig `json:"api,omitempty" mapstructure:"api" yaml:"api,omitempty"`
 
 	// Profiles contains named configuration profiles
-	Profiles map[string]*Profile `mapstructure:"profiles" yaml:"profiles,omitempty"`
+	Profiles map[string]*Profile `json:"profiles,omitempty" mapstructure:"profiles" yaml:"profiles,omitempty"`
 
 	// ActiveProfile is the name of the currently active profile
-	ActiveProfile string `mapstructure:"active_profile" yaml:"active_profile,omitempty"`
+	ActiveProfile string `json:"active_profile,omitempty" mapstructure:"active_profile" yaml:"active_profile,omitempty"`
 }
 
-// DefaultsConfig contains default values for common options
+// DefaultsConfig contains default values for common options.
 type DefaultsConfig struct {
-	Model            string  `mapstructure:"model" yaml:"model,omitempty"`
-	Temperature      float64 `mapstructure:"temperature" yaml:"temperature,omitempty"`
-	MaxTokens        int     `mapstructure:"max_tokens" yaml:"max_tokens,omitempty"`
-	TopK             int     `mapstructure:"top_k" yaml:"top_k,omitempty"`
-	TopP             float64 `mapstructure:"top_p" yaml:"top_p,omitempty"`
-	FrequencyPenalty float64 `mapstructure:"frequency_penalty" yaml:"frequency_penalty,omitempty"`
-	PresencePenalty  float64 `mapstructure:"presence_penalty" yaml:"presence_penalty,omitempty"`
-	Timeout          string  `mapstructure:"timeout" yaml:"timeout,omitempty"`
+	Model            string  `json:"model,omitempty"             mapstructure:"model"             yaml:"model,omitempty"`
+	Temperature      float64 `json:"temperature,omitempty"       mapstructure:"temperature"       yaml:"temperature,omitempty"`       //nolint:lll
+	MaxTokens        int     `json:"max_tokens,omitempty"        mapstructure:"max_tokens"        yaml:"max_tokens,omitempty"`        //nolint:lll
+	TopK             int     `json:"top_k,omitempty"             mapstructure:"top_k"             yaml:"top_k,omitempty"`
+	TopP             float64 `json:"top_p,omitempty"             mapstructure:"top_p"             yaml:"top_p,omitempty"`
+	FrequencyPenalty float64 `json:"frequency_penalty,omitempty" mapstructure:"frequency_penalty" yaml:"frequency_penalty,omitempty"` //nolint:lll
+	PresencePenalty  float64 `json:"presence_penalty,omitempty"  mapstructure:"presence_penalty"  yaml:"presence_penalty,omitempty"`  //nolint:lll
+	Timeout          string  `json:"timeout,omitempty"           mapstructure:"timeout"           yaml:"timeout,omitempty"`
 }
 
-// SearchConfig contains search-related preferences
+// SearchConfig contains search-related preferences.
 type SearchConfig struct {
-	Domains       []string `mapstructure:"domains" yaml:"domains,omitempty"`
-	Recency       string   `mapstructure:"recency" yaml:"recency,omitempty"`
-	Mode          string   `mapstructure:"mode" yaml:"mode,omitempty"`
-	ContextSize   string   `mapstructure:"context_size" yaml:"context_size,omitempty"`
+	Domains     []string `json:"domains,omitempty"      mapstructure:"domains"      yaml:"domains,omitempty"`
+	Recency     string   `json:"recency,omitempty"      mapstructure:"recency"      yaml:"recency,omitempty"`
+	Mode        string   `json:"mode,omitempty"         mapstructure:"mode"         yaml:"mode,omitempty"`
+	ContextSize string   `json:"context_size,omitempty" mapstructure:"context_size" yaml:"context_size,omitempty"`
 
 	// Location preferences
-	LocationLat     float64 `mapstructure:"location_lat" yaml:"location_lat,omitempty"`
-	LocationLon     float64 `mapstructure:"location_lon" yaml:"location_lon,omitempty"`
-	LocationCountry string  `mapstructure:"location_country" yaml:"location_country,omitempty"`
+	LocationLat     float64 `json:"location_lat,omitempty"     mapstructure:"location_lat"     yaml:"location_lat,omitempty"`     //nolint:lll
+	LocationLon     float64 `json:"location_lon,omitempty"     mapstructure:"location_lon"     yaml:"location_lon,omitempty"`     //nolint:lll
+	LocationCountry string  `json:"location_country,omitempty" mapstructure:"location_country" yaml:"location_country,omitempty"` //nolint:lll
 
 	// Date filtering
-	AfterDate        string `mapstructure:"after_date" yaml:"after_date,omitempty"`
-	BeforeDate       string `mapstructure:"before_date" yaml:"before_date,omitempty"`
-	LastUpdatedAfter string `mapstructure:"last_updated_after" yaml:"last_updated_after,omitempty"`
-	LastUpdatedBefore string `mapstructure:"last_updated_before" yaml:"last_updated_before,omitempty"`
+	AfterDate         string `json:"after_date,omitempty"          mapstructure:"after_date"          yaml:"after_date,omitempty"`          //nolint:lll
+	BeforeDate        string `json:"before_date,omitempty"         mapstructure:"before_date"         yaml:"before_date,omitempty"`         //nolint:lll
+	LastUpdatedAfter  string `json:"last_updated_after,omitempty"  mapstructure:"last_updated_after"  yaml:"last_updated_after,omitempty"`  //nolint:lll
+	LastUpdatedBefore string `json:"last_updated_before,omitempty" mapstructure:"last_updated_before" yaml:"last_updated_before,omitempty"` //nolint:lll
 }
 
-// OutputConfig contains output-related preferences
+// OutputConfig contains output-related preferences.
 type OutputConfig struct {
-	Stream        bool     `mapstructure:"stream" yaml:"stream,omitempty"`
-	ReturnImages  bool     `mapstructure:"return_images" yaml:"return_images,omitempty"`
-	ReturnRelated bool     `mapstructure:"return_related" yaml:"return_related,omitempty"`
-	JSON          bool     `mapstructure:"json" yaml:"json,omitempty"`
+	Stream        bool `json:"stream,omitempty"         mapstructure:"stream"         yaml:"stream,omitempty"`
+	ReturnImages  bool `json:"return_images,omitempty"  mapstructure:"return_images"  yaml:"return_images,omitempty"`
+	ReturnRelated bool `json:"return_related,omitempty" mapstructure:"return_related" yaml:"return_related,omitempty"`
+	JSON          bool `json:"json,omitempty"           mapstructure:"json"           yaml:"json,omitempty"`
 
 	// Image filtering
-	ImageDomains []string `mapstructure:"image_domains" yaml:"image_domains,omitempty"`
-	ImageFormats []string `mapstructure:"image_formats" yaml:"image_formats,omitempty"`
+	ImageDomains []string `json:"image_domains,omitempty" mapstructure:"image_domains" yaml:"image_domains,omitempty"`
+	ImageFormats []string `json:"image_formats,omitempty" mapstructure:"image_formats" yaml:"image_formats,omitempty"`
 
 	// Response format
-	ResponseFormatJSONSchema string `mapstructure:"response_format_json_schema" yaml:"response_format_json_schema,omitempty"`
-	ResponseFormatRegex      string `mapstructure:"response_format_regex" yaml:"response_format_regex,omitempty"`
+	ResponseFormatJSONSchema string `json:"response_format_json_schema,omitempty" mapstructure:"response_format_json_schema" yaml:"response_format_json_schema,omitempty"` //nolint:lll
+	ResponseFormatRegex      string `json:"response_format_regex,omitempty"       mapstructure:"response_format_regex"       yaml:"response_format_regex,omitempty"`       //nolint:lll
 
 	// Deep research
-	ReasoningEffort string `mapstructure:"reasoning_effort" yaml:"reasoning_effort,omitempty"`
+	ReasoningEffort string `json:"reasoning_effort,omitempty" mapstructure:"reasoning_effort" yaml:"reasoning_effort,omitempty"` //nolint:lll
 }
 
-// APIConfig contains API-related configuration
+// APIConfig contains API-related configuration.
 type APIConfig struct {
-	Key     string        `mapstructure:"key" yaml:"key,omitempty"`
-	BaseURL string        `mapstructure:"base_url" yaml:"base_url,omitempty"`
-	Timeout time.Duration `mapstructure:"timeout" yaml:"timeout,omitempty"`
+	Key     string        `json:"key,omitempty"      mapstructure:"key"      yaml:"key,omitempty"`
+	BaseURL string        `json:"base_url,omitempty" mapstructure:"base_url" yaml:"base_url,omitempty"`
+	Timeout time.Duration `json:"timeout,omitempty"  mapstructure:"timeout"  yaml:"timeout,omitempty"`
 }
 
-// Profile represents a named configuration profile
+// Profile represents a named configuration profile.
 type Profile struct {
-	Name        string         `mapstructure:"name" yaml:"name"`
-	Description string         `mapstructure:"description" yaml:"description,omitempty"`
-	Defaults    DefaultsConfig `mapstructure:"defaults" yaml:"defaults,omitempty"`
-	Search      SearchConfig   `mapstructure:"search" yaml:"search,omitempty"`
-	Output      OutputConfig   `mapstructure:"output" yaml:"output,omitempty"`
+	Name        string         `json:"name"                  mapstructure:"name"        yaml:"name"`
+	Description string         `json:"description,omitempty" mapstructure:"description" yaml:"description,omitempty"`
+	Defaults    DefaultsConfig `json:"defaults,omitempty"    mapstructure:"defaults"    yaml:"defaults,omitempty"`
+	Search      SearchConfig   `json:"search,omitempty"      mapstructure:"search"      yaml:"search,omitempty"`
+	Output      OutputConfig   `json:"output,omitempty"      mapstructure:"output"      yaml:"output,omitempty"`
 }
 
-// NewConfigData creates a new ConfigData with default values
+// NewConfigData creates a new ConfigData with default values.
 func NewConfigData() *ConfigData {
 	return &ConfigData{
 		Profiles:      make(map[string]*Profile),
-		ActiveProfile: "default",
+		ActiveProfile: DefaultProfileName,
 	}
 }
