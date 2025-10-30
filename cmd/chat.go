@@ -8,6 +8,7 @@ import (
 	"github.com/pterm/pterm"
 	"github.com/sgaunet/perplexity-go/v2"
 	"github.com/sgaunet/pplx/pkg/chat"
+	"github.com/sgaunet/pplx/pkg/config"
 	"github.com/sgaunet/pplx/pkg/console"
 	"github.com/spf13/cobra"
 )
@@ -18,7 +19,23 @@ var chatCmd = &cobra.Command{
 	Long: `With chat subcommand you can interactively chat with the Perplexity API.
 You can ask questions and get answers from the API. As long as you don't enter an empty question,
  the chat will continue.`,
-	Run: func(_ *cobra.Command, _ []string) {
+	Run: func(cmd *cobra.Command, _ []string) {
+		// Load configuration from file and merge with CLI flags
+		cfg, err := config.LoadAndMergeConfig(cmd, configFilePath)
+		if err != nil {
+			// Non-fatal: continue with CLI flags only
+			cfg = config.NewConfigData()
+		}
+
+		// Apply configuration to global variables
+		config.ApplyToGlobals(cfg,
+			&model, &temperature, &maxTokens, &topK, &topP,
+			&frequencyPenalty, &presencePenalty, &timeout,
+			&searchDomains, &searchRecency, &locationLat, &locationLon, &locationCountry,
+			&returnImages, &returnRelated, &stream,
+			&searchMode, &searchContextSize,
+		)
+
 		// Check env var PPLX_API_KEY exists
 		if os.Getenv("PPLX_API_KEY") == "" {
 			fmt.Fprintf(os.Stderr, "Error: PPLX_API_KEY env var is not set\n")

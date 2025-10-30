@@ -1,0 +1,46 @@
+# News and current events configuration example
+# Optimized for up-to-date information and news
+
+defaults:
+  model: sonar
+  temperature: 0.2
+  max_tokens: 1500
+
+search:
+  mode: web
+  recency: day                    # Only today's news
+  context_size: high
+  domains:                        # News sources
+    - reuters.com
+    - bbc.com
+    - apnews.com
+    - bloomberg.com
+    - theguardian.com
+
+output:
+  return_related: true            # Related news topics
+  return_images: true             # News images
+  stream: false
+
+active_profile: news
+
+# News profile
+profiles:
+  news:
+    name: news
+    description: Current news and events
+    defaults:
+      model: sonar
+      temperature: 0.2
+      max_tokens: 1500
+    search:
+      mode: web
+      recency: day
+      context_size: high
+      domains:
+        - reuters.com
+        - bbc.com
+        - apnews.com
+    output:
+      return_related: true
+      return_images: true

@@ -10,6 +10,7 @@ import (
 
 	"github.com/pterm/pterm"
 	"github.com/sgaunet/perplexity-go/v2"
+	"github.com/sgaunet/pplx/pkg/config"
 	"github.com/sgaunet/pplx/pkg/console"
 	"github.com/spf13/cobra"
 )
@@ -19,6 +20,22 @@ var queryCmd = &cobra.Command{
 	Short: "",
 	Long:  ``,
 	Run: func(cmd *cobra.Command, _ []string) {
+		// Load configuration from file and merge with CLI flags
+		cfg, err := config.LoadAndMergeConfig(cmd, configFilePath)
+		if err != nil {
+			// Non-fatal: continue with CLI flags only
+			cfg = config.NewConfigData()
+		}
+
+		// Apply configuration to global variables
+		config.ApplyToGlobals(cfg,
+			&model, &temperature, &maxTokens, &topK, &topP,
+			&frequencyPenalty, &presencePenalty, &timeout,
+			&searchDomains, &searchRecency, &locationLat, &locationLon, &locationCountry,
+			&returnImages, &returnRelated, &stream,
+			&searchMode, &searchContextSize,
+		)
+
 		// Check env var PPLX_API_KEY exists
 		if os.Getenv("PPLX_API_KEY") == "" {
 			fmt.Fprintf(os.Stderr, "Error: PPLX_API_KEY env var is not set\n")
@@ -201,7 +218,7 @@ var queryCmd = &cobra.Command{
 		}
 
 		req := perplexity.NewCompletionRequest(opts...)
-		err := req.Validate()
+		err = req.Validate()
 		if err != nil {
 			fmt.Printf("Error: %v\n", err)
 			os.Exit(1)
