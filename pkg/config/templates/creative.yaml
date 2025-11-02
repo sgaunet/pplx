@@ -1,0 +1,20 @@
+# Creative Template
+# Optimized for creative writing, brainstorming, and exploratory queries
+
+defaults:
+  model: sonar
+  temperature: 0.9  # Higher temperature for more creative, diverse responses
+  max_tokens: 8192
+  top_p: 0.95
+  frequency_penalty: 0.5  # Encourage diverse word choice
+  presence_penalty: 0.3   # Encourage new topics
+
+search:
+  context_size: medium
+  mode: web  # Broad web search for diverse perspectives
+
+output:
+  stream: true  # Enable streaming for real-time creative output
+  return_images: true  # Include visual inspiration
+  return_related: true  # Show related creative prompts
+  json: false

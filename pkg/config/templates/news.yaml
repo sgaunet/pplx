@@ -1,0 +1,29 @@
+# News Template
+# Optimized for current events and recent news coverage
+
+defaults:
+  model: sonar
+  temperature: 0.5  # Balanced temperature for news analysis
+  max_tokens: 4096
+
+search:
+  mode: web
+  recency: week  # Focus on recent news from past week
+  context_size: medium
+  domains:
+    - reuters.com
+    - apnews.com
+    - bbc.com
+    - nytimes.com
+    - washingtonpost.com
+    - theguardian.com
+    - wsj.com
+    - bloomberg.com
+    - cnn.com
+    - npr.org
+
+output:
+  stream: false
+  return_images: true  # Include news images
+  return_related: true  # Show related news topics
+  json: false

@@ -1,0 +1,128 @@
+# Full Example Template
+# Comprehensive configuration showing all available options with descriptions
+
+# Default settings for model behavior
+defaults:
+  # Model to use for queries
+  # Valid values: sonar, sonar-pro, sonar-deep-research, etc.
+  model: sonar
+
+  # Temperature controls randomness (0.0 = deterministic, 1.0 = creative)
+  # Valid range: 0.0 - 1.0
+  temperature: 0.7
+
+  # Maximum number of tokens in response
+  # Valid range: 1 - 16384 (model dependent)
+  max_tokens: 4096
+
+  # Top-K sampling: limit to K highest probability tokens
+  # Valid range: 1 - 100, or 0 to disable
+  top_k: 50
+
+  # Top-P (nucleus) sampling: cumulative probability threshold
+  # Valid range: 0.0 - 1.0
+  top_p: 0.9
+
+  # Frequency penalty: reduce repetition of frequent tokens
+  # Valid range: 0.0 - 2.0
+  frequency_penalty: 0.0
+
+  # Presence penalty: encourage discussing new topics
+  # Valid range: 0.0 - 2.0
+  presence_penalty: 0.0
+
+  # Timeout for API requests
+  # Format: duration string (e.g., "30s", "5m")
+  timeout: 120s
+
+# Search-related preferences
+search:
+  # Limit search to specific domains
+  # Example: ["wikipedia.org", "github.com"]
+  domains: []
+
+  # Time-based filtering of search results
+  # Valid values: hour, day, week, month, year
+  recency: ""
+
+  # Search mode
+  # Valid values: web, academic
+  mode: web
+
+  # Amount of context to use from search results
+  # Valid values: low, medium, high
+  context_size: medium
+
+  # Geographic location preferences (latitude)
+  # Valid range: -90.0 to 90.0
+  location_lat: 0.0
+
+  # Geographic location preferences (longitude)
+  # Valid range: -180.0 to 180.0
+  location_lon: 0.0
+
+  # Country code for location-based results
+  # Format: ISO 3166-1 alpha-2 code (e.g., "US", "GB")
+  location_country: ""
+
+  # Filter results published after this date
+  # Format: MM/DD/YYYY
+  after_date: ""
+
+  # Filter results published before this date
+  # Format: MM/DD/YYYY
+  before_date: ""
+
+  # Filter results last updated after this date
+  # Format: MM/DD/YYYY
+  last_updated_after: ""
+
+  # Filter results last updated before this date
+  # Format: MM/DD/YYYY
+  last_updated_before: ""
+
+# Output formatting and content preferences
+output:
+  # Enable streaming responses (output tokens as they're generated)
+  stream: false
+
+  # Include images in the response
+  return_images: false
+
+  # Include related questions in the response
+  return_related: false
+
+  # Output response as JSON instead of formatted text
+  json: false
+
+  # Filter images by domain
+  # Example: ["unsplash.com", "imgur.com"]
+  image_domains: []
+
+  # Filter images by format
+  # Valid values: jpg, png, gif, webp
+  image_formats: []
+
+  # JSON schema for structured output (sonar model only)
+  # Provide a JSON schema string to enforce response structure
+  response_format_json_schema: ""
+
+  # Regex pattern for structured output (sonar model only)
+  # Provide a regex pattern to enforce response format
+  response_format_regex: ""
+
+  # Reasoning effort for sonar-deep-research model
+  # Valid values: low, medium, high
+  reasoning_effort: ""
+
+# API configuration
+api:
+  # API key (typically set via PERPLEXITY_API_KEY environment variable)
+  key: ""
+
+  # Custom API base URL (if using a proxy or custom endpoint)
+  base_url: ""
+
+  # API request timeout
+  # Format: duration (e.g., 30s, 2m)
+  timeout: 0s
