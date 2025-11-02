@@ -1,0 +1,6 @@
+# Invalid YAML syntax for testing error handling
+defaults:
+  model: sonar
+  temperature: 0.7
+  this is invalid yaml syntax: [
+  max_tokens: 4096

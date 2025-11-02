@@ -265,3 +265,51 @@ func TestGetModels(t *testing.T) {
 		t.Error("GetModels() returned fewer models than KnownModels()")
 	}
 }
+
+func TestTemplateNames(t *testing.T) {
+	t.Parallel()
+
+	names := TemplateNames()
+	if len(names) != 4 {
+		t.Errorf("TemplateNames() returned %d names, want 4", len(names))
+	}
+
+	expected := []string{"research", "creative", "news", "full-example"}
+	for i, name := range expected {
+		if names[i] != name {
+			t.Errorf("TemplateNames()[%d] = %v, want %v", i, names[i], name)
+		}
+	}
+}
+
+func TestConfigSections(t *testing.T) {
+	t.Parallel()
+
+	sections := ConfigSections()
+	if len(sections) != 4 {
+		t.Errorf("ConfigSections() returned %d sections, want 4", len(sections))
+	}
+
+	expected := []string{"defaults", "search", "output", "api"}
+	for i, section := range expected {
+		if sections[i] != section {
+			t.Errorf("ConfigSections()[%d] = %v, want %v", i, sections[i], section)
+		}
+	}
+}
+
+func TestOutputFormats(t *testing.T) {
+	t.Parallel()
+
+	formats := OutputFormats()
+	if len(formats) != 3 {
+		t.Errorf("OutputFormats() returned %d formats, want 3", len(formats))
+	}
+
+	expected := []string{"table", "json", "yaml"}
+	for i, format := range expected {
+		if formats[i] != format {
+			t.Errorf("OutputFormats()[%d] = %v, want %v", i, formats[i], format)
+		}
+	}
+}

@@ -1,0 +1,27 @@
+# Research Template
+# Optimized for academic and scholarly research with authoritative sources
+
+defaults:
+  model: sonar
+  temperature: 0.3  # Lower temperature for more factual, consistent responses
+  max_tokens: 4096
+  top_p: 0.9
+
+search:
+  mode: academic  # Focus on academic sources
+  context_size: high  # Maximum context for comprehensive research
+  domains:
+    - scholar.google.com
+    - arxiv.org
+    - pubmed.ncbi.nlm.nih.gov
+    - ieee.org
+    - sciencedirect.com
+    - springer.com
+    - jstor.org
+    - researchgate.net
+
+output:
+  stream: false
+  return_images: false
+  return_related: true  # Show related research topics
+  json: false

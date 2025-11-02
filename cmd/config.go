@@ -8,6 +8,7 @@ import (
 	"os/exec"
 	"path/filepath"
 
+	"github.com/sgaunet/pplx/pkg/completion"
 	"github.com/sgaunet/pplx/pkg/config"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
@@ -17,6 +18,7 @@ import (
 var (
 	ErrConfigFileExists = errors.New("configuration file already exists")
 	ErrValidationFailed = errors.New("validation failed")
+	ErrUnknownSection   = errors.New("unknown section")
 )
 
 const (
@@ -26,9 +28,19 @@ const (
 )
 
 var (
-	configFilePath string
-	jsonOutput     bool
-	profileName    string
+	configFilePath    string
+	jsonOutput        bool
+	profileName       string
+	optionsSection    string
+	optionsFormat     string
+	optionsValidation bool
+	// Config init flags.
+	initTemplate     string
+	initWithExamples bool
+	initWithProfiles bool
+	initForce        bool
+	initCheckEnv     bool
+	initInteractive  bool
 )
 
 // saveConfigData saves configuration data to a file.
@@ -66,44 +78,151 @@ Use subcommands to initialize, view, validate, or edit configuration.`,
 var configInitCmd = &cobra.Command{
 	Use:   "init",
 	Short: "Initialize a new configuration file",
-	Long:  `Create a new configuration file with default values at ~/.config/pplx/config.yaml`,
-	RunE: func(_ *cobra.Command, _ []string) error {
-		configPath := config.GetDefaultConfigPath()
-		if configFilePath != "" {
-			configPath = configFilePath
-		}
+	Long: `Create a new configuration file at ~/.config/pplx/config.yaml
 
-		// Check if file already exists
-		if _, err := os.Stat(configPath); err == nil {
-			return fmt.Errorf("%w at %s", ErrConfigFileExists, configPath)
-		}
+Examples:
+  # Create a minimal config with defaults
+  pplx config init
 
-		// Create directory if it doesn't exist
-		configDir := filepath.Dir(configPath)
-		if err := os.MkdirAll(configDir, configDirPermission); err != nil {
-			return fmt.Errorf("failed to create config directory: %w", err)
-		}
+  # Launch interactive wizard
+  pplx config init --interactive
 
-		// Create default config
+  # Create config from a template
+  pplx config init --template research
+
+  # Create annotated config with examples
+  pplx config init --with-examples
+
+  # Force overwrite existing config
+  pplx config init --force
+
+  # Check environment and include API key
+  pplx config init --check-env
+
+  # Combine options
+  pplx config init --template creative --with-examples --check-env`,
+	RunE: runConfigInit,
+}
+
+// loadOrCreateConfig loads configuration based on init flags.
+func loadOrCreateConfig() (*config.ConfigData, error) {
+	switch {
+	case initInteractive:
+		wizard := NewWizardState()
+		cfg, err := wizard.Run()
+		if err != nil {
+			return nil, fmt.Errorf("wizard failed: %w", err)
+		}
+		return cfg, nil
+
+	case initTemplate != "":
+		cfg, err := config.LoadTemplate(initTemplate)
+		if err != nil {
+			return nil, fmt.Errorf("failed to load template: %w", err)
+		}
+		fmt.Printf("Loaded %q template configuration\n", initTemplate)
+		return cfg, nil
+
+	default:
+		// Create default minimal config for backward compatibility
 		cfg := config.NewConfigData()
 		cfg.Defaults.Model = "sonar"
 		cfg.Defaults.Temperature = 0.2
 		cfg.Defaults.MaxTokens = 4000
+		return cfg, nil
+	}
+}
 
-		// Marshal to YAML
-		data, err := yaml.Marshal(cfg)
+// generateYAMLContent generates YAML content from config.
+func generateYAMLContent(cfg *config.ConfigData) (string, error) {
+	if initWithExamples || initWithProfiles || initTemplate != "" || initInteractive {
+		opts := config.DefaultAnnotationOptions()
+		opts.IncludeExamples = initWithExamples
+
+		annotated, err := config.GenerateAnnotatedConfig(cfg, opts)
 		if err != nil {
-			return fmt.Errorf("failed to marshal config: %w", err)
+			return "", fmt.Errorf("failed to generate annotated config: %w", err)
 		}
-
-		// Write to file
-		if err := os.WriteFile(configPath, data, configFilePermission); err != nil {
-			return fmt.Errorf("failed to write config file: %w", err)
+		if !initInteractive {
+			fmt.Println("Generated annotated configuration with descriptions")
 		}
+		return annotated, nil
+	}
 
-		fmt.Printf("Configuration file created at %s\n", configPath)
-		return nil
-	},
+	// Generate minimal YAML for backward compatibility
+	data, err := yaml.Marshal(cfg)
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal config: %w", err)
+	}
+	return string(data), nil
+}
+
+// runConfigInit implements the config init command logic.
+func runConfigInit(_ *cobra.Command, _ []string) error {
+	configPath := config.GetDefaultConfigPath()
+	if configFilePath != "" {
+		configPath = configFilePath
+	}
+
+	// Check if file already exists
+	if _, err := os.Stat(configPath); err == nil {
+		if !initForce {
+			return fmt.Errorf("%w at %s (use --force to overwrite)", ErrConfigFileExists, configPath)
+		}
+		fmt.Printf("Overwriting existing configuration at %s\n", configPath)
+	}
+
+	// Create directory if it doesn't exist
+	configDir := filepath.Dir(configPath)
+	if err := os.MkdirAll(configDir, configDirPermission); err != nil {
+		return fmt.Errorf("failed to create config directory: %w", err)
+	}
+
+	// Check environment if requested
+	if initCheckEnv {
+		checkEnvironment()
+	}
+
+	// Load or create configuration
+	cfg, err := loadOrCreateConfig()
+	if err != nil {
+		return err
+	}
+
+	// Generate YAML content
+	yamlContent, err := generateYAMLContent(cfg)
+	if err != nil {
+		return err
+	}
+
+	// Write to file
+	if err := os.WriteFile(configPath, []byte(yamlContent), configFilePermission); err != nil {
+		return fmt.Errorf("failed to write config file: %w", err)
+	}
+
+	fmt.Printf("Configuration file created at %s\n", configPath)
+	return nil
+}
+
+// checkEnvironment checks for API keys and other environment variables.
+func checkEnvironment() {
+	fmt.Println("\nChecking environment variables...")
+
+	apiKey := os.Getenv("PERPLEXITY_API_KEY")
+	if apiKey != "" {
+		fmt.Printf("✓ PERPLEXITY_API_KEY found (length: %d)\n", len(apiKey))
+	} else {
+		fmt.Println("✗ PERPLEXITY_API_KEY not found")
+		fmt.Println("  Set it with: export PERPLEXITY_API_KEY=your-api-key")
+	}
+
+	// Check for other optional env vars
+	baseURL := os.Getenv("PERPLEXITY_BASE_URL")
+	if baseURL != "" {
+		fmt.Printf("✓ PERPLEXITY_BASE_URL found: %s\n", baseURL)
+	}
+
+	fmt.Println()
 }
 
 // configShowCmd displays the current configuration.
@@ -253,6 +372,175 @@ var configEditCmd = &cobra.Command{
 	},
 }
 
+// configOptionsCmd lists all available configuration options.
+var configOptionsCmd = &cobra.Command{
+	Use:   "options",
+	Short: "List all configuration options",
+	Long: `Display all available configuration options with their metadata.
+
+Options can be filtered by section (defaults, search, output, api) and
+formatted as a table (default), JSON, or YAML.
+
+Examples:
+  # List all options in table format
+  pplx config options
+
+  # List options in JSON format
+  pplx config options --format json
+
+  # List only search options
+  pplx config options --section search
+
+  # Show validation rules
+  pplx config options --validation
+
+  # Combine filters
+  pplx config options --section defaults --format yaml --validation`,
+	RunE: runConfigOptions,
+}
+
+// runConfigOptions implements the config options command.
+func runConfigOptions(_ *cobra.Command, _ []string) error {
+	// Create metadata registry
+	registry := config.NewMetadataRegistry()
+
+	// Get options (filtered by section if specified)
+	var options []*config.OptionMetadata
+	if optionsSection != "" {
+		options = registry.GetBySection(optionsSection)
+		if len(options) == 0 {
+			return fmt.Errorf("%w: %s (valid: defaults, search, output, api)", ErrUnknownSection, optionsSection)
+		}
+	} else {
+		options = registry.GetAll()
+	}
+
+	// If validation flag not set, clear validation rules to reduce output
+	if !optionsValidation {
+		for _, opt := range options {
+			opt.ValidationRules = nil
+		}
+	}
+
+	// Format output
+	output, err := config.FormatOptions(options, optionsFormat)
+	if err != nil {
+		return fmt.Errorf("failed to format options: %w", err)
+	}
+
+	fmt.Print(output)
+	return nil
+}
+
+// configPathCmd shows the active config file location and search order.
+var configPathCmd = &cobra.Command{
+	Use:   "path",
+	Short: "Show configuration file location and search paths",
+	Long: `Display the active configuration file path and the full search order.
+
+The search order shows all locations where pplx looks for configuration files,
+with status indicators for each location.
+
+Examples:
+  # Show active config and search paths
+  pplx config path
+
+  # Validate configuration and show details
+  pplx config path --check`,
+	RunE: runConfigPath,
+}
+
+var pathCheckFlag bool
+
+// runConfigPath implements the config path command logic.
+func runConfigPath(_ *cobra.Command, _ []string) error {
+	// Find active config file
+	activeConfig, err := config.FindConfigFile()
+	hasConfig := err == nil
+
+	fmt.Println("Configuration File Search Order:")
+	fmt.Println()
+
+	// Get possible filenames
+	filenames := []string{"config.yaml", "pplx.yaml", "config.yml", "pplx.yml"}
+
+	// Iterate through search paths
+	for _, basePath := range config.ConfigPaths {
+		expandedPath := os.ExpandEnv(basePath)
+		fmt.Printf("📁 %s\n", expandedPath)
+
+		for _, filename := range filenames {
+			fullPath := filepath.Join(expandedPath, filename)
+			status := getPathStatus(fullPath, activeConfig)
+			fmt.Printf("   %s %s\n", status, filename)
+		}
+		fmt.Println()
+	}
+
+	// Show active configuration summary
+	if hasConfig {
+		fmt.Printf("✓ Active configuration: %s\n", activeConfig)
+	} else {
+		fmt.Println("✗ No configuration file found")
+		fmt.Println()
+		fmt.Println("Create one with: pplx config init")
+		return nil
+	}
+
+	// If --check flag is set, validate the configuration
+	if pathCheckFlag {
+		fmt.Println()
+		fmt.Println("Configuration Validation:")
+		fmt.Println()
+
+		loader := config.NewLoader()
+		if err := loader.LoadFrom(activeConfig); err != nil {
+			fmt.Printf("✗ Failed to load config: %v\n", err)
+			return nil
+		}
+
+		cfg := loader.Data()
+
+		// Count profiles
+		profileCount := len(cfg.Profiles)
+		fmt.Printf("  Profiles: %d\n", profileCount)
+		if profileCount > 0 {
+			fmt.Printf("  Active:   %s\n", cfg.ActiveProfile)
+		}
+
+		// Validate configuration
+		validator := config.NewValidator()
+		if err := validator.Validate(cfg); err != nil {
+			fmt.Printf("  Status:   ✗ INVALID\n")
+			fmt.Println()
+			fmt.Println("Validation errors:")
+			fmt.Printf("  %v\n", err)
+		} else {
+			fmt.Printf("  Status:   ✓ VALID\n")
+		}
+	}
+
+	return nil
+}
+
+// getPathStatus returns a status indicator for a config file path.
+func getPathStatus(path, activeConfig string) string {
+	info, err := os.Stat(path)
+	if os.IsNotExist(err) {
+		return "⚪" // not found
+	}
+
+	if info.IsDir() {
+		return "⚠️ " // is directory (error)
+	}
+
+	if path == activeConfig {
+		return "✓ " // active config
+	}
+
+	return "○ " // exists but not used
+}
+
 // configProfileCmd manages profiles.
 var configProfileCmd = &cobra.Command{
 	Use:   "profile",
@@ -391,6 +679,8 @@ func init() {
 	configCmd.AddCommand(configShowCmd)
 	configCmd.AddCommand(configValidateCmd)
 	configCmd.AddCommand(configEditCmd)
+	configCmd.AddCommand(configOptionsCmd)
+	configCmd.AddCommand(configPathCmd)
 	configCmd.AddCommand(configProfileCmd)
 
 	// Add profile subcommands
@@ -402,7 +692,67 @@ func init() {
 	// Flags for config command
 	configCmd.PersistentFlags().StringVar(&configFilePath, "config", "", "Path to config file")
 
+	// Flags for init command
+	configInitCmd.Flags().StringVarP(
+		&initTemplate, "template", "t", "",
+		"Template to use (research, creative, news, full-example)")
+	configInitCmd.Flags().BoolVar(
+		&initWithExamples, "with-examples", false,
+		"Include example profiles in configuration")
+	configInitCmd.Flags().BoolVar(
+		&initWithProfiles, "with-profiles", false,
+		"Include profile configurations")
+	configInitCmd.Flags().BoolVarP(
+		&initForce, "force", "f", false,
+		"Force overwrite existing configuration")
+	configInitCmd.Flags().BoolVar(
+		&initCheckEnv, "check-env", false,
+		"Check environment variables (API keys)")
+	configInitCmd.Flags().BoolVarP(
+		&initInteractive, "interactive", "i", false,
+		"Launch interactive configuration wizard")
+
+	// Flags for path command
+	configPathCmd.Flags().BoolVarP(
+		&pathCheckFlag, "check", "c", false,
+		"Validate configuration and show details")
+
 	// Flags for show command
 	configShowCmd.Flags().BoolVar(&jsonOutput, "json", false, "Output in JSON format")
 	configShowCmd.Flags().StringVar(&profileName, "profile", "", "Show specific profile")
+
+	// Flags for options command
+	configOptionsCmd.Flags().StringVarP(
+		&optionsSection, "section", "s", "",
+		"Filter by section (defaults, search, output, api)")
+	configOptionsCmd.Flags().StringVarP(
+		&optionsFormat, "format", "f", "table",
+		"Output format (table, json, yaml)")
+	configOptionsCmd.Flags().BoolVarP(
+		&optionsValidation, "validation", "v", false,
+		"Show validation rules")
+
+	// Register flag completions
+	registerConfigFlagCompletions()
+}
+
+// registerConfigFlagCompletions registers completion functions for config command flags.
+func registerConfigFlagCompletions() {
+	// Template name completion for config init --template
+	_ = configInitCmd.RegisterFlagCompletionFunc("template",
+		func(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
+			return completion.TemplateNames(), cobra.ShellCompDirectiveNoFileComp
+		})
+
+	// Section name completion for config options --section
+	_ = configOptionsCmd.RegisterFlagCompletionFunc("section",
+		func(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
+			return completion.ConfigSections(), cobra.ShellCompDirectiveNoFileComp
+		})
+
+	// Format completion for config options --format
+	_ = configOptionsCmd.RegisterFlagCompletionFunc("format",
+		func(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
+			return completion.OutputFormats(), cobra.ShellCompDirectiveNoFileComp
+		})
 }

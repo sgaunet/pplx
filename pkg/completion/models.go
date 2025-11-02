@@ -165,3 +165,18 @@ func CommonDomains() []string {
 		"youtube.com",
 	}
 }
+
+// TemplateNames returns valid configuration template names.
+func TemplateNames() []string {
+	return []string{"research", "creative", "news", "full-example"}
+}
+
+// ConfigSections returns valid configuration section names.
+func ConfigSections() []string {
+	return []string{"defaults", "search", "output", "api"}
+}
+
+// OutputFormats returns valid output format values for config commands.
+func OutputFormats() []string {
+	return []string{"table", "json", "yaml"}
+}

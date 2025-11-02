@@ -1,0 +1,19 @@
+# Invalid configuration values for testing validation
+defaults:
+  model: sonar
+  temperature: 5.0  # Invalid: > 1.0
+  max_tokens: -1000  # Invalid: negative
+  top_k: 200  # Invalid: > 100
+  top_p: 2.5  # Invalid: > 1.0
+  frequency_penalty: 3.0  # Invalid: > 2.0
+  presence_penalty: -0.5  # Invalid: < 0.0
+
+search:
+  mode: invalid_mode  # Invalid: not web or academic
+  context_size: huge  # Invalid: not low/medium/high
+  recency: yesterday  # Invalid: not hour/day/week/month/year
+  location_lat: 100.0  # Invalid: > 90.0
+  location_lon: 200.0  # Invalid: > 180.0
+
+output:
+  reasoning_effort: ultra  # Invalid: not low/medium/high
