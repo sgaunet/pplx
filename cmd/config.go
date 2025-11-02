@@ -38,6 +38,7 @@ var (
 	initWithProfiles bool
 	initForce        bool
 	initCheckEnv     bool
+	initInteractive  bool
 )
 
 // saveConfigData saves configuration data to a file.
@@ -80,6 +81,9 @@ var configInitCmd = &cobra.Command{
 Examples:
   # Create a minimal config with defaults
   pplx config init
+
+  # Launch interactive wizard
+  pplx config init --interactive
 
   # Create config from a template
   pplx config init --template research
@@ -129,8 +133,16 @@ func runConfigInit(_ *cobra.Command, _ []string) error {
 	var cfg *config.ConfigData
 	var yamlContent string
 
-	// Load template if specified
-	if initTemplate != "" {
+	// Run interactive wizard if requested
+	if initInteractive {
+		wizard := NewWizardState()
+		var err error
+		cfg, err = wizard.Run()
+		if err != nil {
+			return fmt.Errorf("wizard failed: %w", err)
+		}
+	} else if initTemplate != "" {
+		// Load template if specified
 		templateCfg, err := config.LoadTemplate(initTemplate)
 		if err != nil {
 			return fmt.Errorf("failed to load template: %w", err)
@@ -146,7 +158,7 @@ func runConfigInit(_ *cobra.Command, _ []string) error {
 	}
 
 	// Check if we should generate annotated config
-	if initWithExamples || initWithProfiles || initTemplate != "" {
+	if initWithExamples || initWithProfiles || initTemplate != "" || initInteractive {
 		// Generate annotated configuration
 		opts := config.DefaultAnnotationOptions()
 		opts.IncludeExamples = initWithExamples
@@ -156,7 +168,9 @@ func runConfigInit(_ *cobra.Command, _ []string) error {
 			return fmt.Errorf("failed to generate annotated config: %w", err)
 		}
 		yamlContent = annotated
-		fmt.Println("Generated annotated configuration with descriptions")
+		if !initInteractive {
+			fmt.Println("Generated annotated configuration with descriptions")
+		}
 	} else {
 		// Generate minimal YAML for backward compatibility
 		data, err := yaml.Marshal(cfg)
@@ -679,6 +693,9 @@ func init() {
 	configInitCmd.Flags().BoolVar(
 		&initCheckEnv, "check-env", false,
 		"Check environment variables (API keys)")
+	configInitCmd.Flags().BoolVarP(
+		&initInteractive, "interactive", "i", false,
+		"Launch interactive configuration wizard")
 
 	// Flags for path command
 	configPathCmd.Flags().BoolVarP(
