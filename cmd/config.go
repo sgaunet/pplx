@@ -8,6 +8,7 @@ import (
 	"os/exec"
 	"path/filepath"
 
+	"github.com/sgaunet/pplx/pkg/completion"
 	"github.com/sgaunet/pplx/pkg/config"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
@@ -710,4 +711,28 @@ func init() {
 	configOptionsCmd.Flags().StringVarP(&optionsSection, "section", "s", "", "Filter by section (defaults, search, output, api)")
 	configOptionsCmd.Flags().StringVarP(&optionsFormat, "format", "f", "table", "Output format (table, json, yaml)")
 	configOptionsCmd.Flags().BoolVarP(&optionsValidation, "validation", "v", false, "Show validation rules")
+
+	// Register flag completions
+	registerConfigFlagCompletions()
+}
+
+// registerConfigFlagCompletions registers completion functions for config command flags.
+func registerConfigFlagCompletions() {
+	// Template name completion for config init --template
+	_ = configInitCmd.RegisterFlagCompletionFunc("template",
+		func(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
+			return completion.TemplateNames(), cobra.ShellCompDirectiveNoFileComp
+		})
+
+	// Section name completion for config options --section
+	_ = configOptionsCmd.RegisterFlagCompletionFunc("section",
+		func(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
+			return completion.ConfigSections(), cobra.ShellCompDirectiveNoFileComp
+		})
+
+	// Format completion for config options --format
+	_ = configOptionsCmd.RegisterFlagCompletionFunc("format",
+		func(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
+			return completion.OutputFormats(), cobra.ShellCompDirectiveNoFileComp
+		})
 }
