@@ -1,0 +1,39 @@
+# Creative writing configuration example
+# Optimized for creative and conversational responses
+
+defaults:
+  model: sonar
+  temperature: 0.9                # Higher temperature for creativity
+  max_tokens: 4000
+  top_k: 50
+  top_p: 0.95
+  frequency_penalty: 0.5          # Reduce repetition
+  presence_penalty: 0.3
+
+search:
+  mode: web
+  context_size: medium
+  # No domain restrictions for diverse sources
+
+output:
+  stream: true                    # Enable streaming for interactive feel
+  return_images: true             # Include visual inspiration
+  return_related: true            # Explore related ideas
+
+active_profile: creative
+
+# Creative profile
+profiles:
+  creative:
+    name: creative
+    description: Creative writing and brainstorming
+    defaults:
+      model: sonar
+      temperature: 0.9
+      max_tokens: 4000
+      frequency_penalty: 0.5
+      presence_penalty: 0.3
+    output:
+      stream: true
+      return_images: true
+      return_related: true

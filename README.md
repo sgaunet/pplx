@@ -180,6 +180,322 @@ pplx query -p "Write a short story about AI" \
 | `--user-prompt` | `-p` | string | User question/prompt (required) |
 | `--sys-prompt` | `-s` | string | System prompt to set AI behavior |
 
+## Configuration Files
+
+pplx supports YAML configuration files to manage default settings and create reusable profiles for different use cases. This eliminates the need to specify the same flags repeatedly.
+
+### Quick Start
+
+```sh
+# Initialize a new configuration file
+pplx config init
+
+# View current configuration
+pplx config show
+
+# Validate configuration
+pplx config validate
+```
+
+### Configuration File Locations
+
+pplx searches for configuration files in the following order:
+
+1. `./pplx.yaml` - Current directory (highest priority)
+2. `~/.config/pplx/config.yaml` - User config directory
+3. `/etc/pplx/config.yaml` - System-wide configuration (lowest priority)
+
+You can also specify a custom config file:
+
+```sh
+pplx query -p "your question" --config /path/to/config.yaml
+```
+
+### Configuration Precedence
+
+Settings are applied in the following order (later sources override earlier ones):
+
+1. Configuration file defaults
+2. Environment variables (e.g., `PPLX_API_KEY`)
+3. Command-line flags (highest priority)
+
+This allows you to set sensible defaults in your config file while still overriding them on the command line when needed.
+
+### Configuration Structure
+
+A configuration file has four main sections:
+
+```yaml
+# Default values for all queries
+defaults:
+  model: sonar
+  temperature: 0.2
+  max_tokens: 4000
+
+# Search preferences
+search:
+  mode: web                    # web or academic
+  recency: week               # hour, day, week, month, year
+  context_size: medium        # low, medium, high
+  domains:                    # Optional domain filtering
+    - nature.com
+    - science.org
+
+# Output preferences
+output:
+  stream: false
+  return_images: false
+  return_related: false
+  json: false
+
+# API configuration
+api:
+  timeout: 30s
+```
+
+### Environment Variable Interpolation
+
+Configuration values can reference environment variables using `${VAR_NAME}` syntax:
+
+```yaml
+api:
+  key: ${PPLX_API_KEY}
+  timeout: ${PPLX_TIMEOUT:-30s}  # With default fallback
+```
+
+### Working with Profiles
+
+Profiles allow you to maintain different configurations for various use cases (research, creative writing, news, etc.).
+
+#### Creating Profiles
+
+```sh
+# Create a new profile
+pplx config profile create research "Academic research with verified sources"
+
+# List all profiles
+pplx config profile list
+
+# Switch active profile
+pplx config profile switch research
+
+# Delete a profile
+pplx config profile delete creative
+```
+
+#### Using Profiles in Config Files
+
+```yaml
+# Active profile to use by default
+active_profile: research
+
+# Define multiple profiles
+profiles:
+  research:
+    name: research
+    description: Academic research with verified sources
+    defaults:
+      model: llama-3.1-sonar-large-128k-online
+      temperature: 0.1
+      max_tokens: 2000
+    search:
+      mode: academic
+      context_size: high
+      recency: month
+      domains:
+        - arxiv.org
+        - nature.com
+        - science.org
+    output:
+      return_related: true
+
+  creative:
+    name: creative
+    description: Creative writing and brainstorming
+    defaults:
+      model: sonar
+      temperature: 0.9
+      max_tokens: 4000
+      frequency_penalty: 0.5
+    output:
+      stream: true
+      return_images: true
+
+  news:
+    name: news
+    description: Current news and events
+    defaults:
+      model: sonar
+      temperature: 0.2
+    search:
+      recency: day
+      context_size: high
+      domains:
+        - reuters.com
+        - bbc.com
+        - apnews.com
+    output:
+      return_related: true
+      return_images: true
+```
+
+#### Using Profiles from CLI
+
+```sh
+# Use a specific profile for a query
+pplx config profile switch research
+pplx query -p "Latest quantum computing research"
+
+# Or override the active profile temporarily
+pplx query -p "Write a creative story" --config creative.yaml
+```
+
+### Configuration Management Commands
+
+#### Initialize Configuration
+
+```sh
+# Create a new config file with defaults
+pplx config init
+
+# Create in a specific location
+pplx config init --output ~/.config/pplx/config.yaml
+
+# Force overwrite existing config
+pplx config init --force
+```
+
+#### View Configuration
+
+```sh
+# Show current configuration
+pplx config show
+
+# Show specific profile
+pplx config show --profile research
+
+# Show configuration from specific file
+pplx config show --config /path/to/config.yaml
+```
+
+#### Validate Configuration
+
+```sh
+# Validate current configuration
+pplx config validate
+
+# Validate specific file
+pplx config validate --config /path/to/config.yaml
+```
+
+#### Edit Configuration
+
+```sh
+# Open config in default editor
+pplx config edit
+
+# Edit specific config file
+pplx config edit --config /path/to/config.yaml
+```
+
+### Example Use Cases
+
+#### Research Workflow
+
+Create a research profile for academic queries:
+
+```yaml
+profiles:
+  research:
+    defaults:
+      model: llama-3.1-sonar-large-128k-online
+      temperature: 0.1
+      max_tokens: 2000
+    search:
+      mode: academic
+      context_size: high
+      recency: month
+      domains:
+        - arxiv.org
+        - nature.com
+        - science.org
+        - ieee.org
+    output:
+      return_related: true
+```
+
+Use it:
+
+```sh
+pplx config profile switch research
+pplx query -p "Latest breakthroughs in quantum computing"
+```
+
+#### News Monitoring
+
+Create a news profile for current events:
+
+```yaml
+profiles:
+  news:
+    defaults:
+      temperature: 0.2
+      max_tokens: 1500
+    search:
+      recency: day
+      context_size: high
+      domains:
+        - reuters.com
+        - bbc.com
+        - apnews.com
+        - bloomberg.com
+    output:
+      return_related: true
+      return_images: true
+```
+
+#### Creative Writing
+
+Create a creative profile with higher temperature:
+
+```yaml
+profiles:
+  creative:
+    defaults:
+      temperature: 0.9
+      max_tokens: 4000
+      frequency_penalty: 0.5
+      presence_penalty: 0.3
+    output:
+      stream: true
+      return_images: true
+```
+
+### Example Configuration Files
+
+See the [examples/config](examples/config) directory for complete configuration examples:
+
+- `default.yaml` - General purpose configuration
+- `research.yaml` - Academic research with verified sources
+- `creative.yaml` - Creative writing and brainstorming
+- `news.yaml` - Current news and events
+
+### Configuration Best Practices
+
+1. **Use profiles for different workflows**: Create separate profiles for research, creative work, news monitoring, etc.
+
+2. **Set sensible defaults**: Configure commonly used options in the defaults section to avoid repetitive flags.
+
+3. **Use environment variables for secrets**: Store API keys in environment variables rather than directly in config files:
+   ```yaml
+   api:
+     key: ${PPLX_API_KEY}
+   ```
+
+4. **Version control your configs**: Keep your configuration files in version control (excluding sensitive data) to share setups across machines.
+
+5. **Override when needed**: Remember that CLI flags always override config file settings, so you can easily adjust behavior for specific queries.
+
 ## MCP Server (Model Context Protocol)
 
 The `pplx mcp-stdio` command provides an MCP server that exposes Perplexity AI functionality to Claude Code and other MCP-compatible clients.
