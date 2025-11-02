@@ -46,6 +46,188 @@ Flags:
 Use "pplx [command] --help" for more information about a command.
 ```
 
+## Shell Completion
+
+pplx supports shell completion for Bash, Zsh, Fish, and PowerShell, providing intelligent auto-completion for commands, flags, and values.
+
+### Features
+
+- **Command completion**: Auto-complete available commands and subcommands
+- **Flag completion**: Auto-complete flag names with descriptions
+- **Dynamic value completion**: Intelligent completion for:
+  - Model names (e.g., `sonar`, `sonar-pro`, `sonar-deep-research`)
+  - Search modes (`web`, `academic`)
+  - Recency filters (`hour`, `day`, `week`, `month`, `year`)
+  - Context sizes (`low`, `medium`, `high`)
+  - Reasoning efforts (`low`, `medium`, `high`)
+  - Image formats (`jpg`, `png`, `gif`, etc.)
+  - Common domains for search filtering
+
+### Quick Installation
+
+The easiest way to set up completions is using the automatic installer:
+
+```sh
+# Auto-detect your shell and install
+pplx completion install
+
+# Or specify a shell explicitly
+pplx completion install bash
+pplx completion install zsh
+pplx completion install fish
+pplx completion install powershell
+```
+
+To uninstall:
+
+```sh
+pplx completion install --uninstall
+```
+
+### Manual Installation
+
+If you prefer manual installation, you can generate completion scripts for your shell:
+
+#### Bash
+
+**For current session only:**
+```sh
+source <(pplx completion bash)
+```
+
+**Permanent installation:**
+
+Linux:
+```sh
+pplx completion bash | sudo tee /etc/bash_completion.d/pplx
+```
+
+macOS (with Homebrew):
+```sh
+pplx completion bash > $(brew --prefix)/etc/bash_completion.d/pplx
+```
+
+#### Zsh
+
+**Prerequisites:**
+If shell completion is not already enabled, add this to your `~/.zshrc`:
+```sh
+autoload -U compinit; compinit
+```
+
+**For current session only:**
+```sh
+source <(pplx completion zsh)
+```
+
+**Permanent installation:**
+```sh
+# Create completions directory if it doesn't exist
+mkdir -p ~/.zsh/completions
+
+# Generate completion script
+pplx completion zsh > ~/.zsh/completions/_pplx
+
+# Add to your ~/.zshrc (if not already present)
+fpath=(~/.zsh/completions $fpath)
+autoload -U compinit; compinit
+```
+
+#### Fish
+
+**For current session only:**
+```sh
+pplx completion fish | source
+```
+
+**Permanent installation:**
+```sh
+pplx completion fish > ~/.config/fish/completions/pplx.fish
+```
+
+#### PowerShell
+
+**For current session only:**
+```powershell
+pplx completion powershell | Out-String | Invoke-Expression
+```
+
+**Permanent installation:**
+```powershell
+# Generate completion script
+pplx completion powershell > pplx-completion.ps1
+
+# Add to your PowerShell profile
+# Find your profile location with: $PROFILE
+# Then add this line to your profile:
+. /path/to/pplx-completion.ps1
+```
+
+### Using Completions
+
+Once installed, you can use tab completion for commands and flags:
+
+```sh
+# Complete command names
+pplx <TAB>
+# Shows: chat, completion, config, help, mcp-stdio, query, version
+
+# Complete flag names
+pplx query --m<TAB>
+# Completes to: --model
+
+# Complete model names
+pplx query --model <TAB>
+# Shows: sonar, sonar-pro, sonar-reasoning, sonar-deep-research, etc.
+
+# Complete search modes
+pplx query --search-mode <TAB>
+# Shows: web, academic
+
+# Complete recency values
+pplx query --search-recency <TAB>
+# Shows: hour, day, week, month, year
+
+# Complete multiple values for array flags
+pplx query --search-domains <TAB>
+# Shows: github.com, stackoverflow.com, medium.com, etc.
+```
+
+### Troubleshooting
+
+**Completions not working after installation:**
+1. Restart your shell or source your shell configuration file:
+   - Bash: `source ~/.bashrc` or `source ~/.bash_profile`
+   - Zsh: `source ~/.zshrc`
+   - Fish: `source ~/.config/fish/config.fish`
+   - PowerShell: `. $PROFILE`
+
+**Zsh completions not loading:**
+- Ensure `compinit` is called in your `~/.zshrc`
+- Verify the completion file is in your `fpath` by running `echo $fpath`
+- Try running `compinit` manually to reload completions
+
+**Permission errors during installation:**
+- Use the automatic installer which handles permissions correctly
+- Or use `sudo` when writing to system directories
+
+### Advanced Usage
+
+**Save to a custom file:**
+```sh
+pplx completion bash -o ~/my-completions/pplx.bash
+```
+
+**Generate for a specific shell without installing:**
+```sh
+pplx completion zsh > completions.zsh
+```
+
+**View all completion subcommands:**
+```sh
+pplx completion --help
+```
+
 ## Chat
 
 Chat with the Perplexity API.

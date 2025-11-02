@@ -4,6 +4,7 @@ import (
 	"os"
 
 	"github.com/sgaunet/perplexity-go/v2"
+	"github.com/sgaunet/pplx/pkg/completion"
 	"github.com/spf13/cobra"
 )
 
@@ -138,6 +139,45 @@ func addOutputFlags(cmd *cobra.Command) {
 	cmd.PersistentFlags().BoolVar(&outputJSON, "json", outputJSON, "Output response in JSON format")
 }
 
+func registerFlagCompletions(cmd *cobra.Command) {
+	// Model completion
+	_ = cmd.RegisterFlagCompletionFunc("model", func(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
+		return completion.GetModels(), cobra.ShellCompDirectiveNoFileComp
+	})
+
+	// Search mode completion
+	_ = cmd.RegisterFlagCompletionFunc("search-mode", func(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
+		return completion.SearchModes(), cobra.ShellCompDirectiveNoFileComp
+	})
+
+	// Search recency completion
+	_ = cmd.RegisterFlagCompletionFunc("search-recency", func(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
+		return completion.RecencyValues(), cobra.ShellCompDirectiveNoFileComp
+	})
+
+	// Search context size completion
+	_ = cmd.RegisterFlagCompletionFunc("search-context-size", func(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
+		return completion.ContextSizes(), cobra.ShellCompDirectiveNoFileComp
+	})
+
+	// Reasoning effort completion
+	_ = cmd.RegisterFlagCompletionFunc("reasoning-effort", func(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
+		return completion.ReasoningEfforts(), cobra.ShellCompDirectiveNoFileComp
+	})
+
+	// Image formats completion
+	_ = cmd.RegisterFlagCompletionFunc("image-formats", func(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
+		return completion.ImageFormats(), cobra.ShellCompDirectiveNoFileComp
+	})
+
+	// Domain suggestions (for both search-domains and image-domains)
+	domainCompletion := func(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
+		return completion.CommonDomains(), cobra.ShellCompDirectiveNoFileComp
+	}
+	_ = cmd.RegisterFlagCompletionFunc("search-domains", domainCompletion)
+	_ = cmd.RegisterFlagCompletionFunc("image-domains", domainCompletion)
+}
+
 func init() {
 	rootCmd.AddCommand(chatCmd)
 	addChatFlags(chatCmd)
@@ -147,6 +187,7 @@ func init() {
 	addFormatFlags(chatCmd)
 	addDateFlags(chatCmd)
 	addResearchFlags(chatCmd)
+	registerFlagCompletions(chatCmd)
 
 	rootCmd.AddCommand(queryCmd)
 	queryCmd.PersistentFlags().StringVarP(&systemPrompt, "sys-prompt", "s", "", "system prompt")
@@ -159,6 +200,7 @@ func init() {
 	addDateFlags(queryCmd)
 	addResearchFlags(queryCmd)
 	addOutputFlags(queryCmd)
+	registerFlagCompletions(queryCmd)
 
 	rootCmd.AddCommand(mcpStdioCmd)
 }
