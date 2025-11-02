@@ -26,9 +26,12 @@ const (
 )
 
 var (
-	configFilePath string
-	jsonOutput     bool
-	profileName    string
+	configFilePath    string
+	jsonOutput        bool
+	profileName       string
+	optionsSection    string
+	optionsFormat     string
+	optionsValidation bool
 )
 
 // saveConfigData saves configuration data to a file.
@@ -253,6 +256,66 @@ var configEditCmd = &cobra.Command{
 	},
 }
 
+// configOptionsCmd lists all available configuration options.
+var configOptionsCmd = &cobra.Command{
+	Use:   "options",
+	Short: "List all configuration options",
+	Long: `Display all available configuration options with their metadata.
+
+Options can be filtered by section (defaults, search, output, api) and
+formatted as a table (default), JSON, or YAML.
+
+Examples:
+  # List all options in table format
+  pplx config options
+
+  # List options in JSON format
+  pplx config options --format json
+
+  # List only search options
+  pplx config options --section search
+
+  # Show validation rules
+  pplx config options --validation
+
+  # Combine filters
+  pplx config options --section defaults --format yaml --validation`,
+	RunE: runConfigOptions,
+}
+
+// runConfigOptions implements the config options command.
+func runConfigOptions(_ *cobra.Command, _ []string) error {
+	// Create metadata registry
+	registry := config.NewMetadataRegistry()
+
+	// Get options (filtered by section if specified)
+	var options []*config.OptionMetadata
+	if optionsSection != "" {
+		options = registry.GetBySection(optionsSection)
+		if len(options) == 0 {
+			return fmt.Errorf("unknown section: %s (valid: defaults, search, output, api)", optionsSection)
+		}
+	} else {
+		options = registry.GetAll()
+	}
+
+	// If validation flag not set, clear validation rules to reduce output
+	if !optionsValidation {
+		for _, opt := range options {
+			opt.ValidationRules = nil
+		}
+	}
+
+	// Format output
+	output, err := config.FormatOptions(options, optionsFormat)
+	if err != nil {
+		return fmt.Errorf("failed to format options: %w", err)
+	}
+
+	fmt.Print(output)
+	return nil
+}
+
 // configProfileCmd manages profiles.
 var configProfileCmd = &cobra.Command{
 	Use:   "profile",
@@ -391,6 +454,7 @@ func init() {
 	configCmd.AddCommand(configShowCmd)
 	configCmd.AddCommand(configValidateCmd)
 	configCmd.AddCommand(configEditCmd)
+	configCmd.AddCommand(configOptionsCmd)
 	configCmd.AddCommand(configProfileCmd)
 
 	// Add profile subcommands
@@ -405,4 +469,9 @@ func init() {
 	// Flags for show command
 	configShowCmd.Flags().BoolVar(&jsonOutput, "json", false, "Output in JSON format")
 	configShowCmd.Flags().StringVar(&profileName, "profile", "", "Show specific profile")
+
+	// Flags for options command
+	configOptionsCmd.Flags().StringVarP(&optionsSection, "section", "s", "", "Filter by section (defaults, search, output, api)")
+	configOptionsCmd.Flags().StringVarP(&optionsFormat, "format", "f", "table", "Output format (table, json, yaml)")
+	configOptionsCmd.Flags().BoolVarP(&optionsValidation, "validation", "v", false, "Show validation rules")
 }
