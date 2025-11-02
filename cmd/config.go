@@ -32,6 +32,12 @@ var (
 	optionsSection    string
 	optionsFormat     string
 	optionsValidation bool
+	// Config init flags.
+	initTemplate     string
+	initWithExamples bool
+	initWithProfiles bool
+	initForce        bool
+	initCheckEnv     bool
 )
 
 // saveConfigData saves configuration data to a file.
@@ -69,44 +75,125 @@ Use subcommands to initialize, view, validate, or edit configuration.`,
 var configInitCmd = &cobra.Command{
 	Use:   "init",
 	Short: "Initialize a new configuration file",
-	Long:  `Create a new configuration file with default values at ~/.config/pplx/config.yaml`,
-	RunE: func(_ *cobra.Command, _ []string) error {
-		configPath := config.GetDefaultConfigPath()
-		if configFilePath != "" {
-			configPath = configFilePath
-		}
+	Long: `Create a new configuration file at ~/.config/pplx/config.yaml
 
-		// Check if file already exists
-		if _, err := os.Stat(configPath); err == nil {
-			return fmt.Errorf("%w at %s", ErrConfigFileExists, configPath)
-		}
+Examples:
+  # Create a minimal config with defaults
+  pplx config init
 
-		// Create directory if it doesn't exist
-		configDir := filepath.Dir(configPath)
-		if err := os.MkdirAll(configDir, configDirPermission); err != nil {
-			return fmt.Errorf("failed to create config directory: %w", err)
-		}
+  # Create config from a template
+  pplx config init --template research
 
-		// Create default config
-		cfg := config.NewConfigData()
+  # Create annotated config with examples
+  pplx config init --with-examples
+
+  # Force overwrite existing config
+  pplx config init --force
+
+  # Check environment and include API key
+  pplx config init --check-env
+
+  # Combine options
+  pplx config init --template creative --with-examples --check-env`,
+	RunE: runConfigInit,
+}
+
+// runConfigInit implements the config init command logic.
+//
+//nolint:cyclop // Config initialization requires multiple conditional branches
+func runConfigInit(_ *cobra.Command, _ []string) error {
+	configPath := config.GetDefaultConfigPath()
+	if configFilePath != "" {
+		configPath = configFilePath
+	}
+
+	// Check if file already exists
+	if _, err := os.Stat(configPath); err == nil {
+		if !initForce {
+			return fmt.Errorf("%w at %s (use --force to overwrite)", ErrConfigFileExists, configPath)
+		}
+		fmt.Printf("Overwriting existing configuration at %s\n", configPath)
+	}
+
+	// Create directory if it doesn't exist
+	configDir := filepath.Dir(configPath)
+	if err := os.MkdirAll(configDir, configDirPermission); err != nil {
+		return fmt.Errorf("failed to create config directory: %w", err)
+	}
+
+	// Check environment if requested
+	if initCheckEnv {
+		checkEnvironment()
+	}
+
+	var cfg *config.ConfigData
+	var yamlContent string
+
+	// Load template if specified
+	if initTemplate != "" {
+		templateCfg, err := config.LoadTemplate(initTemplate)
+		if err != nil {
+			return fmt.Errorf("failed to load template: %w", err)
+		}
+		cfg = templateCfg
+		fmt.Printf("Loaded %q template configuration\n", initTemplate)
+	} else {
+		// Create default minimal config for backward compatibility
+		cfg = config.NewConfigData()
 		cfg.Defaults.Model = "sonar"
 		cfg.Defaults.Temperature = 0.2
 		cfg.Defaults.MaxTokens = 4000
+	}
 
-		// Marshal to YAML
+	// Check if we should generate annotated config
+	if initWithExamples || initWithProfiles || initTemplate != "" {
+		// Generate annotated configuration
+		opts := config.DefaultAnnotationOptions()
+		opts.IncludeExamples = initWithExamples
+
+		annotated, err := config.GenerateAnnotatedConfig(cfg, opts)
+		if err != nil {
+			return fmt.Errorf("failed to generate annotated config: %w", err)
+		}
+		yamlContent = annotated
+		fmt.Println("Generated annotated configuration with descriptions")
+	} else {
+		// Generate minimal YAML for backward compatibility
 		data, err := yaml.Marshal(cfg)
 		if err != nil {
 			return fmt.Errorf("failed to marshal config: %w", err)
 		}
+		yamlContent = string(data)
+	}
 
-		// Write to file
-		if err := os.WriteFile(configPath, data, configFilePermission); err != nil {
-			return fmt.Errorf("failed to write config file: %w", err)
-		}
+	// Write to file
+	if err := os.WriteFile(configPath, []byte(yamlContent), configFilePermission); err != nil {
+		return fmt.Errorf("failed to write config file: %w", err)
+	}
 
-		fmt.Printf("Configuration file created at %s\n", configPath)
-		return nil
-	},
+	fmt.Printf("Configuration file created at %s\n", configPath)
+	return nil
+}
+
+// checkEnvironment checks for API keys and other environment variables.
+func checkEnvironment() {
+	fmt.Println("\nChecking environment variables...")
+
+	apiKey := os.Getenv("PERPLEXITY_API_KEY")
+	if apiKey != "" {
+		fmt.Printf("✓ PERPLEXITY_API_KEY found (length: %d)\n", len(apiKey))
+	} else {
+		fmt.Println("✗ PERPLEXITY_API_KEY not found")
+		fmt.Println("  Set it with: export PERPLEXITY_API_KEY=your-api-key")
+	}
+
+	// Check for other optional env vars
+	baseURL := os.Getenv("PERPLEXITY_BASE_URL")
+	if baseURL != "" {
+		fmt.Printf("✓ PERPLEXITY_BASE_URL found: %s\n", baseURL)
+	}
+
+	fmt.Println()
 }
 
 // configShowCmd displays the current configuration.
@@ -465,6 +552,23 @@ func init() {
 
 	// Flags for config command
 	configCmd.PersistentFlags().StringVar(&configFilePath, "config", "", "Path to config file")
+
+	// Flags for init command
+	configInitCmd.Flags().StringVarP(
+		&initTemplate, "template", "t", "",
+		"Template to use (research, creative, news, full-example)")
+	configInitCmd.Flags().BoolVar(
+		&initWithExamples, "with-examples", false,
+		"Include example profiles in configuration")
+	configInitCmd.Flags().BoolVar(
+		&initWithProfiles, "with-profiles", false,
+		"Include profile configurations")
+	configInitCmd.Flags().BoolVarP(
+		&initForce, "force", "f", false,
+		"Force overwrite existing configuration")
+	configInitCmd.Flags().BoolVar(
+		&initCheckEnv, "check-env", false,
+		"Check environment variables (API keys)")
 
 	// Flags for show command
 	configShowCmd.Flags().BoolVar(&jsonOutput, "json", false, "Output in JSON format")
