@@ -9,8 +9,14 @@ import (
 	"time"
 )
 
-// CacheTTL is the time-to-live for cached model data.
-const CacheTTL = 24 * time.Hour
+const (
+	// CacheTTL is the time-to-live for cached model data.
+	CacheTTL = 24 * time.Hour
+
+	// File permissions.
+	cacheDirPerms  = 0750
+	cacheFilePerms = 0600
+)
 
 // ModelCache represents cached model data.
 type ModelCache struct {
@@ -42,7 +48,7 @@ func GetCacheDir() (string, error) {
 	}
 
 	cacheDir := filepath.Join(homeDir, ".cache", "pplx")
-	if err := os.MkdirAll(cacheDir, 0755); err != nil {
+	if err := os.MkdirAll(cacheDir, cacheDirPerms); err != nil { // #nosec G301
 		return "", fmt.Errorf("failed to create cache directory: %w", err)
 	}
 
@@ -59,25 +65,26 @@ func GetCachedModels() ([]string, error) {
 	cachePath := filepath.Join(cacheDir, "models.json")
 
 	// Check if cache file exists
-	data, err := os.ReadFile(cachePath)
+	data, err := os.ReadFile(cachePath) // #nosec G304
 	if err != nil {
 		if os.IsNotExist(err) {
-			// Cache doesn't exist, return known models
+			// Cache doesn't exist, return known models with no error
 			return KnownModels(), nil
 		}
-		return nil, fmt.Errorf("failed to read cache file: %w", err)
+		// Return error for other read failures
+		return KnownModels(), fmt.Errorf("failed to read cache file: %w", err)
 	}
 
 	// Parse cache
 	var cache ModelCache
 	if err := json.Unmarshal(data, &cache); err != nil {
-		// Invalid cache, return known models
-		return KnownModels(), nil
+		// Invalid cache, return known models with no error (intentional fallback)
+		return KnownModels(), nil //nolint:nilerr
 	}
 
 	// Check if cache is expired
 	if time.Since(cache.UpdatedAt) > CacheTTL {
-		// Cache expired, return known models
+		// Cache expired, return known models with no error
 		return KnownModels(), nil
 	}
 
@@ -103,7 +110,7 @@ func SaveModelsToCache(models []string) error {
 		return fmt.Errorf("failed to marshal cache data: %w", err)
 	}
 
-	if err := os.WriteFile(cachePath, data, 0644); err != nil {
+	if err := os.WriteFile(cachePath, data, cacheFilePerms); err != nil { // #nosec G306
 		return fmt.Errorf("failed to write cache file: %w", err)
 	}
 

@@ -2,6 +2,7 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -11,11 +12,22 @@ import (
 	"github.com/spf13/cobra"
 )
 
+const (
+	shellBash       = "bash"
+	shellZsh        = "zsh"
+	shellFish       = "fish"
+	shellPowershell = "powershell"
+
+	// File permissions.
+	dirPerms = 0750
+)
+
 var (
-	completionShell      string
-	completionInstall    bool
 	completionUninstall  bool
 	completionOutputFile string
+
+	errUnsupportedShell = errors.New("unsupported shell")
+	errNoShellEnv       = errors.New("SHELL environment variable not set")
 )
 
 // completionCmd represents the completion command.
@@ -59,7 +71,7 @@ PowerShell:
   # and source this file from your PowerShell profile.
 `,
 	DisableFlagsInUseLine: true,
-	ValidArgs:             []string{"bash", "zsh", "fish", "powershell"},
+	ValidArgs:             []string{shellBash, shellZsh, shellFish, shellPowershell},
 	Args:                  cobra.MatchAll(cobra.ExactArgs(1), cobra.OnlyValidArgs),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		shell := args[0]
@@ -67,11 +79,15 @@ PowerShell:
 		// Determine output writer
 		var out io.Writer = os.Stdout
 		if completionOutputFile != "" {
-			file, err := os.Create(completionOutputFile)
+			file, err := os.Create(completionOutputFile) // #nosec G304
 			if err != nil {
 				return fmt.Errorf("failed to create output file: %w", err)
 			}
-			defer file.Close()
+			defer func() {
+				if closeErr := file.Close(); closeErr != nil {
+					fmt.Fprintf(os.Stderr, "warning: failed to close file: %v\n", closeErr)
+				}
+			}()
 			out = file
 		}
 
@@ -82,77 +98,105 @@ PowerShell:
 
 // bashCmd represents the bash completion subcommand.
 var bashCmd = &cobra.Command{
-	Use:   "bash",
+	Use:   shellBash,
 	Short: "Generate bash completion script",
 	Long:  "Generate the autocompletion script for bash",
 	RunE: func(cmd *cobra.Command, _ []string) error {
 		var out io.Writer = os.Stdout
 		if completionOutputFile != "" {
-			file, err := os.Create(completionOutputFile)
+			file, err := os.Create(completionOutputFile) // #nosec G304
 			if err != nil {
 				return fmt.Errorf("failed to create output file: %w", err)
 			}
-			defer file.Close()
+			defer func() {
+				if closeErr := file.Close(); closeErr != nil {
+					fmt.Fprintf(os.Stderr, "warning: failed to close file: %v\n", closeErr)
+				}
+			}()
 			out = file
 		}
-		return cmd.Root().GenBashCompletion(out)
+		if err := cmd.Root().GenBashCompletion(out); err != nil {
+			return fmt.Errorf("failed to generate bash completion: %w", err)
+		}
+		return nil
 	},
 }
 
 // zshCmd represents the zsh completion subcommand.
 var zshCmd = &cobra.Command{
-	Use:   "zsh",
+	Use:   shellZsh,
 	Short: "Generate zsh completion script",
 	Long:  "Generate the autocompletion script for zsh",
 	RunE: func(cmd *cobra.Command, _ []string) error {
 		var out io.Writer = os.Stdout
 		if completionOutputFile != "" {
-			file, err := os.Create(completionOutputFile)
+			file, err := os.Create(completionOutputFile) // #nosec G304
 			if err != nil {
 				return fmt.Errorf("failed to create output file: %w", err)
 			}
-			defer file.Close()
+			defer func() {
+				if closeErr := file.Close(); closeErr != nil {
+					fmt.Fprintf(os.Stderr, "warning: failed to close file: %v\n", closeErr)
+				}
+			}()
 			out = file
 		}
-		return cmd.Root().GenZshCompletion(out)
+		if err := cmd.Root().GenZshCompletion(out); err != nil {
+			return fmt.Errorf("failed to generate zsh completion: %w", err)
+		}
+		return nil
 	},
 }
 
 // fishCmd represents the fish completion subcommand.
 var fishCmd = &cobra.Command{
-	Use:   "fish",
+	Use:   shellFish,
 	Short: "Generate fish completion script",
 	Long:  "Generate the autocompletion script for fish",
 	RunE: func(cmd *cobra.Command, _ []string) error {
 		var out io.Writer = os.Stdout
 		if completionOutputFile != "" {
-			file, err := os.Create(completionOutputFile)
+			file, err := os.Create(completionOutputFile) // #nosec G304
 			if err != nil {
 				return fmt.Errorf("failed to create output file: %w", err)
 			}
-			defer file.Close()
+			defer func() {
+				if closeErr := file.Close(); closeErr != nil {
+					fmt.Fprintf(os.Stderr, "warning: failed to close file: %v\n", closeErr)
+				}
+			}()
 			out = file
 		}
-		return cmd.Root().GenFishCompletion(out, true)
+		if err := cmd.Root().GenFishCompletion(out, true); err != nil {
+			return fmt.Errorf("failed to generate fish completion: %w", err)
+		}
+		return nil
 	},
 }
 
 // powershellCmd represents the powershell completion subcommand.
 var powershellCmd = &cobra.Command{
-	Use:   "powershell",
+	Use:   shellPowershell,
 	Short: "Generate PowerShell completion script",
 	Long:  "Generate the autocompletion script for PowerShell",
 	RunE: func(cmd *cobra.Command, _ []string) error {
 		var out io.Writer = os.Stdout
 		if completionOutputFile != "" {
-			file, err := os.Create(completionOutputFile)
+			file, err := os.Create(completionOutputFile) // #nosec G304
 			if err != nil {
 				return fmt.Errorf("failed to create output file: %w", err)
 			}
-			defer file.Close()
+			defer func() {
+				if closeErr := file.Close(); closeErr != nil {
+					fmt.Fprintf(os.Stderr, "warning: failed to close file: %v\n", closeErr)
+				}
+			}()
 			out = file
 		}
-		return cmd.Root().GenPowerShellCompletionWithDesc(out)
+		if err := cmd.Root().GenPowerShellCompletionWithDesc(out); err != nil {
+			return fmt.Errorf("failed to generate powershell completion: %w", err)
+		}
+		return nil
 	},
 }
 
@@ -172,7 +216,7 @@ Example:
   $ pplx completion install         # Auto-detect shell
   $ pplx completion install bash    # Install for bash
 `,
-	ValidArgs: []string{"bash", "zsh", "fish", "powershell"},
+	ValidArgs: []string{shellBash, shellZsh, shellFish, shellPowershell},
 	Args:      cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var shell string
@@ -196,40 +240,126 @@ Example:
 
 // generateCompletion generates the completion script for the specified shell.
 func generateCompletion(rootCmd *cobra.Command, shell string, out io.Writer) error {
+	var err error
 	switch shell {
-	case "bash":
-		return rootCmd.GenBashCompletion(out)
-	case "zsh":
-		return rootCmd.GenZshCompletion(out)
-	case "fish":
-		return rootCmd.GenFishCompletion(out, true)
-	case "powershell":
-		return rootCmd.GenPowerShellCompletionWithDesc(out)
+	case shellBash:
+		err = rootCmd.GenBashCompletion(out)
+	case shellZsh:
+		err = rootCmd.GenZshCompletion(out)
+	case shellFish:
+		err = rootCmd.GenFishCompletion(out, true)
+	case shellPowershell:
+		err = rootCmd.GenPowerShellCompletionWithDesc(out)
 	default:
-		return fmt.Errorf("unsupported shell: %s", shell)
+		return fmt.Errorf("%w: %s", errUnsupportedShell, shell)
 	}
+	if err != nil {
+		return fmt.Errorf("failed to generate %s completion: %w", shell, err)
+	}
+	return nil
 }
 
 // detectShell attempts to detect the user's current shell.
 func detectShell() (string, error) {
 	shell := os.Getenv("SHELL")
 	if shell == "" {
-		return "", fmt.Errorf("SHELL environment variable not set")
+		return "", errNoShellEnv
 	}
 
 	base := filepath.Base(shell)
 	switch {
-	case strings.Contains(base, "bash"):
-		return "bash", nil
-	case strings.Contains(base, "zsh"):
-		return "zsh", nil
-	case strings.Contains(base, "fish"):
-		return "fish", nil
-	case strings.Contains(base, "pwsh") || strings.Contains(base, "powershell"):
-		return "powershell", nil
+	case strings.Contains(base, shellBash):
+		return shellBash, nil
+	case strings.Contains(base, shellZsh):
+		return shellZsh, nil
+	case strings.Contains(base, shellFish):
+		return shellFish, nil
+	case strings.Contains(base, "pwsh") || strings.Contains(base, shellPowershell):
+		return shellPowershell, nil
 	default:
-		return "", fmt.Errorf("unsupported shell: %s", base)
+		return "", fmt.Errorf("%w: %s", errUnsupportedShell, base)
 	}
+}
+
+// shellInstallTarget contains installation info for a shell.
+type shellInstallTarget struct {
+	targetPath        string
+	setupInstructions string
+}
+
+// getInstallTarget returns the installation target path and setup instructions for a shell.
+func getInstallTarget(homeDir, shell string) (*shellInstallTarget, error) {
+	switch shell {
+	case shellBash:
+		return getBashInstallTarget(homeDir)
+	case shellZsh:
+		return getZshInstallTarget(homeDir)
+	case shellFish:
+		return getFishInstallTarget(homeDir)
+	case shellPowershell:
+		return getPowershellInstallTarget(homeDir)
+	default:
+		return nil, fmt.Errorf("%w: %s", errUnsupportedShell, shell)
+	}
+}
+
+func getBashInstallTarget(homeDir string) (*shellInstallTarget, error) {
+	// Try macOS Homebrew location first, then Linux
+	brewPrefix := os.Getenv("HOMEBREW_PREFIX")
+	if brewPrefix == "" {
+		brewPrefix = "/usr/local" // Default Homebrew prefix
+	}
+
+	targetPath := filepath.Join(brewPrefix, "etc", "bash_completion.d", "pplx")
+	if _, err := os.Stat(filepath.Dir(targetPath)); os.IsNotExist(err) {
+		// Fallback to user directory
+		targetPath = filepath.Join(homeDir, ".bash_completion.d", "pplx")
+		if err := os.MkdirAll(filepath.Dir(targetPath), dirPerms); err != nil { // #nosec G301
+			return nil, fmt.Errorf("failed to create directory: %w", err)
+		}
+		return &shellInstallTarget{
+			targetPath: targetPath,
+			setupInstructions: fmt.Sprintf(
+				"\nAdd the following to your ~/.bashrc:\n\n  [[ -f %s ]] && source %s\n",
+				targetPath, targetPath),
+		}, nil
+	}
+	return &shellInstallTarget{targetPath: targetPath}, nil
+}
+
+func getZshInstallTarget(homeDir string) (*shellInstallTarget, error) {
+	targetPath := filepath.Join(homeDir, ".zsh", "completions", "_pplx")
+	if err := os.MkdirAll(filepath.Dir(targetPath), dirPerms); err != nil { // #nosec G301
+		return nil, fmt.Errorf("failed to create directory: %w", err)
+	}
+	return &shellInstallTarget{
+		targetPath: targetPath,
+		setupInstructions: fmt.Sprintf(
+			"\nAdd the following to your ~/.zshrc:\n\n"+
+				"  fpath=(%s $fpath)\n  autoload -U compinit; compinit\n",
+			filepath.Dir(targetPath)),
+	}, nil
+}
+
+func getFishInstallTarget(homeDir string) (*shellInstallTarget, error) {
+	configDir := filepath.Join(homeDir, ".config", "fish", "completions")
+	if err := os.MkdirAll(configDir, dirPerms); err != nil { // #nosec G301
+		return nil, fmt.Errorf("failed to create directory: %w", err)
+	}
+	return &shellInstallTarget{
+		targetPath: filepath.Join(configDir, "pplx.fish"),
+	}, nil
+}
+
+func getPowershellInstallTarget(homeDir string) (*shellInstallTarget, error) {
+	targetPath := filepath.Join(homeDir, "Documents", "PowerShell", "Scripts", "pplx-completion.ps1")
+	if err := os.MkdirAll(filepath.Dir(targetPath), dirPerms); err != nil { // #nosec G301
+		return nil, fmt.Errorf("failed to create directory: %w", err)
+	}
+	return &shellInstallTarget{
+		targetPath:        targetPath,
+		setupInstructions: fmt.Sprintf("\nAdd the following to your PowerShell profile:\n\n  . %s\n", targetPath),
+	}, nil
 }
 
 // installCompletion installs the completion script for the specified shell.
@@ -239,75 +369,65 @@ func installCompletion(rootCmd *cobra.Command, shell string) error {
 		return fmt.Errorf("failed to get home directory: %w", err)
 	}
 
-	var targetPath string
-	var setupInstructions string
-
-	switch shell {
-	case "bash":
-		// Try macOS Homebrew location first, then Linux
-		brewPrefix := os.Getenv("HOMEBREW_PREFIX")
-		if brewPrefix == "" {
-			brewPrefix = "/usr/local" // Default Homebrew prefix
-		}
-
-		targetPath = filepath.Join(brewPrefix, "etc", "bash_completion.d", "pplx")
-		if _, err := os.Stat(filepath.Dir(targetPath)); os.IsNotExist(err) {
-			// Fallback to user directory
-			targetPath = filepath.Join(homeDir, ".bash_completion.d", "pplx")
-			if err := os.MkdirAll(filepath.Dir(targetPath), 0755); err != nil {
-				return fmt.Errorf("failed to create directory: %w", err)
-			}
-			setupInstructions = fmt.Sprintf("\nAdd the following to your ~/.bashrc:\n\n  [[ -f %s ]] && source %s\n", targetPath, targetPath)
-		}
-
-	case "zsh":
-		// Get first element of fpath or use default
-		targetPath = filepath.Join(homeDir, ".zsh", "completions", "_pplx")
-		if err := os.MkdirAll(filepath.Dir(targetPath), 0755); err != nil {
-			return fmt.Errorf("failed to create directory: %w", err)
-		}
-		setupInstructions = fmt.Sprintf("\nAdd the following to your ~/.zshrc:\n\n  fpath=(%s $fpath)\n  autoload -U compinit; compinit\n", filepath.Dir(targetPath))
-
-	case "fish":
-		configDir := filepath.Join(homeDir, ".config", "fish", "completions")
-		if err := os.MkdirAll(configDir, 0755); err != nil {
-			return fmt.Errorf("failed to create directory: %w", err)
-		}
-		targetPath = filepath.Join(configDir, "pplx.fish")
-
-	case "powershell":
-		// PowerShell profile location varies by platform
-		targetPath = filepath.Join(homeDir, "Documents", "PowerShell", "Scripts", "pplx-completion.ps1")
-		if err := os.MkdirAll(filepath.Dir(targetPath), 0755); err != nil {
-			return fmt.Errorf("failed to create directory: %w", err)
-		}
-		setupInstructions = fmt.Sprintf("\nAdd the following to your PowerShell profile:\n\n  . %s\n", targetPath)
-
-	default:
-		return fmt.Errorf("unsupported shell: %s", shell)
+	target, err := getInstallTarget(homeDir, shell)
+	if err != nil {
+		return err
 	}
 
 	// Create the completion file
-	file, err := os.Create(targetPath)
+	file, err := os.Create(target.targetPath)
 	if err != nil {
 		return fmt.Errorf("failed to create completion file: %w", err)
 	}
-	defer file.Close()
+	defer func() {
+		if closeErr := file.Close(); closeErr != nil {
+			fmt.Fprintf(os.Stderr, "warning: failed to close file: %v\n", closeErr)
+		}
+	}()
 
 	// Generate completion script
 	if err := generateCompletion(rootCmd, shell, file); err != nil {
 		return fmt.Errorf("failed to generate completion: %w", err)
 	}
 
-	fmt.Printf("✓ Shell completion installed to: %s\n", targetPath)
-	if setupInstructions != "" {
-		fmt.Println(setupInstructions)
+	fmt.Printf("✓ Shell completion installed to: %s\n", target.targetPath)
+	if target.setupInstructions != "" {
+		fmt.Println(target.setupInstructions)
 		fmt.Println("Restart your shell or source the configuration file for changes to take effect.")
 	} else {
 		fmt.Println("\nRestart your shell for changes to take effect.")
 	}
 
 	return nil
+}
+
+// getUninstallPaths returns the list of paths to check for uninstalling a shell's completion.
+func getUninstallPaths(homeDir, shell string) ([]string, error) {
+	switch shell {
+	case shellBash:
+		brewPrefix := os.Getenv("HOMEBREW_PREFIX")
+		if brewPrefix == "" {
+			brewPrefix = "/usr/local"
+		}
+		return []string{
+			filepath.Join(brewPrefix, "etc", "bash_completion.d", "pplx"),
+			filepath.Join(homeDir, ".bash_completion.d", "pplx"),
+		}, nil
+	case shellZsh:
+		return []string{
+			filepath.Join(homeDir, ".zsh", "completions", "_pplx"),
+		}, nil
+	case shellFish:
+		return []string{
+			filepath.Join(homeDir, ".config", "fish", "completions", "pplx.fish"),
+		}, nil
+	case shellPowershell:
+		return []string{
+			filepath.Join(homeDir, "Documents", "PowerShell", "Scripts", "pplx-completion.ps1"),
+		}, nil
+	default:
+		return nil, fmt.Errorf("%w: %s", errUnsupportedShell, shell)
+	}
 }
 
 // uninstallCompletion removes the completion script for the specified shell.
@@ -317,36 +437,9 @@ func uninstallCompletion(shell string) error {
 		return fmt.Errorf("failed to get home directory: %w", err)
 	}
 
-	var targetPaths []string
-
-	switch shell {
-	case "bash":
-		brewPrefix := os.Getenv("HOMEBREW_PREFIX")
-		if brewPrefix == "" {
-			brewPrefix = "/usr/local"
-		}
-		targetPaths = []string{
-			filepath.Join(brewPrefix, "etc", "bash_completion.d", "pplx"),
-			filepath.Join(homeDir, ".bash_completion.d", "pplx"),
-		}
-
-	case "zsh":
-		targetPaths = []string{
-			filepath.Join(homeDir, ".zsh", "completions", "_pplx"),
-		}
-
-	case "fish":
-		targetPaths = []string{
-			filepath.Join(homeDir, ".config", "fish", "completions", "pplx.fish"),
-		}
-
-	case "powershell":
-		targetPaths = []string{
-			filepath.Join(homeDir, "Documents", "PowerShell", "Scripts", "pplx-completion.ps1"),
-		}
-
-	default:
-		return fmt.Errorf("unsupported shell: %s", shell)
+	targetPaths, err := getUninstallPaths(homeDir, shell)
+	if err != nil {
+		return err
 	}
 
 	removed := false
@@ -364,7 +457,8 @@ func uninstallCompletion(shell string) error {
 	if !removed {
 		fmt.Println("No completion files found to remove.")
 	} else {
-		fmt.Println("\nYou may need to restart your shell or manually remove any source lines from your shell configuration.")
+		fmt.Println("\nYou may need to restart your shell or manually remove any " +
+			"source lines from your shell configuration.")
 	}
 
 	return nil
@@ -384,6 +478,10 @@ func init() {
 	completionCmd.AddCommand(installCmd)
 
 	// Add flags
-	completionCmd.PersistentFlags().StringVarP(&completionOutputFile, "output", "o", "", "Output file path (default: stdout)")
-	installCmd.Flags().BoolVar(&completionUninstall, "uninstall", false, "Uninstall completion instead of installing")
+	completionCmd.PersistentFlags().StringVarP(
+		&completionOutputFile, "output", "o", "",
+		"Output file path (default: stdout)")
+	installCmd.Flags().BoolVar(
+		&completionUninstall, "uninstall", false,
+		"Uninstall completion instead of installing")
 }
