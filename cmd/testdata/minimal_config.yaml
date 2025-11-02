@@ -1,0 +1,3 @@
+# Minimal valid configuration
+defaults:
+  model: sonar

@@ -18,6 +18,7 @@ import (
 var (
 	ErrConfigFileExists = errors.New("configuration file already exists")
 	ErrValidationFailed = errors.New("validation failed")
+	ErrUnknownSection   = errors.New("unknown section")
 )
 
 const (
@@ -103,9 +104,60 @@ Examples:
 	RunE: runConfigInit,
 }
 
+// loadOrCreateConfig loads configuration based on init flags.
+func loadOrCreateConfig() (*config.ConfigData, error) {
+	switch {
+	case initInteractive:
+		wizard := NewWizardState()
+		cfg, err := wizard.Run()
+		if err != nil {
+			return nil, fmt.Errorf("wizard failed: %w", err)
+		}
+		return cfg, nil
+
+	case initTemplate != "":
+		cfg, err := config.LoadTemplate(initTemplate)
+		if err != nil {
+			return nil, fmt.Errorf("failed to load template: %w", err)
+		}
+		fmt.Printf("Loaded %q template configuration\n", initTemplate)
+		return cfg, nil
+
+	default:
+		// Create default minimal config for backward compatibility
+		cfg := config.NewConfigData()
+		cfg.Defaults.Model = "sonar"
+		cfg.Defaults.Temperature = 0.2
+		cfg.Defaults.MaxTokens = 4000
+		return cfg, nil
+	}
+}
+
+// generateYAMLContent generates YAML content from config.
+func generateYAMLContent(cfg *config.ConfigData) (string, error) {
+	if initWithExamples || initWithProfiles || initTemplate != "" || initInteractive {
+		opts := config.DefaultAnnotationOptions()
+		opts.IncludeExamples = initWithExamples
+
+		annotated, err := config.GenerateAnnotatedConfig(cfg, opts)
+		if err != nil {
+			return "", fmt.Errorf("failed to generate annotated config: %w", err)
+		}
+		if !initInteractive {
+			fmt.Println("Generated annotated configuration with descriptions")
+		}
+		return annotated, nil
+	}
+
+	// Generate minimal YAML for backward compatibility
+	data, err := yaml.Marshal(cfg)
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal config: %w", err)
+	}
+	return string(data), nil
+}
+
 // runConfigInit implements the config init command logic.
-//
-//nolint:cyclop // Config initialization requires multiple conditional branches
 func runConfigInit(_ *cobra.Command, _ []string) error {
 	configPath := config.GetDefaultConfigPath()
 	if configFilePath != "" {
@@ -131,54 +183,16 @@ func runConfigInit(_ *cobra.Command, _ []string) error {
 		checkEnvironment()
 	}
 
-	var cfg *config.ConfigData
-	var yamlContent string
-
-	// Run interactive wizard if requested
-	if initInteractive {
-		wizard := NewWizardState()
-		var err error
-		cfg, err = wizard.Run()
-		if err != nil {
-			return fmt.Errorf("wizard failed: %w", err)
-		}
-	} else if initTemplate != "" {
-		// Load template if specified
-		templateCfg, err := config.LoadTemplate(initTemplate)
-		if err != nil {
-			return fmt.Errorf("failed to load template: %w", err)
-		}
-		cfg = templateCfg
-		fmt.Printf("Loaded %q template configuration\n", initTemplate)
-	} else {
-		// Create default minimal config for backward compatibility
-		cfg = config.NewConfigData()
-		cfg.Defaults.Model = "sonar"
-		cfg.Defaults.Temperature = 0.2
-		cfg.Defaults.MaxTokens = 4000
+	// Load or create configuration
+	cfg, err := loadOrCreateConfig()
+	if err != nil {
+		return err
 	}
 
-	// Check if we should generate annotated config
-	if initWithExamples || initWithProfiles || initTemplate != "" || initInteractive {
-		// Generate annotated configuration
-		opts := config.DefaultAnnotationOptions()
-		opts.IncludeExamples = initWithExamples
-
-		annotated, err := config.GenerateAnnotatedConfig(cfg, opts)
-		if err != nil {
-			return fmt.Errorf("failed to generate annotated config: %w", err)
-		}
-		yamlContent = annotated
-		if !initInteractive {
-			fmt.Println("Generated annotated configuration with descriptions")
-		}
-	} else {
-		// Generate minimal YAML for backward compatibility
-		data, err := yaml.Marshal(cfg)
-		if err != nil {
-			return fmt.Errorf("failed to marshal config: %w", err)
-		}
-		yamlContent = string(data)
+	// Generate YAML content
+	yamlContent, err := generateYAMLContent(cfg)
+	if err != nil {
+		return err
 	}
 
 	// Write to file
@@ -395,7 +409,7 @@ func runConfigOptions(_ *cobra.Command, _ []string) error {
 	if optionsSection != "" {
 		options = registry.GetBySection(optionsSection)
 		if len(options) == 0 {
-			return fmt.Errorf("unknown section: %s (valid: defaults, search, output, api)", optionsSection)
+			return fmt.Errorf("%w: %s (valid: defaults, search, output, api)", ErrUnknownSection, optionsSection)
 		}
 	} else {
 		options = registry.GetAll()
@@ -708,9 +722,15 @@ func init() {
 	configShowCmd.Flags().StringVar(&profileName, "profile", "", "Show specific profile")
 
 	// Flags for options command
-	configOptionsCmd.Flags().StringVarP(&optionsSection, "section", "s", "", "Filter by section (defaults, search, output, api)")
-	configOptionsCmd.Flags().StringVarP(&optionsFormat, "format", "f", "table", "Output format (table, json, yaml)")
-	configOptionsCmd.Flags().BoolVarP(&optionsValidation, "validation", "v", false, "Show validation rules")
+	configOptionsCmd.Flags().StringVarP(
+		&optionsSection, "section", "s", "",
+		"Filter by section (defaults, search, output, api)")
+	configOptionsCmd.Flags().StringVarP(
+		&optionsFormat, "format", "f", "table",
+		"Output format (table, json, yaml)")
+	configOptionsCmd.Flags().BoolVarP(
+		&optionsValidation, "validation", "v", false,
+		"Show validation rules")
 
 	// Register flag completions
 	registerConfigFlagCompletions()

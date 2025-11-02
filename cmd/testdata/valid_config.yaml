@@ -1,0 +1,21 @@
+# Valid test configuration
+defaults:
+  model: sonar
+  temperature: 0.7
+  max_tokens: 4096
+  top_p: 0.9
+
+search:
+  mode: web
+  context_size: medium
+  recency: week
+
+output:
+  stream: false
+  return_images: false
+  return_related: true
+  json: false
+
+api:
+  key: ${PERPLEXITY_API_KEY}
+  timeout: 30s

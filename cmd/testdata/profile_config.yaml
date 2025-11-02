@@ -1,0 +1,31 @@
+# Configuration with profiles
+active_profile: research
+
+defaults:
+  model: sonar
+  temperature: 0.5
+
+profiles:
+  research:
+    name: research
+    description: Academic research configuration
+    defaults:
+      model: sonar
+      temperature: 0.3
+      max_tokens: 4096
+    search:
+      mode: academic
+      context_size: high
+    output:
+      return_related: true
+
+  creative:
+    name: creative
+    description: Creative writing configuration
+    defaults:
+      model: sonar
+      temperature: 0.9
+      max_tokens: 8192
+    output:
+      stream: true
+      return_images: true
