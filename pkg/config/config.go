@@ -121,6 +121,18 @@ type Profile struct {
 	Output      OutputConfig   `json:"output,omitempty"      mapstructure:"output"      yaml:"output,omitempty"`
 }
 
+// ConfigFileInfo represents metadata about a configuration file.
+//nolint:revive // ConfigFileInfo name is part of public API; renaming would be a breaking change.
+type ConfigFileInfo struct {
+	Name         string    `json:"name"`          // File name (e.g., "config.yaml")
+	Path         string    `json:"path"`          // Full absolute path
+	Size         int64     `json:"size"`          // File size in bytes
+	ModTime      time.Time `json:"modified"`      // Last modification time
+	IsActive     bool      `json:"is_active"`     // Whether this is the active config
+	IsValid      bool      `json:"is_valid"`      // Whether file has valid YAML syntax
+	ProfileCount int       `json:"profile_count"` // Number of profiles in file (if valid)
+}
+
 // NewConfigData creates a new ConfigData with default values.
 func NewConfigData() *ConfigData {
 	return &ConfigData{

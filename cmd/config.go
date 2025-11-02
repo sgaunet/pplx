@@ -56,10 +56,8 @@ var configCmd = &cobra.Command{
 	Short: "Manage pplx configuration",
 	Long: `Manage pplx configuration files and profiles.
 
-Configuration files are searched in the following order:
-  1. ./pplx.yaml
-  2. ~/.config/pplx/config.yaml
-  3. /etc/pplx/config.yaml
+Configuration files are stored in ~/.config/pplx/
+Supported filenames: config.yaml, pplx.yaml, config.yml, pplx.yml
 
 Use subcommands to initialize, view, validate, or edit configuration.`,
 }

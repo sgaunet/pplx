@@ -102,7 +102,7 @@ func TestFindConfigFile(t *testing.T) {
 	}
 
 	// Expected error when no config file exists
-	if err.Error() != "no config file found in standard locations" {
+	if err.Error() != "no config file found in ~/.config/pplx/" {
 		t.Errorf("Unexpected error message: %v", err)
 	}
 }
@@ -128,5 +128,135 @@ func TestFileExists(t *testing.T) {
 	// Test with existing file (this test file itself)
 	if !fileExists("loader_test.go") {
 		t.Error("fileExists returned false for existing file")
+	}
+}
+
+func TestListConfigFiles(t *testing.T) {
+	// Test with non-existent directory (should return empty list)
+	// Temporarily override ConfigPaths
+	oldPaths := ConfigPaths
+	ConfigPaths = []string{"/path/that/does/not/exist"}
+	defer func() { ConfigPaths = oldPaths }()
+
+	files, err := ListConfigFiles()
+	if err != nil {
+		t.Errorf("ListConfigFiles returned error for non-existent dir: %v", err)
+	}
+	if len(files) != 0 {
+		t.Errorf("Expected empty list for non-existent dir, got %d files", len(files))
+	}
+}
+
+func TestListConfigFilesWithFiles(t *testing.T) {
+	// Create a temporary directory with config files
+	tmpDir := t.TempDir()
+
+	// Override ConfigPaths
+	oldPaths := ConfigPaths
+	ConfigPaths = []string{tmpDir}
+	defer func() { ConfigPaths = oldPaths }()
+
+	// Create test config files
+	validConfig := `
+defaults:
+  model: test-model
+
+profiles:
+  dev:
+    defaults:
+      model: dev-model
+`
+	if err := os.WriteFile(filepath.Join(tmpDir, "config.yaml"), []byte(validConfig), 0644); err != nil {
+		t.Fatalf("Failed to create test config file: %v", err)
+	}
+
+	if err := os.WriteFile(filepath.Join(tmpDir, "pplx.yaml"), []byte("defaults:\n  model: pplx-model\n"), 0644); err != nil {
+		t.Fatalf("Failed to create test pplx file: %v", err)
+	}
+
+	// Create an invalid YAML file
+	if err := os.WriteFile(filepath.Join(tmpDir, "config.yml"), []byte("invalid: yaml: content: [\n"), 0644); err != nil {
+		t.Fatalf("Failed to create invalid config file: %v", err)
+	}
+
+	// Create a custom named config file
+	if err := os.WriteFile(filepath.Join(tmpDir, "dev.yaml"), []byte("defaults:\n  model: dev-model\n"), 0644); err != nil {
+		t.Fatalf("Failed to create dev config file: %v", err)
+	}
+
+	// Create a non-config file (should be ignored)
+	if err := os.WriteFile(filepath.Join(tmpDir, "readme.txt"), []byte("ignore me"), 0644); err != nil {
+		t.Fatalf("Failed to create readme file: %v", err)
+	}
+
+	files, err := ListConfigFiles()
+	if err != nil {
+		t.Fatalf("ListConfigFiles returned error: %v", err)
+	}
+
+	// Should find 4 config files (config.yaml, pplx.yaml, config.yml, dev.yaml)
+	if len(files) != 4 {
+		t.Errorf("Expected 4 config files, got %d", len(files))
+		for i, f := range files {
+			t.Logf("  [%d] %s", i, f.Name)
+		}
+	}
+
+	// Check file ordering (config.yaml should be first)
+	if len(files) > 0 && files[0].Name != "config.yaml" {
+		t.Errorf("Expected config.yaml to be first, got %s", files[0].Name)
+	}
+
+	// Check that valid files are marked as valid
+	foundValid := false
+	foundInvalid := false
+	foundDev := false
+	for _, file := range files {
+		if file.Name == "config.yaml" {
+			if !file.IsValid {
+				t.Error("config.yaml should be valid")
+			}
+			if file.ProfileCount != 1 {
+				t.Errorf("config.yaml should have 1 profile, got %d", file.ProfileCount)
+			}
+			// First file in precedence order should be active
+			if files[0].Name == "config.yaml" && !file.IsActive {
+				// Get the active file for debugging
+				activeFile, _ := FindConfigFile()
+				t.Errorf("config.yaml should be active (highest precedence), path=%s, activeFile=%s", file.Path, activeFile)
+			}
+			foundValid = true
+		}
+		if file.Name == "config.yml" {
+			if file.IsValid {
+				t.Error("config.yml should be invalid (bad YAML)")
+			}
+			foundInvalid = true
+		}
+		if file.Name == "dev.yaml" {
+			if !file.IsValid {
+				t.Error("dev.yaml should be valid")
+			}
+			foundDev = true
+		}
+	}
+
+	if !foundValid {
+		t.Error("Did not find config.yaml in results")
+	}
+	if !foundInvalid {
+		t.Error("Did not find config.yml in results")
+	}
+	if !foundDev {
+		t.Error("Did not find dev.yaml in results")
+	}
+
+	// Verify ordering: standard files first, then custom files alphabetically
+	// Expected order: config.yaml, pplx.yaml, config.yml, dev.yaml
+	expectedOrder := []string{"config.yaml", "pplx.yaml", "config.yml", "dev.yaml"}
+	for i, expected := range expectedOrder {
+		if i < len(files) && files[i].Name != expected {
+			t.Errorf("Expected file at position %d to be %s, got %s", i, expected, files[i].Name)
+		}
 	}
 }
