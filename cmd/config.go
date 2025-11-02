@@ -403,6 +403,115 @@ func runConfigOptions(_ *cobra.Command, _ []string) error {
 	return nil
 }
 
+// configPathCmd shows the active config file location and search order.
+var configPathCmd = &cobra.Command{
+	Use:   "path",
+	Short: "Show configuration file location and search paths",
+	Long: `Display the active configuration file path and the full search order.
+
+The search order shows all locations where pplx looks for configuration files,
+with status indicators for each location.
+
+Examples:
+  # Show active config and search paths
+  pplx config path
+
+  # Validate configuration and show details
+  pplx config path --check`,
+	RunE: runConfigPath,
+}
+
+var pathCheckFlag bool
+
+// runConfigPath implements the config path command logic.
+func runConfigPath(_ *cobra.Command, _ []string) error {
+	// Find active config file
+	activeConfig, err := config.FindConfigFile()
+	hasConfig := err == nil
+
+	fmt.Println("Configuration File Search Order:")
+	fmt.Println()
+
+	// Get possible filenames
+	filenames := []string{"config.yaml", "pplx.yaml", "config.yml", "pplx.yml"}
+
+	// Iterate through search paths
+	for _, basePath := range config.ConfigPaths {
+		expandedPath := os.ExpandEnv(basePath)
+		fmt.Printf("📁 %s\n", expandedPath)
+
+		for _, filename := range filenames {
+			fullPath := filepath.Join(expandedPath, filename)
+			status := getPathStatus(fullPath, activeConfig)
+			fmt.Printf("   %s %s\n", status, filename)
+		}
+		fmt.Println()
+	}
+
+	// Show active configuration summary
+	if hasConfig {
+		fmt.Printf("✓ Active configuration: %s\n", activeConfig)
+	} else {
+		fmt.Println("✗ No configuration file found")
+		fmt.Println()
+		fmt.Println("Create one with: pplx config init")
+		return nil
+	}
+
+	// If --check flag is set, validate the configuration
+	if pathCheckFlag {
+		fmt.Println()
+		fmt.Println("Configuration Validation:")
+		fmt.Println()
+
+		loader := config.NewLoader()
+		if err := loader.LoadFrom(activeConfig); err != nil {
+			fmt.Printf("✗ Failed to load config: %v\n", err)
+			return nil
+		}
+
+		cfg := loader.Data()
+
+		// Count profiles
+		profileCount := len(cfg.Profiles)
+		fmt.Printf("  Profiles: %d\n", profileCount)
+		if profileCount > 0 {
+			fmt.Printf("  Active:   %s\n", cfg.ActiveProfile)
+		}
+
+		// Validate configuration
+		validator := config.NewValidator()
+		if err := validator.Validate(cfg); err != nil {
+			fmt.Printf("  Status:   ✗ INVALID\n")
+			fmt.Println()
+			fmt.Println("Validation errors:")
+			fmt.Printf("  %v\n", err)
+		} else {
+			fmt.Printf("  Status:   ✓ VALID\n")
+		}
+	}
+
+	return nil
+}
+
+// getPathStatus returns a status indicator for a config file path.
+func getPathStatus(path, activeConfig string) string {
+	info, err := os.Stat(path)
+	if os.IsNotExist(err) {
+		return "⚪" // not found
+	}
+
+	if info.IsDir() {
+		return "⚠️ " // is directory (error)
+	}
+
+	if path == activeConfig {
+		return "✓ " // active config
+	}
+
+	return "○ " // exists but not used
+}
+
 // configProfileCmd manages profiles.
 var configProfileCmd = &cobra.Command{
 	Use:   "profile",
@@ -542,6 +651,7 @@ func init() {
 	configCmd.AddCommand(configValidateCmd)
 	configCmd.AddCommand(configEditCmd)
 	configCmd.AddCommand(configOptionsCmd)
+	configCmd.AddCommand(configPathCmd)
 	configCmd.AddCommand(configProfileCmd)
 
 	// Add profile subcommands
@@ -569,6 +679,11 @@ func init() {
 	configInitCmd.Flags().BoolVar(
 		&initCheckEnv, "check-env", false,
 		"Check environment variables (API keys)")
+
+	// Flags for path command
+	configPathCmd.Flags().BoolVarP(
+		&pathCheckFlag, "check", "c", false,
+		"Validate configuration and show details")
 
 	// Flags for show command
 	configShowCmd.Flags().BoolVar(&jsonOutput, "json", false, "Output in JSON format")
