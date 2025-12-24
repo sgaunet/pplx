@@ -1,4 +1,3 @@
-// Package cmd provides the CLI commands for pplx.
 package cmd
 
 import (

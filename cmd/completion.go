@@ -1,4 +1,3 @@
-// Package cmd provides command-line interface commands for the Perplexity API.
 package cmd
 
 import (

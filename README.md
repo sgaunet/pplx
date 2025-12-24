@@ -368,8 +368,44 @@ pplx supports YAML configuration files to manage default settings and create reu
 
 ### Quick Start
 
+The easiest way to get started is with the **interactive configuration wizard**:
+
 ```sh
-# Initialize a new configuration file
+# Set your API key
+export PERPLEXITY_API_KEY="your-api-key-here"
+
+# Launch interactive wizard (recommended for first-time setup)
+pplx config init --interactive
+
+# Run your first query
+pplx query -p "What are the latest developments in AI?"
+```
+
+The interactive wizard guides you through all configuration options with helpful prompts and suggestions.
+
+#### Template-Based Quick Start
+
+Alternatively, start quickly with pre-configured templates optimized for specific use cases:
+
+```sh
+# For academic research with scholarly sources
+pplx config init --template research
+
+# For creative writing and brainstorming
+pplx config init --template creative
+
+# For current news and events
+pplx config init --template news
+```
+
+Each template comes with pre-tuned settings for temperature, search modes, domain filtering, and more.
+
+#### Manual Configuration
+
+For advanced users or automation:
+
+```sh
+# Create a minimal configuration file
 pplx config init
 
 # View current configuration
@@ -377,15 +413,23 @@ pplx config show
 
 # Validate configuration
 pplx config validate
+
+# Edit configuration in your default editor
+pplx config edit
 ```
+
+For comprehensive configuration documentation, see [docs/configuration-guide.md](docs/configuration-guide.md).
 
 ### Configuration File Locations
 
 pplx searches for configuration files in the following order:
 
-1. `./pplx.yaml` - Current directory (highest priority)
-2. `~/.config/pplx/config.yaml` - User config directory
-3. `/etc/pplx/config.yaml` - System-wide configuration (lowest priority)
+1. `~/.config/pplx/config.yaml` - User config directory
+2. `~/.config/pplx/pplx.yaml` - Alternative user config
+3. `~/.config/pplx/config.yml` - YAML variant
+4. `~/.config/pplx/pplx.yml` - Alternative YAML variant
+
+The first file found is used. Use `pplx config path` to see the active configuration file.
 
 You can also specify a custom config file:
 
@@ -398,8 +442,9 @@ pplx query -p "your question" --config /path/to/config.yaml
 Settings are applied in the following order (later sources override earlier ones):
 
 1. Configuration file defaults
-2. Environment variables (e.g., `PPLX_API_KEY`)
-3. Command-line flags (highest priority)
+2. Active profile settings (if using profiles)
+3. Environment variables (e.g., `PERPLEXITY_API_KEY`)
+4. Command-line flags (highest priority)
 
 This allows you to set sensible defaults in your config file while still overriding them on the command line when needed.
 
