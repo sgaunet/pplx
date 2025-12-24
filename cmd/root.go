@@ -1,9 +1,12 @@
 package cmd
 
 import (
+	"errors"
+	"fmt"
 	"os"
 
 	"github.com/sgaunet/perplexity-go/v2"
+	"github.com/sgaunet/pplx/pkg/clerrors"
 	"github.com/sgaunet/pplx/pkg/completion"
 	"github.com/spf13/cobra"
 )
@@ -71,8 +74,49 @@ func Execute() {
 	rootCmd.CompletionOptions.DisableDefaultCmd = true
 	err := rootCmd.Execute()
 	if err != nil {
-		os.Exit(1)
+		printError(err)
+		exitCode := getExitCode(err)
+		os.Exit(exitCode)
 	}
+}
+
+// printError prints error messages with appropriate formatting based on error type.
+func printError(err error) {
+	var validationErr *clerrors.ValidationError
+	var apiErr *clerrors.APIError
+	var configErr *clerrors.ConfigError
+	var ioErr *clerrors.IOError
+
+	if errors.As(err, &validationErr) {
+		fmt.Fprintf(os.Stderr, "❌ Validation Error: %v\n", validationErr)
+	} else if errors.As(err, &apiErr) {
+		fmt.Fprintf(os.Stderr, "❌ API Error: %v\n", apiErr)
+	} else if errors.As(err, &configErr) {
+		fmt.Fprintf(os.Stderr, "❌ Configuration Error: %v\n", configErr)
+	} else if errors.As(err, &ioErr) {
+		fmt.Fprintf(os.Stderr, "❌ I/O Error: %v\n", ioErr)
+	} else {
+		fmt.Fprintf(os.Stderr, "❌ Error: %v\n", err)
+	}
+}
+
+// getExitCode maps error types to exit codes.
+func getExitCode(err error) int {
+	var validationErr *clerrors.ValidationError
+	var apiErr *clerrors.APIError
+	var configErr *clerrors.ConfigError
+	var ioErr *clerrors.IOError
+
+	if errors.As(err, &validationErr) {
+		return 2
+	} else if errors.As(err, &apiErr) {
+		return 3
+	} else if errors.As(err, &configErr) {
+		return 4
+	} else if errors.As(err, &ioErr) {
+		return 5
+	}
+	return 1
 }
 
 func addChatFlags(cmd *cobra.Command) {

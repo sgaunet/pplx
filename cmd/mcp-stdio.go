@@ -13,6 +13,7 @@ import (
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
 	"github.com/sgaunet/perplexity-go/v2"
+	clerrors "github.com/sgaunet/pplx/pkg/clerrors"
 	"github.com/spf13/cobra"
 )
 
@@ -20,11 +21,10 @@ var mcpStdioCmd = &cobra.Command{
 	Use:   "mcp-stdio",
 	Short: "Start MCP server in stdio mode",
 	Long:  `Start an MCP (Model Context Protocol) server that exposes Perplexity query functionality`,
-	Run: func(_ *cobra.Command, _ []string) {
+	RunE: func(_ *cobra.Command, _ []string) error {
 		// Check env var PPLX_API_KEY exists
 		if os.Getenv("PPLX_API_KEY") == "" {
-			fmt.Fprintf(os.Stderr, "Error: PPLX_API_KEY env var is not set\n")
-			os.Exit(1)
+			return clerrors.NewConfigError("PPLX_API_KEY environment variable is not set", nil)
 		}
 
 		// Create MCP server
@@ -557,8 +557,8 @@ var mcpStdioCmd = &cobra.Command{
 
 		// Start the stdio server
 		if err := server.ServeStdio(s); err != nil {
-			fmt.Fprintf(os.Stderr, "Server error: %v\n", err)
-			os.Exit(1)
+			return clerrors.NewAPIError("MCP server error", err)
 		}
+		return nil
 	},
 }

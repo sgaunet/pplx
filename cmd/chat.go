@@ -2,7 +2,6 @@
 package cmd
 
 import (
-	"fmt"
 	"os"
 
 	"github.com/pterm/pterm"
@@ -10,6 +9,7 @@ import (
 	"github.com/sgaunet/pplx/pkg/chat"
 	"github.com/sgaunet/pplx/pkg/config"
 	"github.com/sgaunet/pplx/pkg/console"
+	clerrors "github.com/sgaunet/pplx/pkg/clerrors"
 	"github.com/spf13/cobra"
 )
 
@@ -19,7 +19,7 @@ var chatCmd = &cobra.Command{
 	Long: `With chat subcommand you can interactively chat with the Perplexity API.
 You can ask questions and get answers from the API. As long as you don't enter an empty question,
  the chat will continue.`,
-	Run: func(cmd *cobra.Command, _ []string) {
+	RunE: func(cmd *cobra.Command, _ []string) error {
 		// Load configuration from file and merge with CLI flags
 		cfg, err := config.LoadAndMergeConfig(cmd, configFilePath)
 		if err != nil {
@@ -38,8 +38,7 @@ You can ask questions and get answers from the API. As long as you don't enter a
 
 		// Check env var PPLX_API_KEY exists
 		if os.Getenv("PPLX_API_KEY") == "" {
-			fmt.Fprintf(os.Stderr, "Error: PPLX_API_KEY env var is not set\n")
-			os.Exit(1)
+			return clerrors.NewConfigError("PPLX_API_KEY environment variable is not set", nil)
 		}
 
 		client := perplexity.NewClient(os.Getenv("PPLX_API_KEY"))
@@ -47,8 +46,7 @@ You can ask questions and get answers from the API. As long as you don't enter a
 
 		systemMessage, err := console.Input("system message (optional - enter to skip)")
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "error reading system message: %v\n", err)
-			os.Exit(1)
+			return clerrors.NewIOError("failed to read system message", err)
 		}
 		// Create chat options
 		chatOptions := chat.Options{
@@ -90,51 +88,44 @@ You can ask questions and get answers from the API. As long as you don't enter a
 		for {
 			prompt, err := console.Input("Ask anything (enter to quit)")
 			if err != nil {
-				fmt.Fprintf(os.Stderr, "error reading prompt: %v\n", err)
-				os.Exit(1)
+				return clerrors.NewIOError("failed to read prompt", err)
 			}
 			if prompt == "" {
 				break loop
 			}
 			err = c.AddUserMessage(prompt)
 			if err != nil {
-				fmt.Fprintf(os.Stderr, "error adding user message: %v\n", err)
-				os.Exit(1)
+				return clerrors.NewAPIError("failed to add user message", err)
 			}
 			// Print spinner while waiting for the response
 			spinnerInfo, _ := pterm.DefaultSpinner.Start("Waiting after the response from perplexity...")
 			response, err := c.Run()
 			if err != nil {
-				fmt.Fprintf(os.Stderr, "error running chat: %v\n", err)
-				os.Exit(1)
+				return clerrors.NewAPIError("failed to run chat", err)
 			}
 			spinnerInfo.Success("Response received")
 
 			err = c.AddAgentMessage(response.GetLastContent())
 			if err != nil {
-				fmt.Fprintf(os.Stderr, "error adding agent message: %v\n", err)
-				os.Exit(1)
+				return clerrors.NewAPIError("failed to add agent message", err)
 			}
 			err = console.RenderAsMarkdown(response, os.Stdout)
 			if err != nil {
-				fmt.Printf("Error: %v\n", err)
-				os.Exit(1)
+				return clerrors.NewIOError("failed to render markdown", err)
 			}
 			err = console.RenderCitations(response, os.Stdout)
 			if err != nil {
-				fmt.Printf("Error: %v\n", err)
-				os.Exit(1)
+				return clerrors.NewIOError("failed to render citations", err)
 			}
 			err = console.RenderImages(response, os.Stdout)
 			if err != nil {
-				fmt.Printf("Error: %v\n", err)
-				os.Exit(1)
+				return clerrors.NewIOError("failed to render images", err)
 			}
 			err = console.RenderRelatedQuestions(response, os.Stdout)
 			if err != nil {
-				fmt.Printf("Error: %v\n", err)
-				os.Exit(1)
+				return clerrors.NewIOError("failed to render related questions", err)
 			}
 		}
+		return nil
 	},
 }

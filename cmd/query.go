@@ -12,6 +12,7 @@ import (
 	"github.com/sgaunet/perplexity-go/v2"
 	"github.com/sgaunet/pplx/pkg/config"
 	"github.com/sgaunet/pplx/pkg/console"
+	clerrors "github.com/sgaunet/pplx/pkg/clerrors"
 	"github.com/spf13/cobra"
 )
 
@@ -19,7 +20,7 @@ var queryCmd = &cobra.Command{
 	Use:   "query",
 	Short: "",
 	Long:  ``,
-	Run: func(cmd *cobra.Command, _ []string) {
+	RunE: func(cmd *cobra.Command, _ []string) error {
 		// Load configuration from file and merge with CLI flags
 		cfg, err := config.LoadAndMergeConfig(cmd, configFilePath)
 		if err != nil {
@@ -38,17 +39,14 @@ var queryCmd = &cobra.Command{
 
 		// Check env var PPLX_API_KEY exists
 		if os.Getenv("PPLX_API_KEY") == "" {
-			fmt.Fprintf(os.Stderr, "Error: PPLX_API_KEY env var is not set\n")
-			os.Exit(1)
+			return clerrors.NewConfigError("PPLX_API_KEY environment variable is not set", nil)
 		}
 
 		client := perplexity.NewClient(os.Getenv("PPLX_API_KEY"))
 		client.SetHTTPTimeout(timeout)
 
 		if userPrompt == "" {
-			fmt.Println("Error: user prompt is required")
-			_ = cmd.Usage()
-			os.Exit(1)
+			return clerrors.NewValidationError("user-prompt", "", "user prompt is required")
 		}
 		msg := perplexity.NewMessages(perplexity.WithSystemMessage(systemPrompt))
 		_ = msg.AddUserMessage(userPrompt)
@@ -73,9 +71,8 @@ var queryCmd = &cobra.Command{
 			// Validate search recency
 			validRecency := map[string]bool{"day": true, "week": true, "month": true, "year": true, "hour": true}
 			if !validRecency[searchRecency] {
-				fmt.Printf("Error: Invalid search-recency value '%s'. Must be one of: day, week, month, year, hour\n",
-					searchRecency)
-				os.Exit(1)
+				return clerrors.NewValidationError("search-recency", searchRecency,
+					"must be one of: day, week, month, year, hour")
 			}
 			// Search recency filter is incompatible with images
 			if returnImages {
@@ -124,14 +121,14 @@ var queryCmd = &cobra.Command{
 
 		// Add response format options
 		if responseFormatJSONSchema != "" && responseFormatRegex != "" {
-			fmt.Println("Error: Cannot use both --response-format-json-schema and --response-format-regex")
-			os.Exit(1)
+			return clerrors.NewValidationError("response-format", "",
+				"cannot use both --response-format-json-schema and --response-format-regex")
 		}
 		if responseFormatJSONSchema != "" || responseFormatRegex != "" {
 			// Validate model supports response formats
 			if !strings.HasPrefix(model, "sonar") {
-				fmt.Printf("Error: Response formats (JSON schema and regex) are only supported by sonar models\n")
-				os.Exit(1)
+				return clerrors.NewValidationError("model", model,
+					"response formats (JSON schema and regex) are only supported by sonar models")
 			}
 		}
 		if responseFormatJSONSchema != "" {
@@ -139,8 +136,8 @@ var queryCmd = &cobra.Command{
 			var schema interface{}
 			err := json.Unmarshal([]byte(responseFormatJSONSchema), &schema)
 			if err != nil {
-				fmt.Printf("Error: Invalid JSON schema: %v\n", err)
-				os.Exit(1)
+				return clerrors.NewValidationError("response-format-json-schema", responseFormatJSONSchema,
+					fmt.Sprintf("invalid JSON schema: %v", err))
 			}
 			opts = append(opts, perplexity.WithJSONSchemaResponseFormat(schema))
 		}
@@ -153,8 +150,7 @@ var queryCmd = &cobra.Command{
 			// Validate search mode
 			validModes := map[string]bool{"web": true, "academic": true}
 			if !validModes[searchMode] {
-				fmt.Printf("Error: Invalid search mode '%s'. Must be one of: web, academic\n", searchMode)
-				os.Exit(1)
+				return clerrors.NewValidationError("search-mode", searchMode, "must be one of: web, academic")
 			}
 			opts = append(opts, perplexity.WithSearchMode(searchMode))
 		}
@@ -162,8 +158,8 @@ var queryCmd = &cobra.Command{
 			// Validate search context size
 			validSizes := map[string]bool{"low": true, "medium": true, "high": true}
 			if !validSizes[searchContextSize] {
-				fmt.Printf("Error: Invalid search context size '%s'. Must be one of: low, medium, high\n", searchContextSize)
-				os.Exit(1)
+				return clerrors.NewValidationError("search-context-size", searchContextSize,
+					"must be one of: low, medium, high")
 			}
 			opts = append(opts, perplexity.WithSearchContextSize(searchContextSize))
 		}
@@ -172,32 +168,32 @@ var queryCmd = &cobra.Command{
 		if searchAfterDate != "" {
 			date, err := time.Parse("01/02/2006", searchAfterDate)
 			if err != nil {
-				fmt.Printf("Error: Invalid search-after-date format '%s'. Use MM/DD/YYYY\n", searchAfterDate)
-				os.Exit(1)
+				return clerrors.NewValidationError("search-after-date", searchAfterDate,
+					"invalid date format, use MM/DD/YYYY")
 			}
 			opts = append(opts, perplexity.WithSearchAfterDateFilter(date))
 		}
 		if searchBeforeDate != "" {
 			date, err := time.Parse("01/02/2006", searchBeforeDate)
 			if err != nil {
-				fmt.Printf("Error: Invalid search-before-date format '%s'. Use MM/DD/YYYY\n", searchBeforeDate)
-				os.Exit(1)
+				return clerrors.NewValidationError("search-before-date", searchBeforeDate,
+					"invalid date format, use MM/DD/YYYY")
 			}
 			opts = append(opts, perplexity.WithSearchBeforeDateFilter(date))
 		}
 		if lastUpdatedAfter != "" {
 			date, err := time.Parse("01/02/2006", lastUpdatedAfter)
 			if err != nil {
-				fmt.Printf("Error: Invalid last-updated-after format '%s'. Use MM/DD/YYYY\n", lastUpdatedAfter)
-				os.Exit(1)
+				return clerrors.NewValidationError("last-updated-after", lastUpdatedAfter,
+					"invalid date format, use MM/DD/YYYY")
 			}
 			opts = append(opts, perplexity.WithLastUpdatedAfterFilter(date))
 		}
 		if lastUpdatedBefore != "" {
 			date, err := time.Parse("01/02/2006", lastUpdatedBefore)
 			if err != nil {
-				fmt.Printf("Error: Invalid last-updated-before format '%s'. Use MM/DD/YYYY\n", lastUpdatedBefore)
-				os.Exit(1)
+				return clerrors.NewValidationError("last-updated-before", lastUpdatedBefore,
+					"invalid date format, use MM/DD/YYYY")
 			}
 			opts = append(opts, perplexity.WithLastUpdatedBeforeFilter(date))
 		}
@@ -207,8 +203,8 @@ var queryCmd = &cobra.Command{
 			// Validate reasoning effort
 			validEfforts := map[string]bool{"low": true, "medium": true, "high": true}
 			if !validEfforts[reasoningEffort] {
-				fmt.Printf("Error: Invalid reasoning effort '%s'. Must be one of: low, medium, high\n", reasoningEffort)
-				os.Exit(1)
+				return clerrors.NewValidationError("reasoning-effort", reasoningEffort,
+					"must be one of: low, medium, high")
 			}
 			// Check if the model supports reasoning effort
 			if !strings.Contains(model, "deep-research") {
@@ -220,8 +216,7 @@ var queryCmd = &cobra.Command{
 		req := perplexity.NewCompletionRequest(opts...)
 		err = req.Validate()
 		if err != nil {
-			fmt.Printf("Error: %v\n", err)
-			os.Exit(1)
+			return clerrors.NewValidationError("request", "", err.Error())
 		}
 
 		if stream {
@@ -267,8 +262,7 @@ var queryCmd = &cobra.Command{
 			// Send the streaming request
 			err = client.SendSSEHTTPRequest(&wg, req, responseChannel)
 			if err != nil {
-				fmt.Printf("Error: %v\n", err)
-				os.Exit(1)
+				return clerrors.NewAPIError("failed to send streaming request", err)
 			}
 
 			// Wait for streaming to complete
@@ -281,8 +275,7 @@ var queryCmd = &cobra.Command{
 			}
 			res, err := client.SendCompletionRequest(req)
 			if err != nil {
-				fmt.Printf("Error: %v\n", err)
-				os.Exit(1)
+				return clerrors.NewAPIError("failed to send completion request", err)
 			}
 			if !outputJSON {
 				spinnerInfo.Success("Response received")
@@ -290,9 +283,9 @@ var queryCmd = &cobra.Command{
 
 			err = console.RenderResponse(res, os.Stdout, outputJSON)
 			if err != nil {
-				fmt.Printf("Error: %v\n", err)
-				os.Exit(1)
+				return clerrors.NewIOError("failed to render response", err)
 			}
 		}
+		return nil
 	},
 }
