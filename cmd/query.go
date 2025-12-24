@@ -133,7 +133,7 @@ var queryCmd = &cobra.Command{
 		}
 		if responseFormatJSONSchema != "" {
 			// Parse JSON schema
-			var schema interface{}
+			var schema any
 			err := json.Unmarshal([]byte(responseFormatJSONSchema), &schema)
 			if err != nil {
 				return clerrors.NewValidationError("response-format-json-schema", responseFormatJSONSchema,

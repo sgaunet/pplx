@@ -1,3 +1,4 @@
+// Package cmd provides command-line interface commands for the Perplexity API.
 package cmd
 
 import (
@@ -9,6 +10,16 @@ import (
 	"github.com/sgaunet/pplx/pkg/clerrors"
 	"github.com/sgaunet/pplx/pkg/completion"
 	"github.com/spf13/cobra"
+)
+
+const (
+	// Exit codes for different error types.
+	exitCodeSuccess         = 0
+	exitCodeGeneral         = 1
+	exitCodeValidation      = 2
+	exitCodeAPI             = 3
+	exitCodeConfiguration   = 4
+	exitCodeIO              = 5
 )
 
 var (
@@ -87,6 +98,7 @@ func printError(err error) {
 	var configErr *clerrors.ConfigError
 	var ioErr *clerrors.IOError
 
+	//nolint:gocritic // errors.As requires if-else chain, cannot use switch
 	if errors.As(err, &validationErr) {
 		fmt.Fprintf(os.Stderr, "❌ Validation Error: %v\n", validationErr)
 	} else if errors.As(err, &apiErr) {
@@ -107,16 +119,17 @@ func getExitCode(err error) int {
 	var configErr *clerrors.ConfigError
 	var ioErr *clerrors.IOError
 
+	//nolint:gocritic // errors.As requires if-else chain, cannot use switch
 	if errors.As(err, &validationErr) {
-		return 2
+		return exitCodeValidation
 	} else if errors.As(err, &apiErr) {
-		return 3
+		return exitCodeAPI
 	} else if errors.As(err, &configErr) {
-		return 4
+		return exitCodeConfiguration
 	} else if errors.As(err, &ioErr) {
-		return 5
+		return exitCodeIO
 	}
-	return 1
+	return exitCodeGeneral
 }
 
 func addChatFlags(cmd *cobra.Command) {
