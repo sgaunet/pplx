@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 
 	markdown "github.com/MichaelMure/go-term-markdown"
 	"github.com/sgaunet/perplexity-go/v2"
@@ -23,20 +24,23 @@ func Input(label string) (string, error) {
 	fmt.Printf("%s: (set an empty line to validate the entry)\n", label)
 
 	scanner := bufio.NewScanner(os.Stdin)
-	var lines string
+	var buf strings.Builder
 	for {
 		scanner.Scan()
 		line := scanner.Text()
 		if len(line) == 0 {
 			break
 		}
-		lines = lines + " " + line
+		if buf.Len() > 0 {
+			buf.WriteString(" ")
+		}
+		buf.WriteString(line)
 	}
 
 	if err := scanner.Err(); err != nil {
-		return lines, fmt.Errorf("error reading input: %w", err)
+		return buf.String(), fmt.Errorf("error reading input: %w", err)
 	}
-	return lines, nil
+	return buf.String(), nil
 }
 
 // RenderAsMarkdown renders the response content as markdown.
