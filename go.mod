@@ -4,7 +4,7 @@ go 1.24.0
 
 require (
 	github.com/MichaelMure/go-term-markdown v0.1.4
-	github.com/mark3labs/mcp-go v0.43.1
+	github.com/mark3labs/mcp-go v0.43.2
 	github.com/pterm/pterm v0.12.82
 	github.com/sgaunet/perplexity-go/v2 v2.14.0
 	github.com/spf13/cobra v1.10.2
