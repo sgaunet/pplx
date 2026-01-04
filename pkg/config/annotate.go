@@ -116,10 +116,7 @@ func generateSectionHeader(title string, style HeaderStyle, indent int) string {
 func generateBoxHeader(title string, indent string) string {
 	// Calculate width (title + padding)
 	titleLen := len(title)
-	width := titleLen + boxPadding
-	if width < minHeaderWidth {
-		width = minHeaderWidth
-	}
+	width := max(titleLen+boxPadding, minHeaderWidth)
 
 	// Create box components
 	topLine := indent + commentPrefix + "╭" + strings.Repeat("─", width-boxBorderWidth) + "╮"
@@ -131,10 +128,7 @@ func generateBoxHeader(title string, indent string) string {
 
 // generateLineHeader creates a line-style header with simple separators.
 func generateLineHeader(title string, indent string) string {
-	width := len(title) + boxPadding
-	if width < minHeaderWidth {
-		width = minHeaderWidth
-	}
+	width := max(len(title)+boxPadding, minHeaderWidth)
 
 	separator := indent + commentPrefix + strings.Repeat("═", width)
 	titleLine := indent + commentPrefix + " " + title
@@ -204,7 +198,7 @@ func wrapComment(text string, indent int) []string {
 // Returns a human-readable string representation without quotes for strings.
 //
 //nolint:cyclop // Type switch inherently has multiple cases
-func formatDefaultForComment(value interface{}) string {
+func formatDefaultForComment(value any) string {
 	if value == nil {
 		return "none"
 	}
@@ -259,7 +253,7 @@ func DefaultAnnotationOptions() AnnotationOptions {
 // It includes inline comments explaining all options, section headers, and
 // optionally example profiles.
 //
-//nolint:cyclop,funlen // Configuration generation requires multiple steps
+//nolint:cyclop // Configuration generation requires multiple steps
 func GenerateAnnotatedConfig(cfg *ConfigData, opts AnnotationOptions) (string, error) {
 	if cfg == nil {
 		cfg = NewConfigData()
@@ -308,8 +302,7 @@ func GenerateAnnotatedConfig(cfg *ConfigData, opts AnnotationOptions) (string, e
 				return "", fmt.Errorf("failed to marshal profile %s: %w", name, err)
 			}
 			// Indent profile YAML
-			lines := strings.Split(string(profileYAML), "\n")
-			for _, line := range lines {
+			for line := range strings.SplitSeq(string(profileYAML), "\n") {
 				if line != "" {
 					output.WriteString("    " + line + "\n")
 				}
@@ -388,7 +381,7 @@ func generateSection(
 // getConfigValue retrieves the value for a field from the config, or returns the default.
 //
 //nolint:gocognit,cyclop,gocyclo,funlen // Config field mapping requires many cases
-func getConfigValue(cfg *ConfigData, section, fieldName string, defaultValue interface{}) interface{} {
+func getConfigValue(cfg *ConfigData, section, fieldName string, defaultValue any) any {
 	switch section {
 	case SectionDefaults:
 		switch fieldName {
@@ -569,7 +562,7 @@ func generateExampleProfiles(output *strings.Builder, opts AnnotationOptions) er
 		// Marshal the template's defaults/search/output sections
 		sections := []struct {
 			name  string
-			value interface{}
+			value any
 		}{
 			{"defaults", template.Defaults},
 			{"search", template.Search},
@@ -577,14 +570,13 @@ func generateExampleProfiles(output *strings.Builder, opts AnnotationOptions) er
 		}
 
 		for _, section := range sections {
-			yamlData, err := yaml.Marshal(map[string]interface{}{section.name: section.value})
+			yamlData, err := yaml.Marshal(map[string]any{section.name: section.value})
 			if err != nil {
 				return fmt.Errorf("failed to marshal %s section: %w", section.name, err)
 			}
 
 			// Comment out and indent the YAML
-			lines := strings.Split(string(yamlData), "\n")
-			for _, line := range lines {
+			for line := range strings.SplitSeq(string(yamlData), "\n") {
 				if line != "" {
 					output.WriteString("#     " + line + "\n")
 				}

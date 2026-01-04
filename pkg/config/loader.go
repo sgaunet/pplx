@@ -246,7 +246,7 @@ func sortConfigFiles(files []ConfigFileInfo) {
 	}
 
 	// Simple bubble sort by precedence, then alphabetically
-	for i := 0; i < len(files); i++ {
+	for i := range files {
 		for j := i + 1; j < len(files); j++ {
 			pi := getPrecedence(files[i].Name)
 			pj := getPrecedence(files[j].Name)

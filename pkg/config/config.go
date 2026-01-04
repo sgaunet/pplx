@@ -12,10 +12,10 @@ const DefaultProfileName = "default"
 // Config interface defines methods for configuration management.
 type Config interface {
 	// Get retrieves a configuration value by key
-	Get(key string) interface{}
+	Get(key string) any
 
 	// Set sets a configuration value
-	Set(key string, value interface{}) error
+	Set(key string, value any) error
 
 	// Save persists the configuration to disk
 	Save() error
@@ -37,16 +37,16 @@ type Config interface {
 //nolint:revive // ConfigData name is part of public API; renaming would be a breaking change.
 type ConfigData struct {
 	// Defaults contains default values for CLI flags
-	Defaults DefaultsConfig `json:"defaults,omitempty" mapstructure:"defaults" yaml:"defaults,omitempty"`
+	Defaults DefaultsConfig `json:"defaults" mapstructure:"defaults" yaml:"defaults"`
 
 	// Search contains search-related preferences
-	Search SearchConfig `json:"search,omitempty" mapstructure:"search" yaml:"search,omitempty"`
+	Search SearchConfig `json:"search" mapstructure:"search" yaml:"search"`
 
 	// Output contains output-related preferences
-	Output OutputConfig `json:"output,omitempty" mapstructure:"output" yaml:"output,omitempty"`
+	Output OutputConfig `json:"output" mapstructure:"output" yaml:"output"`
 
 	// API contains API configuration
-	API APIConfig `json:"api,omitempty" mapstructure:"api" yaml:"api,omitempty"`
+	API APIConfig `json:"api" mapstructure:"api" yaml:"api"`
 
 	// Profiles contains named configuration profiles
 	Profiles map[string]*Profile `json:"profiles,omitempty" mapstructure:"profiles" yaml:"profiles,omitempty"`
@@ -116,9 +116,9 @@ type APIConfig struct {
 type Profile struct {
 	Name        string         `json:"name"                  mapstructure:"name"        yaml:"name"`
 	Description string         `json:"description,omitempty" mapstructure:"description" yaml:"description,omitempty"`
-	Defaults    DefaultsConfig `json:"defaults,omitempty"    mapstructure:"defaults"    yaml:"defaults,omitempty"`
-	Search      SearchConfig   `json:"search,omitempty"      mapstructure:"search"      yaml:"search,omitempty"`
-	Output      OutputConfig   `json:"output,omitempty"      mapstructure:"output"      yaml:"output,omitempty"`
+	Defaults    DefaultsConfig `json:"defaults"              mapstructure:"defaults"    yaml:"defaults"`
+	Search      SearchConfig   `json:"search"                mapstructure:"search"      yaml:"search"`
+	Output      OutputConfig   `json:"output"                mapstructure:"output"      yaml:"output"`
 }
 
 // ConfigFileInfo represents metadata about a configuration file.

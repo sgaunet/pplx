@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -35,7 +36,7 @@ type WizardState struct {
 	enableStream   bool
 	searchFilters  []string
 	apiKey         string
-	customSettings map[string]interface{}
+	customSettings map[string]any
 }
 
 // NewWizardState creates a new wizard state with default values.
@@ -43,7 +44,7 @@ func NewWizardState() *WizardState {
 	return &WizardState{
 		scanner:        bufio.NewScanner(os.Stdin),
 		config:         config.NewConfigData(),
-		customSettings: make(map[string]interface{}),
+		customSettings: make(map[string]any),
 	}
 }
 
@@ -446,10 +447,8 @@ func (w *WizardState) promptChoice(prompt string, validChoices []string) (string
 		}
 
 		choice := strings.TrimSpace(w.scanner.Text())
-		for _, valid := range validChoices {
-			if choice == valid {
-				return choice, nil
-			}
+		if slices.Contains(validChoices, choice) {
+			return choice, nil
 		}
 
 		fmt.Printf("Invalid choice. Please select from: %s\n", strings.Join(validChoices, ", "))
@@ -505,21 +504,11 @@ func (w *WizardState) formatBool(value bool) string {
 // isValidRecency checks if a recency value is valid.
 func isValidRecency(value string) bool {
 	validRecency := []string{"day", "week", "month", "year", "hour"}
-	for _, valid := range validRecency {
-		if value == valid {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(validRecency, value)
 }
 
 // isValidContextSize checks if a context size value is valid.
 func isValidContextSize(value string) bool {
 	validSizes := []string{"low", "medium", "high"}
-	for _, valid := range validSizes {
-		if value == valid {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(validSizes, value)
 }
