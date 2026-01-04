@@ -1,38 +1,34 @@
-# Default pplx configuration example
-# Place this file at ~/.config/pplx/config.yaml
+# Default Configuration
+# Simple starter configuration for pplx
+# For all available options, see full-example.yaml
 
-# Default values for CLI options
+# Default model settings
 defaults:
-  model: sonar                    # AI model to use
-  temperature: 0.2                # Response randomness (0.0-2.0)
-  max_tokens: 4000                # Maximum tokens in response
-  top_k: 0                        # Top K sampling
-  top_p: 1.0                      # Nucleus sampling threshold
-  frequency_penalty: 1.0          # Penalize frequent tokens
-  presence_penalty: 0.0           # Penalize already present tokens
-  timeout: 30s                    # HTTP timeout
+  model: sonar            # AI model (sonar, sonar-pro, sonar-deep-research)
+  temperature: 0.7        # Response creativity (0.0=focused, 1.0=creative)
+  max_tokens: 4096        # Maximum response length
 
 # Search preferences
 search:
-  # domains:                      # Domains to search (uncomment to use)
-  #   - nature.com
-  #   - science.org
-  recency: week                   # Filter by time: hour, day, week, month, year
-  mode: web                       # Search mode: web or academic
-  context_size: medium            # Context size: low, medium, high
+  mode: web               # Search mode: web or academic
+  context_size: medium    # Context: low, medium, or high
 
 # Output preferences
 output:
-  stream: false                   # Enable streaming responses
-  return_images: false            # Include images in response
-  return_related: false           # Include related questions
-  json: false                     # Output in JSON format
+  stream: false           # Stream responses in real-time
+  return_images: false    # Include images in response
+  return_related: false   # Show related questions
+  json: false             # Output as JSON
 
-# API configuration (optional)
+# API configuration
+# Recommended: Set PERPLEXITY_API_KEY environment variable instead
 api:
-  # key: ${PPLX_API_KEY}          # API key (use env var)
-  # base_url: https://api.perplexity.ai  # Custom API base URL
   timeout: 30s
 
-# Active profile (leave as default to use base configuration)
-active_profile: default
+# See full-example.yaml for complete configuration options including:
+# - Search domain filtering
+# - Date range filtering
+# - Location preferences
+# - Image filtering
+# - Response format controls
+# - And 20+ more options

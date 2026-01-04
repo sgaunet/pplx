@@ -1,46 +1,27 @@
-# Research-focused configuration example
-# Optimized for academic research and technical queries
+# Research Template
+# Optimized for academic and scholarly research with authoritative sources
 
 defaults:
-  model: llama-3.1-sonar-large-128k-online
-  temperature: 0.1                # Lower temperature for factual responses
-  max_tokens: 2000
+  model: sonar
+  temperature: 0.3  # Lower temperature for more factual, consistent responses
+  max_tokens: 4096
   top_p: 0.9
 
 search:
-  mode: academic                  # Use academic search mode
-  context_size: high              # Maximum context for research
-  recency: month                  # Recent research only
-  domains:                        # Academic sources
-    - arxiv.org
-    - nature.com
-    - science.org
-    - ieee.org
+  mode: academic  # Focus on academic sources
+  context_size: high  # Maximum context for comprehensive research
+  domains:
     - scholar.google.com
+    - arxiv.org
+    - pubmed.ncbi.nlm.nih.gov
+    - ieee.org
+    - sciencedirect.com
+    - springer.com
+    - jstor.org
+    - researchgate.net
 
 output:
-  return_related: true            # Get related research questions
-  return_images: false
   stream: false
-
-active_profile: default
-
-# Research profile
-profiles:
-  research:
-    name: research
-    description: Academic research with verified sources
-    defaults:
-      model: llama-3.1-sonar-large-128k-online
-      temperature: 0.1
-      max_tokens: 2000
-    search:
-      mode: academic
-      context_size: high
-      recency: month
-      domains:
-        - arxiv.org
-        - nature.com
-        - science.org
-    output:
-      return_related: true
+  return_images: false
+  return_related: true  # Show related research topics
+  json: false
