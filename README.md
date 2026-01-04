@@ -10,6 +10,12 @@
 
 It's an unofficial CLI program to query/chat with the [perplexity API](https://www.perplexity.ai/).
 
+## Requirements
+
+- **Go 1.24.0 or later** is required to build from source
+
+If you're installing pre-built binaries, no Go installation is needed.
+
 ## Installation
 
 ## Option 1
