@@ -872,3 +872,144 @@ func TestAnnotatedConfigGeneration(t *testing.T) {
 		t.Errorf("Annotated config is not valid YAML: %v", err)
 	}
 }
+
+// TestVerifyConfigPermissions tests the permission verification function.
+func TestVerifyConfigPermissions(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name        string
+		permissions os.FileMode
+		expectWarn  bool
+		expectError bool
+	}{
+		{
+			name:        "secure permissions 0600",
+			permissions: 0600,
+			expectWarn:  false,
+			expectError: false,
+		},
+		{
+			name:        "secure permissions 0400",
+			permissions: 0400,
+			expectWarn:  false,
+			expectError: false,
+		},
+		{
+			name:        "insecure permissions 0644 (group/other read)",
+			permissions: 0644,
+			expectWarn:  true,
+			expectError: false,
+		},
+		{
+			name:        "insecure permissions 0666 (world writable)",
+			permissions: 0666,
+			expectWarn:  true,
+			expectError: false,
+		},
+		{
+			name:        "insecure permissions 0755 (world readable/executable)",
+			permissions: 0755,
+			expectWarn:  true,
+			expectError: false,
+		},
+		{
+			name:        "insecure permissions 0664 (group writable)",
+			permissions: 0664,
+			expectWarn:  true,
+			expectError: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			tempDir := setupTempConfigDir(t)
+			testFile := filepath.Join(tempDir, "test_config.yaml")
+
+			// Create test file with initial permissions
+			content := []byte("test: config\n")
+			if err := os.WriteFile(testFile, content, 0600); err != nil {
+				t.Fatalf("Failed to create test file: %v", err)
+			}
+
+			// Explicitly set desired permissions using chmod (bypasses umask)
+			if err := os.Chmod(testFile, tt.permissions); err != nil {
+				t.Fatalf("Failed to set permissions: %v", err)
+			}
+
+			// Verify permissions were set correctly
+			info, err := os.Stat(testFile)
+			if err != nil {
+				t.Fatalf("Failed to stat test file: %v", err)
+			}
+
+			actualPerms := info.Mode().Perm()
+			if actualPerms != tt.permissions {
+				t.Fatalf("Permissions not set correctly: got %#o, want %#o", actualPerms, tt.permissions)
+			}
+
+			// Call verifyConfigPermissions
+			err = verifyConfigPermissions(testFile)
+
+			// Check for errors
+			if (err != nil) != tt.expectError {
+				t.Errorf("verifyConfigPermissions() error = %v, expectError %v", err, tt.expectError)
+			}
+
+			// Note: Testing for warnings to stderr is complex and would require
+			// capturing stderr output. The important part is that the function
+			// doesn't return an error for insecure permissions, only warns.
+			if tt.expectWarn && err != nil {
+				t.Error("Function should warn but not error for insecure permissions")
+			}
+		})
+	}
+}
+
+// TestVerifyConfigPermissionsNonexistent tests permission check on missing file.
+func TestVerifyConfigPermissionsNonexistent(t *testing.T) {
+	t.Parallel()
+
+	err := verifyConfigPermissions("/nonexistent/file/path.yaml")
+	if err == nil {
+		t.Error("verifyConfigPermissions() should return error for nonexistent file")
+	}
+
+	if !strings.Contains(err.Error(), "failed to check file permissions") {
+		t.Errorf("Error message should mention permission check failure, got: %v", err)
+	}
+}
+
+// TestConfigInitVerifiesPermissions tests that config init verifies permissions.
+func TestConfigInitVerifiesPermissions(t *testing.T) {
+	// Note: Cannot run in parallel due to shared global state
+
+	tempDir := setupTempConfigDir(t)
+	configPath := filepath.Join(tempDir, "config.yaml")
+	configFilePath = configPath
+
+	// Reset flags
+	initTemplate = ""
+	initForce = false
+	initWithExamples = false
+	initInteractive = false
+
+	err := runConfigInit(nil, nil)
+	if err != nil {
+		t.Fatalf("runConfigInit() error = %v", err)
+	}
+
+	// Verify file was created
+	info, err := os.Stat(configPath)
+	if err != nil {
+		t.Fatalf("Config file was not created: %v", err)
+	}
+
+	// Verify file has correct permissions
+	mode := info.Mode().Perm()
+	if mode != configFilePermission {
+		t.Errorf("Config file has wrong permissions: got %#o, want %#o", mode, configFilePermission)
+	}
+}

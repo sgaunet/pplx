@@ -59,6 +59,12 @@ func saveConfigData(data *config.ConfigData) error {
 		return fmt.Errorf("failed to save config: %w", err)
 	}
 
+	// Verify permissions after writing
+	if err := verifyConfigPermissions(configPath); err != nil {
+		// Don't fail the save operation, just log the warning
+		fmt.Fprintf(os.Stderr, "Warning: %v\n", err)
+	}
+
 	return nil
 }
 
@@ -201,6 +207,13 @@ func runConfigInit(_ *cobra.Command, _ []string) error {
 	}
 
 	fmt.Printf("Configuration file created at %s\n", configPath)
+
+	// Verify permissions after creation
+	if err := verifyConfigPermissions(configPath); err != nil {
+		// Don't fail the init operation, just log the warning
+		fmt.Fprintf(os.Stderr, "Warning: %v\n", err)
+	}
+
 	return nil
 }
 
@@ -223,6 +236,25 @@ func checkEnvironment() {
 	}
 
 	fmt.Println()
+}
+
+// verifyConfigPermissions checks file permissions and warns if they are too permissive.
+// It returns an error only if the file cannot be accessed.
+func verifyConfigPermissions(path string) error {
+	info, err := os.Stat(path)
+	if err != nil {
+		return fmt.Errorf("failed to check file permissions: %w", err)
+	}
+
+	mode := info.Mode().Perm()
+	// Check if group or other have any permissions (0077 = group/other rwx bits)
+	if mode&0077 != 0 {
+		fmt.Fprintf(os.Stderr, "⚠️  Warning: Config file %s has insecure permissions %#o\n", path, mode)
+		fmt.Fprintf(os.Stderr, "    This file may contain API keys. Recommended permissions: 0600\n")
+		fmt.Fprintf(os.Stderr, "    Run: chmod 600 %s\n", path)
+	}
+
+	return nil
 }
 
 // configShowCmd displays the current configuration.
