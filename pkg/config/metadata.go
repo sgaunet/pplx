@@ -1,4 +1,3 @@
-// Package config provides configuration metadata and formatting capabilities.
 package config
 
 import (
@@ -49,7 +48,7 @@ type OptionMetadata struct {
 	Description string `json:"description" yaml:"description"`
 
 	// Default is the default value for this option (may be nil)
-	Default interface{} `json:"default,omitempty" yaml:"default,omitempty"`
+	Default any `json:"default,omitempty" yaml:"default,omitempty"`
 
 	// ValidationRules contains human-readable validation constraints
 	ValidationRules []string `json:"validation_rules,omitempty" yaml:"validation_rules,omitempty"`
@@ -641,7 +640,7 @@ func FormatOptions(options []*OptionMetadata, format string) (string, error) {
 }
 
 // formatDefault formats a default value for display.
-func formatDefault(val interface{}) string {
+func formatDefault(val any) string {
 	if val == nil {
 		return "(none)"
 	}

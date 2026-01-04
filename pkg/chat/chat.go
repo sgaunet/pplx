@@ -217,7 +217,7 @@ func (c *Chat) addFormatOptions(opts *[]perplexity.CompletionRequestOption) erro
 		}
 	}
 	if c.options.ResponseFormatJSONSchema != "" {
-		var schema interface{}
+		var schema any
 		err := json.Unmarshal([]byte(c.options.ResponseFormatJSONSchema), &schema)
 		if err != nil {
 			return fmt.Errorf("invalid JSON schema: %w", err)
