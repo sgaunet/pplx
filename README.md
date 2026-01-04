@@ -402,9 +402,12 @@ pplx config init --template creative
 
 # For current news and events
 pplx config init --template news
+
+# View all available options with detailed documentation
+pplx config init --template full-example
 ```
 
-Each template comes with pre-tuned settings for temperature, search modes, domain filtering, and more.
+Each template comes with pre-tuned settings for temperature, search modes, domain filtering, and more. You can also browse all templates in the [`examples/config/`](examples/config/) directory.
 
 #### Manual Configuration
 

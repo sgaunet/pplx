@@ -1,46 +1,29 @@
-# News and current events configuration example
-# Optimized for up-to-date information and news
+# News Template
+# Optimized for current events and recent news coverage
 
 defaults:
   model: sonar
-  temperature: 0.2
-  max_tokens: 1500
+  temperature: 0.5  # Balanced temperature for news analysis
+  max_tokens: 4096
 
 search:
   mode: web
-  recency: day                    # Only today's news
-  context_size: high
-  domains:                        # News sources
+  recency: week  # Focus on recent news from past week
+  context_size: medium
+  domains:
     - reuters.com
-    - bbc.com
     - apnews.com
-    - bloomberg.com
+    - bbc.com
+    - nytimes.com
+    - washingtonpost.com
     - theguardian.com
+    - wsj.com
+    - bloomberg.com
+    - cnn.com
+    - npr.org
 
 output:
-  return_related: true            # Related news topics
-  return_images: true             # News images
   stream: false
-
-active_profile: news
-
-# News profile
-profiles:
-  news:
-    name: news
-    description: Current news and events
-    defaults:
-      model: sonar
-      temperature: 0.2
-      max_tokens: 1500
-    search:
-      mode: web
-      recency: day
-      context_size: high
-      domains:
-        - reuters.com
-        - bbc.com
-        - apnews.com
-    output:
-      return_related: true
-      return_images: true
+  return_images: true  # Include news images
+  return_related: true  # Show related news topics
+  json: false
