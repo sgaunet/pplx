@@ -36,7 +36,9 @@ func (h *QueryHandler) Handle(
 
 	// Build messages
 	msg := perplexity.NewMessages(perplexity.WithSystemMessage(params.SystemPrompt))
-	_ = msg.AddUserMessage(params.UserPrompt)
+	if err := msg.AddUserMessage(params.UserPrompt); err != nil {
+		return nil, fmt.Errorf("failed to add user message: %w", err)
+	}
 
 	// Build request options
 	opts, err := h.buildRequestOptions(params, msg)

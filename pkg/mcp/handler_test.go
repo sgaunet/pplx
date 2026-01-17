@@ -176,7 +176,9 @@ func TestQueryHandler_BuildRequestOptions(t *testing.T) {
 		}
 
 		msg := perplexity.NewMessages(perplexity.WithSystemMessage(params.SystemPrompt))
-		_ = msg.AddUserMessage(params.UserPrompt)
+		if err := msg.AddUserMessage(params.UserPrompt); err != nil {
+			t.Fatalf("Failed to add user message: %v", err)
+		}
 
 		opts, err := handler.buildRequestOptions(params, msg)
 		if err != nil {
@@ -196,7 +198,9 @@ func TestQueryHandler_BuildRequestOptions(t *testing.T) {
 		}
 
 		msg := perplexity.NewMessages()
-		_ = msg.AddUserMessage(params.UserPrompt)
+		if err := msg.AddUserMessage(params.UserPrompt); err != nil {
+			t.Fatalf("Failed to add user message: %v", err)
+		}
 
 		opts, err := handler.buildRequestOptions(params, msg)
 		if err != nil {
@@ -218,7 +222,9 @@ func TestQueryHandler_BuildRequestOptions(t *testing.T) {
 		}
 
 		msg := perplexity.NewMessages()
-		_ = msg.AddUserMessage(params.UserPrompt)
+		if err := msg.AddUserMessage(params.UserPrompt); err != nil {
+			t.Fatalf("Failed to add user message: %v", err)
+		}
 
 		opts, err := handler.buildRequestOptions(params, msg)
 		if err != nil {
@@ -240,7 +246,9 @@ func TestQueryHandler_BuildRequestOptions(t *testing.T) {
 		}
 
 		msg := perplexity.NewMessages()
-		_ = msg.AddUserMessage(params.UserPrompt)
+		if err := msg.AddUserMessage(params.UserPrompt); err != nil {
+			t.Fatalf("Failed to add user message: %v", err)
+		}
 
 		opts, err := handler.buildRequestOptions(params, msg)
 		if err != nil {
@@ -283,7 +291,9 @@ func TestQueryHandler_BuildRequestOptions(t *testing.T) {
 				}
 
 				msg := perplexity.NewMessages()
-				_ = msg.AddUserMessage(params.UserPrompt)
+				if err := msg.AddUserMessage(params.UserPrompt); err != nil {
+			t.Fatalf("Failed to add user message: %v", err)
+		}
 
 				_, err := handler.buildRequestOptions(params, msg)
 				if err == nil {
@@ -309,7 +319,9 @@ func TestQueryHandler_BuildRequestOptions(t *testing.T) {
 		}
 
 		msg := perplexity.NewMessages()
-		_ = msg.AddUserMessage(params.UserPrompt)
+		if err := msg.AddUserMessage(params.UserPrompt); err != nil {
+			t.Fatalf("Failed to add user message: %v", err)
+		}
 
 		opts, err := handler.buildRequestOptions(params, msg)
 		if err != nil {
@@ -330,7 +342,9 @@ func TestQueryHandler_BuildRequestOptions(t *testing.T) {
 		}
 
 		msg := perplexity.NewMessages()
-		_ = msg.AddUserMessage(params.UserPrompt)
+		if err := msg.AddUserMessage(params.UserPrompt); err != nil {
+			t.Fatalf("Failed to add user message: %v", err)
+		}
 
 		_, err := handler.buildRequestOptions(params, msg)
 		if err == nil {
@@ -351,7 +365,9 @@ func TestQueryHandler_BuildRequestOptions(t *testing.T) {
 		}
 
 		msg := perplexity.NewMessages()
-		_ = msg.AddUserMessage(params.UserPrompt)
+		if err := msg.AddUserMessage(params.UserPrompt); err != nil {
+			t.Fatalf("Failed to add user message: %v", err)
+		}
 
 		opts, err := handler.buildRequestOptions(params, msg)
 		if err != nil {
@@ -371,7 +387,9 @@ func TestQueryHandler_BuildRequestOptions(t *testing.T) {
 		}
 
 		msg := perplexity.NewMessages()
-		_ = msg.AddUserMessage(params.UserPrompt)
+		if err := msg.AddUserMessage(params.UserPrompt); err != nil {
+			t.Fatalf("Failed to add user message: %v", err)
+		}
 
 		opts, err := handler.buildRequestOptions(params, msg)
 		if err != nil {
@@ -403,7 +421,9 @@ func TestQueryHandler_BuildRequestOptions(t *testing.T) {
 		}
 
 		msg := perplexity.NewMessages(perplexity.WithSystemMessage(params.SystemPrompt))
-		_ = msg.AddUserMessage(params.UserPrompt)
+		if err := msg.AddUserMessage(params.UserPrompt); err != nil {
+			t.Fatalf("Failed to add user message: %v", err)
+		}
 
 		opts, err := handler.buildRequestOptions(params, msg)
 		if err != nil {
@@ -424,7 +444,9 @@ func TestQueryHandler_BuildRequestOptions(t *testing.T) {
 		}
 
 		msg := perplexity.NewMessages()
-		_ = msg.AddUserMessage(params.UserPrompt)
+		if err := msg.AddUserMessage(params.UserPrompt); err != nil {
+			t.Fatalf("Failed to add user message: %v", err)
+		}
 
 		_, err := handler.buildRequestOptions(params, msg)
 		if err == nil {

@@ -771,20 +771,26 @@ func init() {
 // registerConfigFlagCompletions registers completion functions for config command flags.
 func registerConfigFlagCompletions() {
 	// Template name completion for config init --template
-	_ = configInitCmd.RegisterFlagCompletionFunc("template",
+	if err := configInitCmd.RegisterFlagCompletionFunc("template",
 		func(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
 			return completion.TemplateNames(), cobra.ShellCompDirectiveNoFileComp
-		})
+		}); err != nil {
+		fmt.Fprintf(os.Stderr, "Warning: failed to register completion for 'template' flag: %v\n", err)
+	}
 
 	// Section name completion for config options --section
-	_ = configOptionsCmd.RegisterFlagCompletionFunc("section",
+	if err := configOptionsCmd.RegisterFlagCompletionFunc("section",
 		func(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
 			return completion.ConfigSections(), cobra.ShellCompDirectiveNoFileComp
-		})
+		}); err != nil {
+		fmt.Fprintf(os.Stderr, "Warning: failed to register completion for 'section' flag: %v\n", err)
+	}
 
 	// Format completion for config options --format
-	_ = configOptionsCmd.RegisterFlagCompletionFunc("format",
+	if err := configOptionsCmd.RegisterFlagCompletionFunc("format",
 		func(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
 			return completion.OutputFormats(), cobra.ShellCompDirectiveNoFileComp
-		})
+		}); err != nil {
+		fmt.Fprintf(os.Stderr, "Warning: failed to register completion for 'format' flag: %v\n", err)
+	}
 }

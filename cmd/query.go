@@ -49,7 +49,9 @@ var queryCmd = &cobra.Command{
 			return clerrors.NewValidationError("user-prompt", "", "user prompt is required")
 		}
 		msg := perplexity.NewMessages(perplexity.WithSystemMessage(systemPrompt))
-		_ = msg.AddUserMessage(userPrompt)
+		if err := msg.AddUserMessage(userPrompt); err != nil {
+			return fmt.Errorf("failed to add user message: %w", err)
+		}
 
 		// Build options list
 		opts := []perplexity.CompletionRequestOption{
