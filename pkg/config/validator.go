@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"net/url"
 	"regexp"
 	"strings"
 )
@@ -191,8 +192,17 @@ func (v *Validator) validateOutput(output *OutputConfig) {
 func (v *Validator) validateAPI(api *APIConfig) {
 	// Validate base URL format if provided
 	if api.BaseURL != "" {
-		if !strings.HasPrefix(api.BaseURL, "http://") && !strings.HasPrefix(api.BaseURL, "https://") {
-			v.addError("api.base_url", "must start with http:// or https://")
+		u, err := url.Parse(api.BaseURL)
+		if err != nil {
+			v.addError("api.base_url", fmt.Sprintf("invalid URL format: %v", err))
+			return
+		}
+		if u.Scheme != "http" && u.Scheme != "https" {
+			v.addError("api.base_url", "must use http or https scheme")
+			return
+		}
+		if u.Host == "" {
+			v.addError("api.base_url", "must specify a host")
 		}
 	}
 }

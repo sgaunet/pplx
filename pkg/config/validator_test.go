@@ -163,6 +163,94 @@ func TestValidatorInvalidAPIURL(t *testing.T) {
 	}
 }
 
+func TestValidatorAPIURLWithoutHost(t *testing.T) {
+	cfg := &ConfigData{
+		API: APIConfig{
+			BaseURL: "http://", // Missing host
+		},
+	}
+
+	validator := NewValidator()
+	err := validator.Validate(cfg)
+	if err == nil {
+		t.Error("Expected validation error for URL without host")
+	}
+}
+
+func TestValidatorAPIURLWithInvalidScheme(t *testing.T) {
+	cfg := &ConfigData{
+		API: APIConfig{
+			BaseURL: "ftp://example.com", // Invalid scheme
+		},
+	}
+
+	validator := NewValidator()
+	err := validator.Validate(cfg)
+	if err == nil {
+		t.Error("Expected validation error for URL with invalid scheme")
+	}
+}
+
+func TestValidatorAPIURLMalformed(t *testing.T) {
+	testCases := []struct {
+		name    string
+		baseURL string
+	}{
+		{"invalid characters", "http://exa mple.com"},
+		{"missing scheme separator", "httpexample.com"},
+		{"incomplete URL", "http:/"},
+		{"just scheme", "https://"},
+		{"invalid format", "not a url at all"},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			cfg := &ConfigData{
+				API: APIConfig{
+					BaseURL: tc.baseURL,
+				},
+			}
+
+			validator := NewValidator()
+			err := validator.Validate(cfg)
+			if err == nil {
+				t.Errorf("Expected validation error for malformed URL: %s", tc.baseURL)
+			}
+		})
+	}
+}
+
+func TestValidatorAPIURLValid(t *testing.T) {
+	testCases := []struct {
+		name    string
+		baseURL string
+	}{
+		{"http URL", "http://example.com"},
+		{"https URL", "https://example.com"},
+		{"with port", "https://example.com:8080"},
+		{"with path", "https://example.com/api"},
+		{"with query", "https://example.com/api?key=value"},
+		{"localhost", "http://localhost:3000"},
+		{"IP address", "http://192.168.1.1"},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			cfg := &ConfigData{
+				API: APIConfig{
+					BaseURL: tc.baseURL,
+				},
+			}
+
+			validator := NewValidator()
+			err := validator.Validate(cfg)
+			if err != nil {
+				t.Errorf("Valid URL should pass validation: %s, error: %v", tc.baseURL, err)
+			}
+		})
+	}
+}
+
 func TestValidatorNonExistentActiveProfile(t *testing.T) {
 	cfg := &ConfigData{
 		ActiveProfile: "nonexistent",
