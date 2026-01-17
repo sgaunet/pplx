@@ -175,9 +175,9 @@ func (c *Chat) addSearchOptions(opts *[]perplexity.CompletionRequestOption) erro
 		*opts = append(*opts, perplexity.WithSearchDomainFilter(c.options.SearchDomains))
 	}
 	if c.options.SearchRecency != "" {
-		validRecency := map[string]bool{"day": true, "week": true, "month": true, "year": true}
+		validRecency := map[string]bool{"day": true, "week": true, "month": true, "year": true, "hour": true}
 		if !validRecency[c.options.SearchRecency] {
-			return fmt.Errorf("%w: '%s'. Must be one of: day, week, month, year",
+			return fmt.Errorf("%w: '%s'. Must be one of: day, week, month, year, hour",
 				ErrInvalidSearchRecency, c.options.SearchRecency)
 		}
 		*opts = append(*opts, perplexity.WithSearchRecencyFilter(c.options.SearchRecency))
