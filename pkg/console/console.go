@@ -210,12 +210,9 @@ func buildJSONResponse(pplxResponse *perplexity.CompletionResponse) map[string]a
 		"usage":   pplxResponse.Usage,
 	}
 
-	// Add search results if available (preferred over deprecated Citations)
+	// Add search results if available
 	if pplxResponse.SearchResults != nil && len(*pplxResponse.SearchResults) > 0 {
 		result["search_results"] = *pplxResponse.SearchResults
-	} else if pplxResponse.Citations != nil && len(*pplxResponse.Citations) > 0 { //nolint:staticcheck // fallback
-		// Fallback to citations for backwards compatibility
-		result["citations"] = *pplxResponse.Citations //nolint:staticcheck // fallback for compatibility
 	}
 
 	// Add images if available

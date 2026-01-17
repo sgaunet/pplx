@@ -46,12 +46,9 @@ func (f *ResponseFormatter) buildResponse(response *perplexity.CompletionRespons
 		"usage":   response.Usage,
 	}
 
-	// Add search results if available (preferred over deprecated Citations)
+	// Add search results if available
 	if response.SearchResults != nil && len(*response.SearchResults) > 0 {
 		result["search_results"] = *response.SearchResults
-	} else if response.Citations != nil && len(*response.Citations) > 0 { //nolint:staticcheck // fallback
-		// Fallback to citations for backwards compatibility
-		result["citations"] = *response.Citations //nolint:staticcheck // fallback for compatibility
 	}
 
 	// Add images if available

@@ -55,36 +55,14 @@ func TestResponseFormatter_Format(t *testing.T) {
 		}
 	})
 
-	t.Run("uses citations fallback when search_results empty", func(t *testing.T) {
-		citations := []string{"citation1", "citation2"}
-		response := &perplexity.CompletionResponse{
-			Choices: []perplexity.Choice{
-				{Message: perplexity.Message{Content: "response"}},
-			},
-			Model:     "sonar",
-			Citations: &citations,
-		}
-
-		result, err := formatter.Format(response)
-		if err != nil {
-			t.Fatalf("Unexpected error: %v", err)
-		}
-
-		if result.IsError {
-			t.Error("Expected success result, got error")
-		}
-	})
-
-	t.Run("prefers search_results over citations", func(t *testing.T) {
+	t.Run("handles response with search_results", func(t *testing.T) {
 		searchResults := []perplexity.SearchResult{{}}
-		citations := []string{"citation1"}
 		response := &perplexity.CompletionResponse{
 			Choices: []perplexity.Choice{
 				{Message: perplexity.Message{Content: "response"}},
 			},
 			Model:         "sonar",
 			SearchResults: &searchResults,
-			Citations:     &citations,
 		}
 
 		result, err := formatter.Format(response)
