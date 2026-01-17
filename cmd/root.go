@@ -198,47 +198,63 @@ func addOutputFlags(cmd *cobra.Command) {
 
 func registerFlagCompletions(cmd *cobra.Command) {
 	// Model completion
-	_ = cmd.RegisterFlagCompletionFunc("model",
+	if err := cmd.RegisterFlagCompletionFunc("model",
 		func(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
 			return completion.GetModels(), cobra.ShellCompDirectiveNoFileComp
-		})
+		}); err != nil {
+		fmt.Fprintf(os.Stderr, "Warning: failed to register completion for 'model' flag: %v\n", err)
+	}
 
 	// Search mode completion
-	_ = cmd.RegisterFlagCompletionFunc("search-mode",
+	if err := cmd.RegisterFlagCompletionFunc("search-mode",
 		func(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
 			return completion.SearchModes(), cobra.ShellCompDirectiveNoFileComp
-		})
+		}); err != nil {
+		fmt.Fprintf(os.Stderr, "Warning: failed to register completion for 'search-mode' flag: %v\n", err)
+	}
 
 	// Search recency completion
-	_ = cmd.RegisterFlagCompletionFunc("search-recency",
+	if err := cmd.RegisterFlagCompletionFunc("search-recency",
 		func(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
 			return completion.RecencyValues(), cobra.ShellCompDirectiveNoFileComp
-		})
+		}); err != nil {
+		fmt.Fprintf(os.Stderr, "Warning: failed to register completion for 'search-recency' flag: %v\n", err)
+	}
 
 	// Search context size completion
-	_ = cmd.RegisterFlagCompletionFunc("search-context-size",
+	if err := cmd.RegisterFlagCompletionFunc("search-context-size",
 		func(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
 			return completion.ContextSizes(), cobra.ShellCompDirectiveNoFileComp
-		})
+		}); err != nil {
+		fmt.Fprintf(os.Stderr, "Warning: failed to register completion for 'search-context-size' flag: %v\n", err)
+	}
 
 	// Reasoning effort completion
-	_ = cmd.RegisterFlagCompletionFunc("reasoning-effort",
+	if err := cmd.RegisterFlagCompletionFunc("reasoning-effort",
 		func(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
 			return completion.ReasoningEfforts(), cobra.ShellCompDirectiveNoFileComp
-		})
+		}); err != nil {
+		fmt.Fprintf(os.Stderr, "Warning: failed to register completion for 'reasoning-effort' flag: %v\n", err)
+	}
 
 	// Image formats completion
-	_ = cmd.RegisterFlagCompletionFunc("image-formats",
+	if err := cmd.RegisterFlagCompletionFunc("image-formats",
 		func(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
 			return completion.ImageFormats(), cobra.ShellCompDirectiveNoFileComp
-		})
+		}); err != nil {
+		fmt.Fprintf(os.Stderr, "Warning: failed to register completion for 'image-formats' flag: %v\n", err)
+	}
 
 	// Domain suggestions (for both search-domains and image-domains)
 	domainCompletion := func(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
 		return completion.CommonDomains(), cobra.ShellCompDirectiveNoFileComp
 	}
-	_ = cmd.RegisterFlagCompletionFunc("search-domains", domainCompletion)
-	_ = cmd.RegisterFlagCompletionFunc("image-domains", domainCompletion)
+	if err := cmd.RegisterFlagCompletionFunc("search-domains", domainCompletion); err != nil {
+		fmt.Fprintf(os.Stderr, "Warning: failed to register completion for 'search-domains' flag: %v\n", err)
+	}
+	if err := cmd.RegisterFlagCompletionFunc("image-domains", domainCompletion); err != nil {
+		fmt.Fprintf(os.Stderr, "Warning: failed to register completion for 'image-domains' flag: %v\n", err)
+	}
 }
 
 func init() {
