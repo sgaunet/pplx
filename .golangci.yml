@@ -19,3 +19,4 @@ linters:
     - exhaustruct
     - tagliatelle
     - noinlineerr
+    - lll
