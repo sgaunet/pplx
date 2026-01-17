@@ -155,7 +155,7 @@ func addSearchFlags(cmd *cobra.Command) {
 }
 
 func addResponseFlags(cmd *cobra.Command) {
-	cmd.PersistentFlags().BoolVarP(&returnImages, "return-images", "i", returnImages, "Include images in response")
+	cmd.PersistentFlags().BoolVarP(&returnImages, "return-images", "i", returnImages, "Include images in response (note: automatically disables --search-recency)")
 	cmd.PersistentFlags().BoolVarP(&returnRelated, "return-related", "q", returnRelated, "Include related questions")
 	cmd.PersistentFlags().BoolVarP(&stream, "stream", "S", stream, "Enable streaming responses")
 }

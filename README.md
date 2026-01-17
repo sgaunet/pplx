@@ -355,7 +355,7 @@ pplx query -p "Write a short story about AI" \
 | `--location-lat` | | float64 | User location latitude |
 | `--location-lon` | | float64 | User location longitude |
 | `--location-country` | | string | User location country code |
-| `--return-images` | `-i` | bool | Include images in response |
+| `--return-images` | `-i` | bool | Include images in response (automatically disables --search-recency) |
 | `--return-related` | `-q` | bool | Include related questions |
 | `--stream` | `-S` | bool | Enable streaming responses |
 | `--image-domains` | | []string | Filter images by domains |

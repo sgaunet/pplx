@@ -76,7 +76,7 @@ var queryCmd = &cobra.Command{
 			}
 			// Search recency filter is incompatible with images
 			if returnImages {
-				fmt.Printf("Warning: search-recency filter is incompatible with images, ignoring search-recency\n")
+				fmt.Printf("Note: When using --return-images, search-recency is automatically disabled\nProceeding with image search...\n")
 			} else {
 				opts = append(opts, perplexity.WithSearchRecencyFilter(searchRecency))
 			}
