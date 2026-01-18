@@ -2,7 +2,11 @@
 // for exposing Perplexity API through a standard protocol.
 package mcp
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/sgaunet/pplx/pkg/security"
+)
 
 // ParameterError represents an error that occurred during parameter extraction.
 type ParameterError struct {
@@ -24,7 +28,12 @@ func (e *ParameterError) Error() string {
 	if e.Value == nil {
 		return fmt.Sprintf("parameter error for %s: %s", e.Parameter, e.Reason)
 	}
-	return fmt.Sprintf("parameter error for %s=%v: %s", e.Parameter, e.Value, e.Reason)
+
+	// Sanitize value before including in error
+	strValue := fmt.Sprintf("%v", e.Value)
+	safeValue := security.SanitizeString(strValue)
+
+	return fmt.Sprintf("parameter error for %s=%s: %s", e.Parameter, safeValue, e.Reason)
 }
 
 // StreamError represents an error that occurred during streaming execution.
@@ -70,8 +79,11 @@ func NewValidationError(field, value, message string) *ValidationError {
 }
 
 func (e *ValidationError) Error() string {
-	if e.Value == "" {
+	// Sanitize value in error output
+	safeValue := security.SanitizeString(e.Value)
+
+	if safeValue == "" {
 		return fmt.Sprintf("validation failed for %s: %s", e.Field, e.Message)
 	}
-	return fmt.Sprintf("validation failed for %s=%s: %s", e.Field, e.Value, e.Message)
+	return fmt.Sprintf("validation failed for %s=%s: %s", e.Field, safeValue, e.Message)
 }

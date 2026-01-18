@@ -1,7 +1,11 @@
 // Package clerrors provides custom error types for the Perplexity CLI.
 package clerrors
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/sgaunet/pplx/pkg/security"
+)
 
 // ValidationError represents a validation error for command inputs.
 type ValidationError struct {
@@ -19,11 +23,27 @@ func NewValidationError(field, value, message string) *ValidationError {
 	}
 }
 
+// NewValidationErrorSafe creates a validation error with automatic value sanitization.
+// This function masks potential API keys and other sensitive data in the value field.
+// Use this constructor when the value might contain sensitive information.
+func NewValidationErrorSafe(field, value, message string) *ValidationError {
+	sanitizedValue := security.SanitizeString(value)
+
+	return &ValidationError{
+		Field:   field,
+		Value:   sanitizedValue,
+		Message: message,
+	}
+}
+
 func (e *ValidationError) Error() string {
-	if e.Value == "" {
+	// Sanitize value in error output as defense-in-depth
+	safeValue := security.SanitizeString(e.Value)
+
+	if safeValue == "" {
 		return fmt.Sprintf("validation failed for %s: %s", e.Field, e.Message)
 	}
-	return fmt.Sprintf("validation failed for %s=%s: %s", e.Field, e.Value, e.Message)
+	return fmt.Sprintf("validation failed for %s=%s: %s", e.Field, safeValue, e.Message)
 }
 
 // APIError represents an error from the Perplexity API.

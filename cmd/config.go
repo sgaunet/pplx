@@ -11,6 +11,7 @@ import (
 	"github.com/sgaunet/pplx/pkg/completion"
 	"github.com/sgaunet/pplx/pkg/config"
 	"github.com/sgaunet/pplx/pkg/logger"
+	"github.com/sgaunet/pplx/pkg/security"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
 )
@@ -305,15 +306,22 @@ var configShowCmd = &cobra.Command{
 			return nil
 		}
 
-		// Show full config
+		// Show full config - MASK API KEY
+		cfgCopy := *cfg
+
+		// Mask API key if present
+		if cfgCopy.API.Key != "" {
+			cfgCopy.API.Key = security.MaskAPIKey(cfgCopy.API.Key)
+		}
+
 		if jsonOutput {
-			data, err := json.MarshalIndent(cfg, "", "  ")
+			data, err := json.MarshalIndent(cfgCopy, "", "  ")
 			if err != nil {
 				return fmt.Errorf("failed to marshal config: %w", err)
 			}
 			fmt.Println(string(data))
 		} else {
-			data, err := yaml.Marshal(cfg)
+			data, err := yaml.Marshal(cfgCopy)
 			if err != nil {
 				return fmt.Errorf("failed to marshal config: %w", err)
 			}
