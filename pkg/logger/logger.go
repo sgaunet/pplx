@@ -2,10 +2,13 @@
 package logger
 
 import (
+	"fmt"
 	"io"
 	"log/slog"
 	"os"
 	"strings"
+
+	"github.com/sgaunet/pplx/pkg/security"
 )
 
 // Level represents the supported log levels.
@@ -142,4 +145,69 @@ func Error(msg string, args ...any) {
 // GetDefault returns the default logger instance.
 func GetDefault() *slog.Logger {
 	return defaultLogger
+}
+
+// SafeAttr creates a sanitized slog attribute.
+// Use this for any attribute that might contain sensitive data such as API keys,
+// tokens, passwords, or other secrets.
+//
+// Example:
+//
+//	logger.Info("API request", logger.SafeAttr("api_key", apiKey))
+func SafeAttr(key string, value any) slog.Attr {
+	strValue := fmt.Sprintf("%v", value)
+	sanitized := security.SanitizeValue(key, strValue)
+	return slog.Any(key, sanitized)
+}
+
+// InfoSafe logs an info message with automatic sanitization of all attributes.
+// This function inspects attribute keys and values, masking any that look like
+// sensitive data (API keys, tokens, passwords, etc.).
+//
+// Example:
+//
+//	logger.InfoSafe("API request", "api_key", apiKey, "model", "sonar")
+func InfoSafe(msg string, args ...any) {
+	safeArgs := sanitizeArgs(args)
+	defaultLogger.Info(msg, safeArgs...)
+}
+
+// WarnSafe logs a warning message with automatic sanitization of all attributes.
+func WarnSafe(msg string, args ...any) {
+	safeArgs := sanitizeArgs(args)
+	defaultLogger.Warn(msg, safeArgs...)
+}
+
+// ErrorSafe logs an error message with automatic sanitization of all attributes.
+func ErrorSafe(msg string, args ...any) {
+	safeArgs := sanitizeArgs(args)
+	defaultLogger.Error(msg, safeArgs...)
+}
+
+// DebugSafe logs a debug message with automatic sanitization of all attributes.
+func DebugSafe(msg string, args ...any) {
+	safeArgs := sanitizeArgs(args)
+	defaultLogger.Debug(msg, safeArgs...)
+}
+
+// sanitizeArgs sanitizes slog-style alternating key-value arguments.
+func sanitizeArgs(args []any) []any {
+	if len(args) == 0 {
+		return args
+	}
+
+	sanitized := make([]any, len(args))
+	copy(sanitized, args)
+
+	// Process key-value pairs (slog format: key1, value1, key2, value2, ...)
+	for i := 0; i < len(sanitized)-1; i += 2 {
+		key, ok := sanitized[i].(string)
+		if !ok {
+			continue
+		}
+
+		sanitized[i+1] = security.SanitizeValue(key, sanitized[i+1])
+	}
+
+	return sanitized
 }
