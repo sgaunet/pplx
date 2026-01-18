@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/sgaunet/pplx/pkg/logger"
 	"github.com/spf13/cobra"
 )
 
@@ -84,7 +85,7 @@ PowerShell:
 			}
 			defer func() {
 				if closeErr := file.Close(); closeErr != nil {
-					fmt.Fprintf(os.Stderr, "warning: failed to close file: %v\n", closeErr)
+					logger.Warn("failed to close file", "error", closeErr)
 				}
 			}()
 			out = file
@@ -109,7 +110,7 @@ var bashCmd = &cobra.Command{
 			}
 			defer func() {
 				if closeErr := file.Close(); closeErr != nil {
-					fmt.Fprintf(os.Stderr, "warning: failed to close file: %v\n", closeErr)
+					logger.Warn("failed to close file", "error", closeErr)
 				}
 			}()
 			out = file
@@ -135,7 +136,7 @@ var zshCmd = &cobra.Command{
 			}
 			defer func() {
 				if closeErr := file.Close(); closeErr != nil {
-					fmt.Fprintf(os.Stderr, "warning: failed to close file: %v\n", closeErr)
+					logger.Warn("failed to close file", "error", closeErr)
 				}
 			}()
 			out = file
@@ -161,7 +162,7 @@ var fishCmd = &cobra.Command{
 			}
 			defer func() {
 				if closeErr := file.Close(); closeErr != nil {
-					fmt.Fprintf(os.Stderr, "warning: failed to close file: %v\n", closeErr)
+					logger.Warn("failed to close file", "error", closeErr)
 				}
 			}()
 			out = file
@@ -187,7 +188,7 @@ var powershellCmd = &cobra.Command{
 			}
 			defer func() {
 				if closeErr := file.Close(); closeErr != nil {
-					fmt.Fprintf(os.Stderr, "warning: failed to close file: %v\n", closeErr)
+					logger.Warn("failed to close file", "error", closeErr)
 				}
 			}()
 			out = file
@@ -380,7 +381,7 @@ func installCompletion(rootCmd *cobra.Command, shell string) error {
 	}
 	defer func() {
 		if closeErr := file.Close(); closeErr != nil {
-			fmt.Fprintf(os.Stderr, "warning: failed to close file: %v\n", closeErr)
+			logger.Warn("failed to close file", "error", closeErr)
 		}
 	}()
 
@@ -445,7 +446,7 @@ func uninstallCompletion(shell string) error {
 	for _, path := range targetPaths {
 		if _, err := os.Stat(path); err == nil {
 			if err := os.Remove(path); err != nil {
-				fmt.Printf("Warning: failed to remove %s: %v\n", path, err)
+				logger.Warn("failed to remove completion file", "path", path, "error", err)
 			} else {
 				fmt.Printf("✓ Removed completion file: %s\n", path)
 				removed = true

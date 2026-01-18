@@ -10,6 +10,7 @@ import (
 
 	"github.com/sgaunet/pplx/pkg/completion"
 	"github.com/sgaunet/pplx/pkg/config"
+	"github.com/sgaunet/pplx/pkg/logger"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
 )
@@ -62,7 +63,7 @@ func saveConfigData(data *config.ConfigData) error {
 	// Verify permissions after writing
 	if err := verifyConfigPermissions(configPath); err != nil {
 		// Don't fail the save operation, just log the warning
-		fmt.Fprintf(os.Stderr, "Warning: %v\n", err)
+		logger.Warn("config file permissions check failed", "error", err)
 	}
 
 	return nil
@@ -211,7 +212,7 @@ func runConfigInit(_ *cobra.Command, _ []string) error {
 	// Verify permissions after creation
 	if err := verifyConfigPermissions(configPath); err != nil {
 		// Don't fail the init operation, just log the warning
-		fmt.Fprintf(os.Stderr, "Warning: %v\n", err)
+		logger.Warn("config file permissions check failed", "error", err)
 	}
 
 	return nil
@@ -249,9 +250,12 @@ func verifyConfigPermissions(path string) error {
 	mode := info.Mode().Perm()
 	// Check if group or other have any permissions (0077 = group/other rwx bits)
 	if mode&0077 != 0 {
-		fmt.Fprintf(os.Stderr, "⚠️  Warning: Config file %s has insecure permissions %#o\n", path, mode)
-		fmt.Fprintf(os.Stderr, "    This file may contain API keys. Recommended permissions: 0600\n")
-		fmt.Fprintf(os.Stderr, "    Run: chmod 600 %s\n", path)
+		logger.Warn("config file has insecure permissions",
+			"path", path,
+			"current_permissions", fmt.Sprintf("%#o", mode),
+			"recommended_permissions", "0600",
+			"fix_command", fmt.Sprintf("chmod 600 %s", path),
+			"reason", "file may contain API keys")
 	}
 
 	return nil
@@ -389,13 +393,13 @@ var configEditCmd = &cobra.Command{
 		// Validate after editing
 		loader := config.NewLoader()
 		if err := loader.LoadFrom(configPath); err != nil {
-			fmt.Printf("Warning: Configuration file has syntax errors: %v\n", err)
+			logger.Warn("configuration file has syntax errors", "error", err)
 			return nil
 		}
 
 		validator := config.NewValidator()
 		if err := validator.Validate(loader.Data()); err != nil {
-			fmt.Printf("Warning: Configuration validation failed: %v\n", err)
+			logger.Warn("configuration validation failed", "error", err)
 			return nil
 		}
 

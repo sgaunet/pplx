@@ -9,6 +9,7 @@ import (
 	"github.com/sgaunet/perplexity-go/v2"
 	"github.com/sgaunet/pplx/pkg/clerrors"
 	"github.com/sgaunet/pplx/pkg/completion"
+	"github.com/sgaunet/pplx/pkg/logger"
 	"github.com/spf13/cobra"
 )
 
@@ -69,6 +70,10 @@ var (
 
 	// Output options.
 	outputJSON bool
+
+	// Logging options.
+	logLevel  string
+	logFormat string
 )
 
 // rootCmd represents the base command when called without any subcommands.
@@ -83,12 +88,37 @@ var rootCmd = &cobra.Command{
 // Execute runs the root command.
 func Execute() {
 	rootCmd.CompletionOptions.DisableDefaultCmd = true
+
+	// Initialize logger before command execution
+	if err := initLogger(); err != nil {
+		fmt.Fprintf(os.Stderr, "Warning: failed to initialize logger: %v\n", err)
+	}
+
 	err := rootCmd.Execute()
 	if err != nil {
 		printError(err)
 		exitCode := getExitCode(err)
 		os.Exit(exitCode)
 	}
+}
+
+// initLogger initializes the logger with the configured level and format.
+func initLogger() error {
+	// Parse log level
+	level, ok := logger.ParseLevel(logLevel)
+	if !ok {
+		return fmt.Errorf("invalid log level %q, must be one of: %v", logLevel, logger.ValidLevels())
+	}
+
+	// Parse log format
+	format, ok := logger.ParseFormat(logFormat)
+	if !ok {
+		return fmt.Errorf("invalid log format %q, must be one of: %v", logFormat, logger.ValidFormats())
+	}
+
+	// Initialize logger
+	logger.Init(level, format, os.Stderr)
+	return nil
 }
 
 // printError prints error messages with appropriate formatting based on error type.
@@ -196,6 +226,13 @@ func addOutputFlags(cmd *cobra.Command) {
 	cmd.PersistentFlags().BoolVar(&outputJSON, "json", outputJSON, "Output response in JSON format")
 }
 
+func addLoggingFlags(cmd *cobra.Command) {
+	cmd.PersistentFlags().StringVar(&logLevel, "log-level", "info",
+		"Log level (debug, info, warn, error)")
+	cmd.PersistentFlags().StringVar(&logFormat, "log-format", "text",
+		"Log format (text, json)")
+}
+
 func registerFlagCompletions(cmd *cobra.Command) {
 	// Model completion
 	if err := cmd.RegisterFlagCompletionFunc("model",
@@ -257,7 +294,29 @@ func registerFlagCompletions(cmd *cobra.Command) {
 	}
 }
 
+func registerLoggingFlagCompletions(cmd *cobra.Command) {
+	// Log level completion
+	if err := cmd.RegisterFlagCompletionFunc("log-level",
+		func(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
+			return logger.ValidLevels(), cobra.ShellCompDirectiveNoFileComp
+		}); err != nil {
+		fmt.Fprintf(os.Stderr, "Warning: failed to register completion for 'log-level' flag: %v\n", err)
+	}
+
+	// Log format completion
+	if err := cmd.RegisterFlagCompletionFunc("log-format",
+		func(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
+			return logger.ValidFormats(), cobra.ShellCompDirectiveNoFileComp
+		}); err != nil {
+		fmt.Fprintf(os.Stderr, "Warning: failed to register completion for 'log-format' flag: %v\n", err)
+	}
+}
+
 func init() {
+	// Add logging flags to root command
+	addLoggingFlags(rootCmd)
+	registerLoggingFlagCompletions(rootCmd)
+
 	rootCmd.AddCommand(chatCmd)
 	addChatFlags(chatCmd)
 	addSearchFlags(chatCmd)

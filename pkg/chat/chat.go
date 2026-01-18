@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/sgaunet/perplexity-go/v2"
+	"github.com/sgaunet/pplx/pkg/logger"
 )
 
 // Error definitions for static error wrapping.
@@ -289,7 +290,8 @@ func (c *Chat) addResearchOptions(opts *[]perplexity.CompletionRequestOption) er
 				ErrInvalidReasoningEffort, c.options.ReasoningEffort)
 		}
 		if !strings.Contains(c.options.Model, "deep-research") {
-			fmt.Printf("Warning: reasoning-effort is only supported by sonar-deep-research model\n")
+			logger.Warn("reasoning-effort only supported by sonar-deep-research model",
+				"current_model", c.options.Model)
 		}
 		*opts = append(*opts, perplexity.WithReasoningEffort(c.options.ReasoningEffort))
 	}
