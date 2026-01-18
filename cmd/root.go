@@ -24,6 +24,11 @@ const (
 )
 
 var (
+	// ErrInvalidLogLevel indicates that the provided log level is not valid.
+	ErrInvalidLogLevel = errors.New("invalid log level")
+	// ErrInvalidLogFormat indicates that the provided log format is not valid.
+	ErrInvalidLogFormat = errors.New("invalid log format")
+
 	systemPrompt     string
 	userPrompt       string
 	model            string  = perplexity.DefaultModel
@@ -107,13 +112,13 @@ func initLogger() error {
 	// Parse log level
 	level, ok := logger.ParseLevel(logLevel)
 	if !ok {
-		return fmt.Errorf("invalid log level %q, must be one of: %v", logLevel, logger.ValidLevels())
+		return fmt.Errorf("%w: %q, must be one of: %v", ErrInvalidLogLevel, logLevel, logger.ValidLevels())
 	}
 
 	// Parse log format
 	format, ok := logger.ParseFormat(logFormat)
 	if !ok {
-		return fmt.Errorf("invalid log format %q, must be one of: %v", logFormat, logger.ValidFormats())
+		return fmt.Errorf("%w: %q, must be one of: %v", ErrInvalidLogFormat, logFormat, logger.ValidFormats())
 	}
 
 	// Initialize logger

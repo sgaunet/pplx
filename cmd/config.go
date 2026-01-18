@@ -254,7 +254,7 @@ func verifyConfigPermissions(path string) error {
 			"path", path,
 			"current_permissions", fmt.Sprintf("%#o", mode),
 			"recommended_permissions", "0600",
-			"fix_command", fmt.Sprintf("chmod 600 %s", path),
+			"fix_command", "chmod 600 "+path,
 			"reason", "file may contain API keys")
 	}
 
