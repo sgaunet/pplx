@@ -13,6 +13,7 @@ import (
 	"github.com/sgaunet/pplx/pkg/config"
 	"github.com/sgaunet/pplx/pkg/console"
 	clerrors "github.com/sgaunet/pplx/pkg/clerrors"
+	"github.com/sgaunet/pplx/pkg/logger"
 	"github.com/spf13/cobra"
 )
 
@@ -78,6 +79,7 @@ var queryCmd = &cobra.Command{
 			}
 			// Search recency filter is incompatible with images
 			if returnImages {
+				// This is user-facing output explaining an auto-correction, not logging
 				fmt.Printf("Note: When using --return-images, search-recency is automatically disabled\nProceeding with image search...\n")
 			} else {
 				opts = append(opts, perplexity.WithSearchRecencyFilter(searchRecency))
@@ -113,9 +115,9 @@ var queryCmd = &cobra.Command{
 			}
 			for _, format := range imageFormats {
 				if !validFormats[format] {
-					warnMsg := "Warning: Image format '%s' may not be supported. " +
-						"Common formats are: jpg, jpeg, png, gif, webp, svg, bmp\n"
-					fmt.Printf(warnMsg, format)
+					logger.Warn("image format may not be supported",
+						"format", format,
+						"supported", "jpg, jpeg, png, gif, webp, svg, bmp")
 				}
 			}
 			opts = append(opts, perplexity.WithImageFormatFilter(imageFormats))
@@ -210,7 +212,8 @@ var queryCmd = &cobra.Command{
 			}
 			// Check if the model supports reasoning effort
 			if !strings.Contains(model, "deep-research") {
-				fmt.Printf("Warning: reasoning-effort is only supported by sonar-deep-research model\n")
+				logger.Warn("reasoning-effort only supported by sonar-deep-research model",
+					"current_model", model)
 			}
 			opts = append(opts, perplexity.WithReasoningEffort(reasoningEffort))
 		}
@@ -243,7 +246,7 @@ var queryCmd = &cobra.Command{
 					for response := range responseChannel {
 						err := renderer.RenderIncremental(&response)
 						if err != nil {
-							fmt.Printf("Error rendering streaming content: %v\n", err)
+							logger.Error("failed to render streaming content", "error", err)
 						}
 						lastResponse = &response
 					}
@@ -256,7 +259,7 @@ var queryCmd = &cobra.Command{
 					}
 					err := console.RenderResponse(lastResponse, os.Stdout, outputJSON)
 					if err != nil {
-						fmt.Printf("Error: %v\n", err)
+						logger.Error("failed to render response", "error", err)
 					}
 				}
 			}()
