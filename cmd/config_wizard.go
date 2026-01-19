@@ -193,9 +193,53 @@ func (w *WizardState) configureStreaming() error {
 	return nil
 }
 
+// promptSearchMode prompts for search mode (web/academic).
+func (w *WizardState) promptSearchMode() error {
+	fmt.Println()
+	fmt.Print("Search mode (web/academic) [web]: ")
+	if !w.scanner.Scan() {
+		return ErrFailedToReadInput
+	}
+
+	mode := strings.TrimSpace(w.scanner.Text())
+	if mode == "academic" {
+		w.searchFilters = append(w.searchFilters, "mode:academic")
+	}
+
+	return nil
+}
+
+// promptRecencyFilter prompts for recency filter.
+func (w *WizardState) promptRecencyFilter() error {
+	fmt.Print("Recency filter (day/week/month/year) [skip]: ")
+	if !w.scanner.Scan() {
+		return ErrFailedToReadInput
+	}
+
+	recency := strings.TrimSpace(w.scanner.Text())
+	if recency != "" && isValidRecency(recency) {
+		w.searchFilters = append(w.searchFilters, "recency:"+recency)
+	}
+
+	return nil
+}
+
+// promptContextSize prompts for search context size.
+func (w *WizardState) promptContextSize() error {
+	fmt.Print("Context size (low/medium/high) [skip]: ")
+	if !w.scanner.Scan() {
+		return ErrFailedToReadInput
+	}
+
+	contextSize := strings.TrimSpace(w.scanner.Text())
+	if contextSize != "" && isValidContextSize(contextSize) {
+		w.searchFilters = append(w.searchFilters, "context:"+contextSize)
+	}
+
+	return nil
+}
+
 // selectSearchFilters prompts the user to select search filters.
-//
-//nolint:cyclop // Interactive wizard requires sequential prompt handling
 func (w *WizardState) selectSearchFilters() error {
 	fmt.Println("═══════════════════════════════════════════════════════════════════")
 	fmt.Println("Step 4: Configure Search Preferences")
@@ -222,32 +266,16 @@ func (w *WizardState) selectSearchFilters() error {
 
 	w.searchFilters = []string{}
 
-	// Search mode
-	fmt.Println()
-	fmt.Print("Search mode (web/academic) [web]: ")
-	if w.scanner.Scan() {
-		mode := strings.TrimSpace(w.scanner.Text())
-		if mode == "academic" {
-			w.searchFilters = append(w.searchFilters, "mode:academic")
-		}
+	if err := w.promptSearchMode(); err != nil {
+		return err
 	}
 
-	// Recency filter
-	fmt.Print("Recency filter (day/week/month/year) [skip]: ")
-	if w.scanner.Scan() {
-		recency := strings.TrimSpace(w.scanner.Text())
-		if recency != "" && isValidRecency(recency) {
-			w.searchFilters = append(w.searchFilters, "recency:"+recency)
-		}
+	if err := w.promptRecencyFilter(); err != nil {
+		return err
 	}
 
-	// Context size
-	fmt.Print("Context size (low/medium/high) [skip]: ")
-	if w.scanner.Scan() {
-		contextSize := strings.TrimSpace(w.scanner.Text())
-		if contextSize != "" && isValidContextSize(contextSize) {
-			w.searchFilters = append(w.searchFilters, "context:"+contextSize)
-		}
+	if err := w.promptContextSize(); err != nil {
+		return err
 	}
 
 	fmt.Printf("\n✓ Configured %d search filters\n\n", len(w.searchFilters))
@@ -255,29 +283,62 @@ func (w *WizardState) selectSearchFilters() error {
 	return nil
 }
 
-// configureAPIKey prompts the user to optionally provide an API key.
-func (w *WizardState) configureAPIKey() error {
+// printAPIKeyHeader prints the API key section header.
+func (w *WizardState) printAPIKeyHeader() {
 	fmt.Println("═══════════════════════════════════════════════════════════════════")
 	fmt.Println("Step 5: API Key Configuration")
 	fmt.Println("═══════════════════════════════════════════════════════════════════")
 	fmt.Println()
+}
 
-	// Check if API key exists in environment
+// checkEnvironmentAPIKey checks for API key in environment and prompts to use it.
+// Returns (shouldUseEnv, foundEnv, error).
+func (w *WizardState) checkEnvironmentAPIKey() (bool, bool, error) {
 	envKey := os.Getenv("PERPLEXITY_API_KEY")
-	if envKey != "" {
-		fmt.Printf("✓ API key found in environment (PERPLEXITY_API_KEY)\n")
-		fmt.Println("  Length:", len(envKey), "characters")
-		fmt.Println()
+	if envKey == "" {
+		return false, false, nil
+	}
 
-		useEnv, err := w.promptYesNo("Use existing environment variable?", true)
-		if err != nil {
-			return err
-		}
+	fmt.Printf("✓ API key found in environment (PERPLEXITY_API_KEY)\n")
+	fmt.Println("  Length:", len(envKey), "characters")
+	fmt.Println()
 
-		if useEnv {
-			fmt.Println("\n✓ Using PERPLEXITY_API_KEY from environment")
-			return nil
-		}
+	useEnv, err := w.promptYesNo("Use existing environment variable?", true)
+	if err != nil {
+		return false, true, err
+	}
+
+	return useEnv, true, nil
+}
+
+// readAndStoreAPIKey reads and stores an API key from user input.
+func (w *WizardState) readAndStoreAPIKey() error {
+	fmt.Println()
+	fmt.Print("Enter your Perplexity API key: ")
+	if !w.scanner.Scan() {
+		return ErrFailedToReadAPIKey
+	}
+
+	w.apiKey = strings.TrimSpace(w.scanner.Text())
+	if w.apiKey != "" {
+		fmt.Printf("\n✓ API key added (%d characters)\n", len(w.apiKey))
+	}
+
+	return nil
+}
+
+// configureAPIKey prompts the user to optionally provide an API key.
+func (w *WizardState) configureAPIKey() error {
+	w.printAPIKeyHeader()
+
+	shouldUseEnv, foundEnv, err := w.checkEnvironmentAPIKey()
+	if err != nil {
+		return err
+	}
+
+	if shouldUseEnv && foundEnv {
+		fmt.Println("\n✓ Using PERPLEXITY_API_KEY from environment")
+		return nil
 	}
 
 	fmt.Println("You can provide your API key now or set it later via environment variable.")
@@ -288,32 +349,58 @@ func (w *WizardState) configureAPIKey() error {
 		return err
 	}
 
-	if addKey {
-		fmt.Println()
-		fmt.Print("Enter your Perplexity API key: ")
-		if !w.scanner.Scan() {
-			return ErrFailedToReadAPIKey
-		}
-
-		w.apiKey = strings.TrimSpace(w.scanner.Text())
-		if w.apiKey != "" {
-			fmt.Printf("\n✓ API key added (%d characters)\n", len(w.apiKey))
-		}
-	} else {
+	if !addKey {
 		fmt.Println("\n✓ Skipped (you can set PERPLEXITY_API_KEY environment variable later)")
+		return nil
+	}
+
+	return w.readAndStoreAPIKey()
+}
+
+// printCustomizationHeader prints the customization section header.
+func (w *WizardState) printCustomizationHeader() {
+	fmt.Println("═══════════════════════════════════════════════════════════════════")
+	fmt.Println("Step 6: Additional Customization (Optional)")
+	fmt.Println("═══════════════════════════════════════════════════════════════════")
+	fmt.Println()
+}
+
+// promptTemperature prompts for temperature customization.
+func (w *WizardState) promptTemperature() error {
+	const minTemp, maxTemp, defaultTemp = 0.0, 2.0, 0.2
+
+	fmt.Println()
+	temp, wasSet, err := w.promptFloat("Temperature (0.0-2.0) [0.2]: ", minTemp, maxTemp, defaultTemp)
+	if err != nil {
+		return err
+	}
+
+	if wasSet {
+		w.customSettings["temperature"] = temp
+	}
+
+	return nil
+}
+
+// promptMaxTokens prompts for max_tokens customization.
+func (w *WizardState) promptMaxTokens() error {
+	const minTokens, maxTokens, defaultTokens = 1, 100000, 4000
+
+	tokens, wasSet, err := w.promptInt("Max tokens (1-100000) [4000]: ", minTokens, maxTokens, defaultTokens)
+	if err != nil {
+		return err
+	}
+
+	if wasSet {
+		w.customSettings["max_tokens"] = tokens
 	}
 
 	return nil
 }
 
 // offerCustomization asks if the user wants additional customization.
-//
-//nolint:cyclop // Interactive wizard requires sequential prompt handling
 func (w *WizardState) offerCustomization() error {
-	fmt.Println("═══════════════════════════════════════════════════════════════════")
-	fmt.Println("Step 6: Additional Customization (Optional)")
-	fmt.Println("═══════════════════════════════════════════════════════════════════")
-	fmt.Println()
+	w.printCustomizationHeader()
 
 	customize, err := w.promptYesNo("Configure advanced options (temperature, max tokens, etc.)?", false)
 	if err != nil {
@@ -325,27 +412,12 @@ func (w *WizardState) offerCustomization() error {
 		return nil
 	}
 
-	// Temperature
-	fmt.Println()
-	fmt.Print("Temperature (0.0-2.0) [0.2]: ")
-	if w.scanner.Scan() {
-		tempStr := strings.TrimSpace(w.scanner.Text())
-		if tempStr != "" {
-			if temp, err := strconv.ParseFloat(tempStr, 64); err == nil && temp >= 0 && temp <= 2 {
-				w.customSettings["temperature"] = temp
-			}
-		}
+	if err := w.promptTemperature(); err != nil {
+		return err
 	}
 
-	// Max tokens
-	fmt.Print("Max tokens (1-100000) [4000]: ")
-	if w.scanner.Scan() {
-		tokensStr := strings.TrimSpace(w.scanner.Text())
-		if tokensStr != "" {
-			if tokens, err := strconv.Atoi(tokensStr); err == nil && tokens > 0 && tokens <= 100000 {
-				w.customSettings["max_tokens"] = tokens
-			}
-		}
+	if err := w.promptMaxTokens(); err != nil {
+		return err
 	}
 
 	fmt.Printf("\n✓ Configured %d advanced options\n\n", len(w.customSettings))
@@ -353,29 +425,23 @@ func (w *WizardState) offerCustomization() error {
 	return nil
 }
 
-// buildConfiguration constructs the final ConfigData from wizard selections.
-func (w *WizardState) buildConfiguration() {
-	// Load template if not custom
-	if w.useCase != "custom" && w.useCase != "general" {
-		templateCfg, err := config.LoadTemplate(w.useCase)
-		if err != nil {
-			// Fall back to default config if template fails
-			w.config = config.NewConfigData()
-		} else {
-			w.config = templateCfg
-		}
+// loadTemplateIfApplicable loads a template config if useCase requires it.
+// Falls back to default config on error.
+func (w *WizardState) loadTemplateIfApplicable() {
+	if w.useCase == "custom" || w.useCase == "general" {
+		return
 	}
 
-	// Apply model selection
-	w.config.Defaults.Model = w.selectedModel
+	templateCfg, err := config.LoadTemplate(w.useCase)
+	if err != nil {
+		w.config = config.NewConfigData()
+	} else {
+		w.config = templateCfg
+	}
+}
 
-	// Apply streaming preference
-	w.config.Output.Stream = w.enableStream
-
-	// Apply search filters
-	w.applySearchFilters()
-
-	// Apply custom settings
+// applyCustomSettings applies custom settings from w.customSettings to config.
+func (w *WizardState) applyCustomSettings() {
 	for key, value := range w.customSettings {
 		switch key {
 		case "temperature":
@@ -388,8 +454,18 @@ func (w *WizardState) buildConfiguration() {
 			}
 		}
 	}
+}
 
-	// Apply API key if provided
+// buildConfiguration constructs the final ConfigData from wizard selections.
+func (w *WizardState) buildConfiguration() {
+	w.loadTemplateIfApplicable()
+
+	w.config.Defaults.Model = w.selectedModel
+	w.config.Output.Stream = w.enableStream
+
+	w.applySearchFilters()
+	w.applyCustomSettings()
+
 	if w.apiKey != "" {
 		w.config.API.Key = w.apiKey
 	}
@@ -499,6 +575,66 @@ func (w *WizardState) formatBool(value bool) string {
 		return "Enabled"
 	}
 	return "Disabled"
+}
+
+// promptFloat prompts for a floating-point value with range validation.
+// Returns (value, wasSet, error) where wasSet indicates non-empty input.
+// Loops until valid input or empty string (uses default).
+func (w *WizardState) promptFloat(prompt string, minVal, maxVal, defaultVal float64) (float64, bool, error) {
+	for {
+		fmt.Print(prompt)
+		if !w.scanner.Scan() {
+			return 0, false, ErrFailedToReadInput
+		}
+
+		input := strings.TrimSpace(w.scanner.Text())
+		if input == "" {
+			return defaultVal, false, nil
+		}
+
+		value, err := strconv.ParseFloat(input, 64)
+		if err != nil {
+			fmt.Printf("Invalid number. Please enter a value between %.1f and %.1f\n", minVal, maxVal)
+			continue
+		}
+
+		if value < minVal || value > maxVal {
+			fmt.Printf("Value out of range. Please enter a value between %.1f and %.1f\n", minVal, maxVal)
+			continue
+		}
+
+		return value, true, nil
+	}
+}
+
+// promptInt prompts for an integer value with range validation.
+// Returns (value, wasSet, error) where wasSet indicates non-empty input.
+// Loops until valid input or empty string (uses default).
+func (w *WizardState) promptInt(prompt string, minVal, maxVal, defaultVal int) (int, bool, error) {
+	for {
+		fmt.Print(prompt)
+		if !w.scanner.Scan() {
+			return 0, false, ErrFailedToReadInput
+		}
+
+		input := strings.TrimSpace(w.scanner.Text())
+		if input == "" {
+			return defaultVal, false, nil
+		}
+
+		value, err := strconv.Atoi(input)
+		if err != nil {
+			fmt.Printf("Invalid number. Please enter a value between %d and %d\n", minVal, maxVal)
+			continue
+		}
+
+		if value < minVal || value > maxVal {
+			fmt.Printf("Value out of range. Please enter a value between %d and %d\n", minVal, maxVal)
+			continue
+		}
+
+		return value, true, nil
+	}
 }
 
 // isValidRecency checks if a recency value is valid.
