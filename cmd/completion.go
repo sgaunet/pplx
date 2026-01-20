@@ -81,7 +81,7 @@ PowerShell:
 		if completionOutputFile != "" {
 			file, err := os.Create(completionOutputFile) // #nosec G304
 			if err != nil {
-				return fmt.Errorf("failed to create output file: %w", err)
+				return fmt.Errorf("failed to create %s completion output file %s: %w", shell, completionOutputFile, err)
 			}
 			defer func() {
 				if closeErr := file.Close(); closeErr != nil {
@@ -106,7 +106,7 @@ var bashCmd = &cobra.Command{
 		if completionOutputFile != "" {
 			file, err := os.Create(completionOutputFile) // #nosec G304
 			if err != nil {
-				return fmt.Errorf("failed to create output file: %w", err)
+				return fmt.Errorf("failed to create bash completion output file %s: %w", completionOutputFile, err)
 			}
 			defer func() {
 				if closeErr := file.Close(); closeErr != nil {
@@ -132,7 +132,7 @@ var zshCmd = &cobra.Command{
 		if completionOutputFile != "" {
 			file, err := os.Create(completionOutputFile) // #nosec G304
 			if err != nil {
-				return fmt.Errorf("failed to create output file: %w", err)
+				return fmt.Errorf("failed to create zsh completion output file %s: %w", completionOutputFile, err)
 			}
 			defer func() {
 				if closeErr := file.Close(); closeErr != nil {
@@ -158,7 +158,7 @@ var fishCmd = &cobra.Command{
 		if completionOutputFile != "" {
 			file, err := os.Create(completionOutputFile) // #nosec G304
 			if err != nil {
-				return fmt.Errorf("failed to create output file: %w", err)
+				return fmt.Errorf("failed to create fish completion output file %s: %w", completionOutputFile, err)
 			}
 			defer func() {
 				if closeErr := file.Close(); closeErr != nil {
@@ -184,7 +184,7 @@ var powershellCmd = &cobra.Command{
 		if completionOutputFile != "" {
 			file, err := os.Create(completionOutputFile) // #nosec G304
 			if err != nil {
-				return fmt.Errorf("failed to create output file: %w", err)
+				return fmt.Errorf("failed to create powershell completion output file %s: %w", completionOutputFile, err)
 			}
 			defer func() {
 				if closeErr := file.Close(); closeErr != nil {
@@ -315,7 +315,7 @@ func getBashInstallTarget(homeDir string) (*shellInstallTarget, error) {
 		// Fallback to user directory
 		targetPath = filepath.Join(homeDir, ".bash_completion.d", "pplx")
 		if err := os.MkdirAll(filepath.Dir(targetPath), dirPerms); err != nil { // #nosec G301
-			return nil, fmt.Errorf("failed to create directory: %w", err)
+			return nil, fmt.Errorf("failed to create directory %s: %w", filepath.Dir(targetPath), err)
 		}
 		return &shellInstallTarget{
 			targetPath: targetPath,
@@ -330,7 +330,7 @@ func getBashInstallTarget(homeDir string) (*shellInstallTarget, error) {
 func getZshInstallTarget(homeDir string) (*shellInstallTarget, error) {
 	targetPath := filepath.Join(homeDir, ".zsh", "completions", "_pplx")
 	if err := os.MkdirAll(filepath.Dir(targetPath), dirPerms); err != nil { // #nosec G301
-		return nil, fmt.Errorf("failed to create directory: %w", err)
+		return nil, fmt.Errorf("failed to create directory %s: %w", filepath.Dir(targetPath), err)
 	}
 	return &shellInstallTarget{
 		targetPath: targetPath,
@@ -344,7 +344,7 @@ func getZshInstallTarget(homeDir string) (*shellInstallTarget, error) {
 func getFishInstallTarget(homeDir string) (*shellInstallTarget, error) {
 	configDir := filepath.Join(homeDir, ".config", "fish", "completions")
 	if err := os.MkdirAll(configDir, dirPerms); err != nil { // #nosec G301
-		return nil, fmt.Errorf("failed to create directory: %w", err)
+		return nil, fmt.Errorf("failed to create directory %s: %w", configDir, err)
 	}
 	return &shellInstallTarget{
 		targetPath: filepath.Join(configDir, "pplx.fish"),
@@ -354,7 +354,7 @@ func getFishInstallTarget(homeDir string) (*shellInstallTarget, error) {
 func getPowershellInstallTarget(homeDir string) (*shellInstallTarget, error) {
 	targetPath := filepath.Join(homeDir, "Documents", "PowerShell", "Scripts", "pplx-completion.ps1")
 	if err := os.MkdirAll(filepath.Dir(targetPath), dirPerms); err != nil { // #nosec G301
-		return nil, fmt.Errorf("failed to create directory: %w", err)
+		return nil, fmt.Errorf("failed to create directory %s: %w", filepath.Dir(targetPath), err)
 	}
 	return &shellInstallTarget{
 		targetPath:        targetPath,
@@ -366,7 +366,7 @@ func getPowershellInstallTarget(homeDir string) (*shellInstallTarget, error) {
 func installCompletion(rootCmd *cobra.Command, shell string) error {
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
-		return fmt.Errorf("failed to get home directory: %w", err)
+		return fmt.Errorf("failed to get home directory for %s completion installation: %w", shell, err)
 	}
 
 	target, err := getInstallTarget(homeDir, shell)
@@ -377,7 +377,7 @@ func installCompletion(rootCmd *cobra.Command, shell string) error {
 	// Create the completion file
 	file, err := os.Create(target.targetPath)
 	if err != nil {
-		return fmt.Errorf("failed to create completion file: %w", err)
+		return fmt.Errorf("failed to create %s completion file %s: %w", shell, target.targetPath, err)
 	}
 	defer func() {
 		if closeErr := file.Close(); closeErr != nil {
@@ -387,7 +387,7 @@ func installCompletion(rootCmd *cobra.Command, shell string) error {
 
 	// Generate completion script
 	if err := generateCompletion(rootCmd, shell, file); err != nil {
-		return fmt.Errorf("failed to generate completion: %w", err)
+		return fmt.Errorf("failed to generate %s completion: %w", shell, err)
 	}
 
 	fmt.Printf("✓ Shell completion installed to: %s\n", target.targetPath)
@@ -434,7 +434,7 @@ func getUninstallPaths(homeDir, shell string) ([]string, error) {
 func uninstallCompletion(shell string) error {
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
-		return fmt.Errorf("failed to get home directory: %w", err)
+		return fmt.Errorf("failed to get home directory for %s completion uninstallation: %w", shell, err)
 	}
 
 	targetPaths, err := getUninstallPaths(homeDir, shell)

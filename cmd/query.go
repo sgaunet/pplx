@@ -17,7 +17,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// Validation maps for query command options
+// Validation maps for query command options.
 var (
 	validSearchRecency = map[string]bool{
 		"day": true, "week": true, "month": true,
@@ -105,7 +105,7 @@ func validateStringEnum(fieldName, value string, validValues map[string]bool, va
 	}
 	if !validValues[value] {
 		return clerrors.NewValidationError(fieldName, value,
-			fmt.Sprintf("must be one of: %s", validList))
+			"must be one of: "+validList)
 	}
 	return nil
 }
@@ -115,7 +115,7 @@ func validateStringEnum(fieldName, value string, validValues map[string]bool, va
 func buildBaseOptions() ([]perplexity.CompletionRequestOption, error) {
 	msg := perplexity.NewMessages(perplexity.WithSystemMessage(systemPrompt))
 	if err := msg.AddUserMessage(userPrompt); err != nil {
-		return nil, fmt.Errorf("failed to add user message: %w", err)
+		return nil, fmt.Errorf("failed to add user message to request: %w", err)
 	}
 
 	return []perplexity.CompletionRequestOption{
@@ -296,6 +296,15 @@ func validateInputs() error {
 		return clerrors.NewValidationError("user-prompt", "", "user prompt is required")
 	}
 
+	if err := validateEnumFields(); err != nil {
+		return err
+	}
+
+	return validateResponseFormats()
+}
+
+// validateEnumFields validates all enum-based configuration options.
+func validateEnumFields() error {
 	// Validate search recency
 	if err := validateStringEnum("search-recency", searchRecency,
 		validSearchRecency, "day, week, month, year, hour"); err != nil {
@@ -315,11 +324,12 @@ func validateInputs() error {
 	}
 
 	// Validate reasoning effort
-	if err := validateStringEnum("reasoning-effort", reasoningEffort,
-		validReasoningEfforts, "low, medium, high"); err != nil {
-		return err
-	}
+	return validateStringEnum("reasoning-effort", reasoningEffort,
+		validReasoningEfforts, "low, medium, high")
+}
 
+// validateResponseFormats validates response format options and model compatibility.
+func validateResponseFormats() error {
 	// Validate response format mutual exclusivity
 	if responseFormatJSONSchema != "" && responseFormatRegex != "" {
 		return clerrors.NewValidationError("response-format", "",
@@ -327,8 +337,8 @@ func validateInputs() error {
 	}
 
 	// Validate model for response formats
-	if (responseFormatJSONSchema != "" || responseFormatRegex != "") &&
-		!strings.HasPrefix(model, "sonar") {
+	hasResponseFormat := responseFormatJSONSchema != "" || responseFormatRegex != ""
+	if hasResponseFormat && !strings.HasPrefix(model, "sonar") {
 		return clerrors.NewValidationError("model", model,
 			"response formats (JSON schema and regex) are only supported by sonar models")
 	}

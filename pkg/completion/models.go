@@ -44,12 +44,12 @@ func KnownModels() []string {
 func GetCacheDir() (string, error) {
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
-		return "", fmt.Errorf("failed to get home directory: %w", err)
+		return "", fmt.Errorf("failed to get home directory for cache: %w", err)
 	}
 
 	cacheDir := filepath.Join(homeDir, ".cache", "pplx")
 	if err := os.MkdirAll(cacheDir, cacheDirPerms); err != nil { // #nosec G301
-		return "", fmt.Errorf("failed to create cache directory: %w", err)
+		return "", fmt.Errorf("failed to create cache directory %s: %w", cacheDir, err)
 	}
 
 	return cacheDir, nil
@@ -72,7 +72,7 @@ func GetCachedModels() ([]string, error) {
 			return KnownModels(), nil
 		}
 		// Return error for other read failures
-		return KnownModels(), fmt.Errorf("failed to read cache file: %w", err)
+		return KnownModels(), fmt.Errorf("failed to read cache file %s: %w", cachePath, err)
 	}
 
 	// Parse cache
@@ -107,11 +107,11 @@ func SaveModelsToCache(models []string) error {
 
 	data, err := json.MarshalIndent(cache, "", "  ")
 	if err != nil {
-		return fmt.Errorf("failed to marshal cache data: %w", err)
+		return fmt.Errorf("failed to marshal model cache data: %w", err)
 	}
 
 	if err := os.WriteFile(cachePath, data, cacheFilePerms); err != nil { // #nosec G306
-		return fmt.Errorf("failed to write cache file: %w", err)
+		return fmt.Errorf("failed to write cache file %s: %w", cachePath, err)
 	}
 
 	return nil

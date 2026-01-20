@@ -63,13 +63,13 @@ func (l *Loader) Load() error {
 		// It's okay if config file doesn't exist
 		var configFileNotFoundError viper.ConfigFileNotFoundError
 		if !errors.As(err, &configFileNotFoundError) {
-			return fmt.Errorf("error reading config file: %w", err)
+			return fmt.Errorf("error reading config file %s: %w", l.viper.ConfigFileUsed(), err)
 		}
 	}
 
 	// Unmarshal config into data structure
 	if err := l.viper.Unmarshal(l.data); err != nil {
-		return fmt.Errorf("error unmarshaling config: %w", err)
+		return fmt.Errorf("error unmarshaling config from %s: %w", l.viper.ConfigFileUsed(), err)
 	}
 
 	return nil
@@ -84,7 +84,7 @@ func (l *Loader) LoadFrom(path string) error {
 	}
 
 	if err := l.viper.Unmarshal(l.data); err != nil {
-		return fmt.Errorf("error unmarshaling config: %w", err)
+		return fmt.Errorf("error unmarshaling config from %s: %w", path, err)
 	}
 
 	return nil
@@ -167,7 +167,7 @@ func ListConfigFiles() ([]ConfigFileInfo, error) {
 	// Read directory contents
 	entries, err := os.ReadDir(configDir)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read config directory: %w", err)
+		return nil, fmt.Errorf("failed to read config directory %s: %w", configDir, err)
 	}
 
 	files := make([]ConfigFileInfo, 0, len(entries))
@@ -336,7 +336,7 @@ func FormatTimestamp(t time.Time) string {
 func GetConfigFileInfo(path string) (*ConfigFileInfo, error) {
 	info, err := os.Stat(path)
 	if err != nil {
-		return nil, fmt.Errorf("failed to stat file: %w", err)
+		return nil, fmt.Errorf("failed to stat file %s: %w", path, err)
 	}
 
 	if info.IsDir() {

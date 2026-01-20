@@ -54,11 +54,11 @@ func saveConfigData(data *config.ConfigData) error {
 
 	yamlData, err := yaml.Marshal(data)
 	if err != nil {
-		return fmt.Errorf("failed to marshal config: %w", err)
+		return fmt.Errorf("failed to marshal config for %s: %w", configPath, err)
 	}
 
 	if err := os.WriteFile(configPath, yamlData, configFilePermission); err != nil {
-		return fmt.Errorf("failed to save config: %w", err)
+		return fmt.Errorf("failed to save config to %s: %w", configPath, err)
 	}
 
 	// Verify permissions after writing
@@ -126,7 +126,7 @@ func loadOrCreateConfig() (*config.ConfigData, error) {
 	case initTemplate != "":
 		cfg, err := config.LoadTemplate(initTemplate)
 		if err != nil {
-			return nil, fmt.Errorf("failed to load template: %w", err)
+			return nil, fmt.Errorf("failed to load template %q: %w", initTemplate, err)
 		}
 		fmt.Printf("Loaded %q template configuration\n", initTemplate)
 		return cfg, nil
@@ -183,7 +183,7 @@ func runConfigInit(_ *cobra.Command, _ []string) error {
 	// Create directory if it doesn't exist
 	configDir := filepath.Dir(configPath)
 	if err := os.MkdirAll(configDir, configDirPermission); err != nil {
-		return fmt.Errorf("failed to create config directory: %w", err)
+		return fmt.Errorf("failed to create config directory %s: %w", configDir, err)
 	}
 
 	// Check environment if requested
@@ -205,7 +205,7 @@ func runConfigInit(_ *cobra.Command, _ []string) error {
 
 	// Write to file
 	if err := os.WriteFile(configPath, []byte(yamlContent), configFilePermission); err != nil {
-		return fmt.Errorf("failed to write config file: %w", err)
+		return fmt.Errorf("failed to write config file to %s: %w", configPath, err)
 	}
 
 	fmt.Printf("Configuration file created at %s\n", configPath)
@@ -245,7 +245,7 @@ func checkEnvironment() {
 func verifyConfigPermissions(path string) error {
 	info, err := os.Stat(path)
 	if err != nil {
-		return fmt.Errorf("failed to check file permissions: %w", err)
+		return fmt.Errorf("failed to check file permissions for %s: %w", path, err)
 	}
 
 	mode := info.Mode().Perm()
@@ -272,11 +272,11 @@ var configShowCmd = &cobra.Command{
 
 		if configFilePath != "" {
 			if err := loader.LoadFrom(configFilePath); err != nil {
-				return fmt.Errorf("failed to load config: %w", err)
+				return fmt.Errorf("failed to load config from %s: %w", configFilePath, err)
 			}
 		} else {
 			if err := loader.Load(); err != nil {
-				return fmt.Errorf("failed to load config: %w", err)
+				return fmt.Errorf("failed to load config from default locations: %w", err)
 			}
 		}
 
@@ -287,19 +287,19 @@ var configShowCmd = &cobra.Command{
 			pm := config.NewProfileManager(cfg)
 			profile, err := pm.LoadProfile(profileName)
 			if err != nil {
-				return fmt.Errorf("failed to load profile: %w", err)
+				return fmt.Errorf("failed to load profile %q: %w", profileName, err)
 			}
 
 			if jsonOutput {
 				data, err := json.MarshalIndent(profile, "", "  ")
 				if err != nil {
-					return fmt.Errorf("failed to marshal profile: %w", err)
+					return fmt.Errorf("failed to marshal profile %q to JSON: %w", profileName, err)
 				}
 				fmt.Println(string(data))
 			} else {
 				data, err := yaml.Marshal(profile)
 				if err != nil {
-					return fmt.Errorf("failed to marshal profile: %w", err)
+					return fmt.Errorf("failed to marshal profile %q to YAML: %w", profileName, err)
 				}
 				fmt.Print(string(data))
 			}
@@ -317,13 +317,13 @@ var configShowCmd = &cobra.Command{
 		if jsonOutput {
 			data, err := json.MarshalIndent(cfgCopy, "", "  ")
 			if err != nil {
-				return fmt.Errorf("failed to marshal config: %w", err)
+				return fmt.Errorf("failed to marshal config to JSON: %w", err)
 			}
 			fmt.Println(string(data))
 		} else {
 			data, err := yaml.Marshal(cfgCopy)
 			if err != nil {
-				return fmt.Errorf("failed to marshal config: %w", err)
+				return fmt.Errorf("failed to marshal config to YAML: %w", err)
 			}
 			fmt.Print(string(data))
 		}
@@ -342,11 +342,11 @@ var configValidateCmd = &cobra.Command{
 
 		if configFilePath != "" {
 			if err := loader.LoadFrom(configFilePath); err != nil {
-				return fmt.Errorf("failed to load config: %w", err)
+				return fmt.Errorf("failed to load config from %s: %w", configFilePath, err)
 			}
 		} else {
 			if err := loader.Load(); err != nil {
-				return fmt.Errorf("failed to load config: %w", err)
+				return fmt.Errorf("failed to load config from default locations: %w", err)
 			}
 		}
 
@@ -395,7 +395,7 @@ var configEditCmd = &cobra.Command{
 		editorCmd.Stderr = os.Stderr
 
 		if err := editorCmd.Run(); err != nil {
-			return fmt.Errorf("failed to open editor: %w", err)
+			return fmt.Errorf("failed to open editor %s: %w", editor, err)
 		}
 
 		// Validate after editing
@@ -469,7 +469,7 @@ func runConfigOptions(_ *cobra.Command, _ []string) error {
 	// Format output
 	output, err := config.FormatOptions(options, optionsFormat)
 	if err != nil {
-		return fmt.Errorf("failed to format options: %w", err)
+		return fmt.Errorf("failed to format options as %s: %w", optionsFormat, err)
 	}
 
 	fmt.Print(output)
@@ -599,7 +599,7 @@ var configProfileListCmd = &cobra.Command{
 	RunE: func(_ *cobra.Command, _ []string) error {
 		loader := config.NewLoader()
 		if err := loader.Load(); err != nil {
-			return fmt.Errorf("failed to load config: %w", err)
+			return fmt.Errorf("failed to load config for profile list: %w", err)
 		}
 
 		pm := config.NewProfileManager(loader.Data())
@@ -630,12 +630,12 @@ var configProfileCreateCmd = &cobra.Command{
 
 		loader := config.NewLoader()
 		if err := loader.Load(); err != nil {
-			return fmt.Errorf("failed to load config: %w", err)
+			return fmt.Errorf("failed to load config for profile creation: %w", err)
 		}
 
 		pm := config.NewProfileManager(loader.Data())
 		if _, err := pm.CreateProfile(profileName, ""); err != nil {
-			return fmt.Errorf("failed to create profile: %w", err)
+			return fmt.Errorf("failed to create profile %q: %w", profileName, err)
 		}
 
 		// Save config
@@ -646,11 +646,11 @@ var configProfileCreateCmd = &cobra.Command{
 
 		data, err := yaml.Marshal(loader.Data())
 		if err != nil {
-			return fmt.Errorf("failed to marshal config: %w", err)
+			return fmt.Errorf("failed to marshal config for %s: %w", configPath, err)
 		}
 
 		if err := os.WriteFile(configPath, data, configFilePermission); err != nil {
-			return fmt.Errorf("failed to save config: %w", err)
+			return fmt.Errorf("failed to save config to %s: %w", configPath, err)
 		}
 
 		fmt.Printf("Profile '%s' created successfully\n", profileName)
@@ -668,12 +668,12 @@ var configProfileSwitchCmd = &cobra.Command{
 
 		loader := config.NewLoader()
 		if err := loader.Load(); err != nil {
-			return fmt.Errorf("failed to load config: %w", err)
+			return fmt.Errorf("failed to load config for profile switch: %w", err)
 		}
 
 		pm := config.NewProfileManager(loader.Data())
 		if err := pm.SetActiveProfile(profileName); err != nil {
-			return fmt.Errorf("failed to switch profile: %w", err)
+			return fmt.Errorf("failed to switch to profile %q: %w", profileName, err)
 		}
 
 		// Save config
@@ -696,12 +696,12 @@ var configProfileDeleteCmd = &cobra.Command{
 
 		loader := config.NewLoader()
 		if err := loader.Load(); err != nil {
-			return fmt.Errorf("failed to load config: %w", err)
+			return fmt.Errorf("failed to load config for profile deletion: %w", err)
 		}
 
 		pm := config.NewProfileManager(loader.Data())
 		if err := pm.DeleteProfile(profileName); err != nil {
-			return fmt.Errorf("failed to delete profile: %w", err)
+			return fmt.Errorf("failed to delete profile %q: %w", profileName, err)
 		}
 
 		// Save config
