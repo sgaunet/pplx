@@ -3,12 +3,12 @@ package config
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"strconv"
 	"strings"
 	"text/tabwriter"
 
+	"github.com/sgaunet/pplx/pkg/clerrors"
 	"gopkg.in/yaml.v3"
 )
 
@@ -23,14 +23,6 @@ const (
 	defaultMaxDescLength = 60
 	defaultTabPadding    = 2
 	defaultMinTruncate   = 3
-)
-
-var (
-	// ErrOptionNotFound is returned when an option is not found.
-	ErrOptionNotFound = errors.New("option not found")
-
-	// ErrUnsupportedFormat is returned when an unsupported format is requested.
-	ErrUnsupportedFormat = errors.New("unsupported format")
 )
 
 // OptionMetadata represents metadata for a single configuration option.
@@ -461,7 +453,7 @@ func (r *MetadataRegistry) GetOption(name string) (*OptionMetadata, error) {
 		}
 	}
 
-	return nil, fmt.Errorf("%w: %s", ErrOptionNotFound, name)
+	return nil, fmt.Errorf("%w: %s", clerrors.ErrOptionNotFound, name)
 }
 
 // GetBySection returns all options for a specific section.
@@ -629,7 +621,7 @@ func FormatOptions(options []*OptionMetadata, format string) (string, error) {
 	case "yaml", "yml":
 		formatter = NewYAMLFormatter()
 	default:
-		return "", fmt.Errorf("%w: %s (supported: table, json, yaml)", ErrUnsupportedFormat, format)
+		return "", fmt.Errorf("%w: %s (supported: table, json, yaml)", clerrors.ErrUnsupportedFormat, format)
 	}
 
 	result, err := formatter.Format(options)

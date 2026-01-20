@@ -2,25 +2,18 @@ package cmd
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
 
+	"github.com/sgaunet/pplx/pkg/clerrors"
 	"github.com/sgaunet/pplx/pkg/completion"
 	"github.com/sgaunet/pplx/pkg/config"
 	"github.com/sgaunet/pplx/pkg/logger"
 	"github.com/sgaunet/pplx/pkg/security"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
-)
-
-// Errors for config operations.
-var (
-	ErrConfigFileExists = errors.New("configuration file already exists")
-	ErrValidationFailed = errors.New("validation failed")
-	ErrUnknownSection   = errors.New("unknown section")
 )
 
 const (
@@ -175,7 +168,7 @@ func runConfigInit(_ *cobra.Command, _ []string) error {
 	// Check if file already exists
 	if _, err := os.Stat(configPath); err == nil {
 		if !initForce {
-			return fmt.Errorf("%w at %s (use --force to overwrite)", ErrConfigFileExists, configPath)
+			return fmt.Errorf("%w at %s (use --force to overwrite)", clerrors.ErrConfigFileExists, configPath)
 		}
 		fmt.Printf("Overwriting existing configuration at %s\n", configPath)
 	}
@@ -357,7 +350,7 @@ var configValidateCmd = &cobra.Command{
 		if err := validator.Validate(cfg); err != nil {
 			fmt.Println("Configuration validation failed:")
 			fmt.Println(err.Error())
-			return ErrValidationFailed
+			return clerrors.ErrValidationFailed
 		}
 
 		fmt.Println("Configuration is valid ✓")
@@ -453,7 +446,7 @@ func runConfigOptions(_ *cobra.Command, _ []string) error {
 	if optionsSection != "" {
 		options = registry.GetBySection(optionsSection)
 		if len(options) == 0 {
-			return fmt.Errorf("%w: %s (valid: defaults, search, output, api)", ErrUnknownSection, optionsSection)
+			return fmt.Errorf("%w: %s (valid: defaults, search, output, api)", clerrors.ErrUnknownSection, optionsSection)
 		}
 	} else {
 		options = registry.GetAll()

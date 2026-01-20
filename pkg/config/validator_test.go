@@ -2,6 +2,8 @@ package config
 
 import (
 	"testing"
+
+	"github.com/sgaunet/pplx/pkg/clerrors"
 )
 
 func TestValidatorValidConfig(t *testing.T) {
@@ -142,7 +144,7 @@ func TestValidatorMultipleErrors(t *testing.T) {
 	}
 
 	// Check that we got multiple errors
-	if verrs, ok := err.(ValidationErrors); ok {
+	if verrs, ok := err.(clerrors.ValidationErrors); ok {
 		if len(verrs) < 3 {
 			t.Errorf("Expected at least 3 validation errors, got %d", len(verrs))
 		}

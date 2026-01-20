@@ -3,28 +3,13 @@ package chat
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"strings"
 	"time"
 
 	"github.com/sgaunet/perplexity-go/v2"
+	"github.com/sgaunet/pplx/pkg/clerrors"
 	"github.com/sgaunet/pplx/pkg/logger"
-)
-
-// Error definitions for static error wrapping.
-var (
-	ErrInvalidSearchRecency         = errors.New("invalid search-recency value")
-	ErrConflictingResponseFormats   = errors.New("cannot use both JSON schema and regex response formats")
-	ErrResponseFormatNotSupported   = errors.New(
-		"response formats (JSON schema and regex) are only supported by sonar models")
-	ErrInvalidSearchMode           = errors.New("invalid search mode")
-	ErrInvalidSearchContextSize    = errors.New("invalid search context size")
-	ErrInvalidSearchAfterDate      = errors.New("invalid search-after-date format")
-	ErrInvalidSearchBeforeDate     = errors.New("invalid search-before-date format")
-	ErrInvalidLastUpdatedAfter     = errors.New("invalid last-updated-after format")
-	ErrInvalidLastUpdatedBefore    = errors.New("invalid last-updated-before format")
-	ErrInvalidReasoningEffort      = errors.New("invalid reasoning effort")
 )
 
 // Options contains all configuration options for a chat session.
@@ -179,7 +164,7 @@ func (c *Chat) addSearchOptions(opts *[]perplexity.CompletionRequestOption) erro
 		validRecency := map[string]bool{"day": true, "week": true, "month": true, "year": true, "hour": true}
 		if !validRecency[c.options.SearchRecency] {
 			return fmt.Errorf("%w: '%s'. Must be one of: day, week, month, year, hour",
-				ErrInvalidSearchRecency, c.options.SearchRecency)
+				clerrors.ErrInvalidSearchRecency, c.options.SearchRecency)
 		}
 		*opts = append(*opts, perplexity.WithSearchRecencyFilter(c.options.SearchRecency))
 	}
@@ -210,11 +195,11 @@ func (c *Chat) addImageOptions(opts *[]perplexity.CompletionRequestOption) {
 
 func (c *Chat) addFormatOptions(opts *[]perplexity.CompletionRequestOption) error {
 	if c.options.ResponseFormatJSONSchema != "" && c.options.ResponseFormatRegex != "" {
-		return ErrConflictingResponseFormats
+		return clerrors.ErrConflictingResponseFormats
 	}
 	if c.options.ResponseFormatJSONSchema != "" || c.options.ResponseFormatRegex != "" {
 		if !strings.HasPrefix(c.options.Model, "sonar") {
-			return ErrResponseFormatNotSupported
+			return clerrors.ErrResponseFormatNotSupported
 		}
 	}
 	if c.options.ResponseFormatJSONSchema != "" {
@@ -235,7 +220,7 @@ func (c *Chat) addModeOptions(opts *[]perplexity.CompletionRequestOption) error 
 	if c.options.SearchMode != "" {
 		validModes := map[string]bool{"web": true, "academic": true}
 		if !validModes[c.options.SearchMode] {
-			return fmt.Errorf("%w: '%s'. Must be one of: web, academic", ErrInvalidSearchMode, c.options.SearchMode)
+			return fmt.Errorf("%w: '%s'. Must be one of: web, academic", clerrors.ErrInvalidSearchMode, c.options.SearchMode)
 		}
 		*opts = append(*opts, perplexity.WithSearchMode(c.options.SearchMode))
 	}
@@ -243,7 +228,7 @@ func (c *Chat) addModeOptions(opts *[]perplexity.CompletionRequestOption) error 
 		validSizes := map[string]bool{"low": true, "medium": true, "high": true}
 		if !validSizes[c.options.SearchContextSize] {
 			return fmt.Errorf("%w: '%s'. Must be one of: low, medium, high",
-				ErrInvalidSearchContextSize, c.options.SearchContextSize)
+				clerrors.ErrInvalidSearchContextSize, c.options.SearchContextSize)
 		}
 		*opts = append(*opts, perplexity.WithSearchContextSize(c.options.SearchContextSize))
 	}
@@ -254,28 +239,28 @@ func (c *Chat) addDateOptions(opts *[]perplexity.CompletionRequestOption) error 
 	if c.options.SearchAfterDate != "" {
 		date, err := time.Parse("01/02/2006", c.options.SearchAfterDate)
 		if err != nil {
-			return fmt.Errorf("%w: '%s'. Use MM/DD/YYYY", ErrInvalidSearchAfterDate, c.options.SearchAfterDate)
+			return fmt.Errorf("%w: '%s'. Use MM/DD/YYYY", clerrors.ErrInvalidSearchAfterDate, c.options.SearchAfterDate)
 		}
 		*opts = append(*opts, perplexity.WithSearchAfterDateFilter(date))
 	}
 	if c.options.SearchBeforeDate != "" {
 		date, err := time.Parse("01/02/2006", c.options.SearchBeforeDate)
 		if err != nil {
-			return fmt.Errorf("%w: '%s'. Use MM/DD/YYYY", ErrInvalidSearchBeforeDate, c.options.SearchBeforeDate)
+			return fmt.Errorf("%w: '%s'. Use MM/DD/YYYY", clerrors.ErrInvalidSearchBeforeDate, c.options.SearchBeforeDate)
 		}
 		*opts = append(*opts, perplexity.WithSearchBeforeDateFilter(date))
 	}
 	if c.options.LastUpdatedAfter != "" {
 		date, err := time.Parse("01/02/2006", c.options.LastUpdatedAfter)
 		if err != nil {
-			return fmt.Errorf("%w: '%s'. Use MM/DD/YYYY", ErrInvalidLastUpdatedAfter, c.options.LastUpdatedAfter)
+			return fmt.Errorf("%w: '%s'. Use MM/DD/YYYY", clerrors.ErrInvalidLastUpdatedAfter, c.options.LastUpdatedAfter)
 		}
 		*opts = append(*opts, perplexity.WithLastUpdatedAfterFilter(date))
 	}
 	if c.options.LastUpdatedBefore != "" {
 		date, err := time.Parse("01/02/2006", c.options.LastUpdatedBefore)
 		if err != nil {
-			return fmt.Errorf("%w: '%s'. Use MM/DD/YYYY", ErrInvalidLastUpdatedBefore, c.options.LastUpdatedBefore)
+			return fmt.Errorf("%w: '%s'. Use MM/DD/YYYY", clerrors.ErrInvalidLastUpdatedBefore, c.options.LastUpdatedBefore)
 		}
 		*opts = append(*opts, perplexity.WithLastUpdatedBeforeFilter(date))
 	}
@@ -287,7 +272,7 @@ func (c *Chat) addResearchOptions(opts *[]perplexity.CompletionRequestOption) er
 		validEfforts := map[string]bool{"low": true, "medium": true, "high": true}
 		if !validEfforts[c.options.ReasoningEffort] {
 			return fmt.Errorf("%w: '%s'. Must be one of: low, medium, high",
-				ErrInvalidReasoningEffort, c.options.ReasoningEffort)
+				clerrors.ErrInvalidReasoningEffort, c.options.ReasoningEffort)
 		}
 		if !strings.Contains(c.options.Model, "deep-research") {
 			logger.Warn("reasoning-effort only supported by sonar-deep-research model",

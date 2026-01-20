@@ -8,14 +8,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/sgaunet/pplx/pkg/clerrors"
 	"github.com/spf13/viper"
 )
-
-// ErrNoConfigFound is returned when no config file is found in the config directory.
-var ErrNoConfigFound = errors.New("no config file found in ~/.config/pplx/")
-
-// ErrPathIsDirectory is returned when a file path points to a directory instead of a file.
-var ErrPathIsDirectory = errors.New("path is a directory, not a file")
 
 // ConfigPaths defines the standard location where config files are searched.
 var ConfigPaths = []string{
@@ -131,7 +126,7 @@ func FindConfigFile() (string, error) {
 		}
 	}
 
-	return "", ErrNoConfigFound
+	return "", clerrors.ErrNoConfigFound
 }
 
 // fileExists checks if a file exists.
@@ -340,7 +335,7 @@ func GetConfigFileInfo(path string) (*ConfigFileInfo, error) {
 	}
 
 	if info.IsDir() {
-		return nil, ErrPathIsDirectory
+		return nil, clerrors.ErrPathIsDirectory
 	}
 
 	fileInfo := &ConfigFileInfo{

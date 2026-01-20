@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/sgaunet/perplexity-go/v2"
+	"github.com/sgaunet/pplx/pkg/clerrors"
 )
 
 func TestQueryHandler_ValidateParameters(t *testing.T) {
@@ -145,7 +146,7 @@ func TestQueryHandler_ValidateParameters(t *testing.T) {
 					t.Error("Expected validation error, got nil")
 					return
 				}
-				var valErr *ValidationError
+				var valErr *clerrors.ValidationError
 				if errors.As(err, &valErr) {
 					if valErr.Field != tt.errField {
 						t.Errorf("Expected error field %q, got %q", tt.errField, valErr.Field)
@@ -300,7 +301,7 @@ func TestQueryHandler_BuildRequestOptions(t *testing.T) {
 					t.Error("Expected date validation error")
 				}
 
-				var valErr *ValidationError
+				var valErr *clerrors.ValidationError
 				if !errors.As(err, &valErr) {
 					t.Errorf("Expected ValidationError, got %T", err)
 				}
@@ -351,7 +352,7 @@ func TestQueryHandler_BuildRequestOptions(t *testing.T) {
 			t.Error("Expected JSON schema validation error")
 		}
 
-		var valErr *ValidationError
+		var valErr *clerrors.ValidationError
 		if !errors.As(err, &valErr) {
 			t.Errorf("Expected ValidationError, got %T", err)
 		}
@@ -453,7 +454,7 @@ func TestQueryHandler_BuildRequestOptions(t *testing.T) {
 			t.Error("Expected validation error")
 		}
 
-		var valErr *ValidationError
+		var valErr *clerrors.ValidationError
 		if !errors.As(err, &valErr) {
 			t.Errorf("Expected ValidationError, got %T", err)
 		}
@@ -493,7 +494,7 @@ func TestQueryHandler_Handle_ValidationFlow(t *testing.T) {
 			t.Fatal("Expected validation error, got nil")
 		}
 
-		var valErr *ValidationError
+		var valErr *clerrors.ValidationError
 		if !errors.As(err, &valErr) {
 			t.Errorf("Expected ValidationError, got %T", err)
 		}

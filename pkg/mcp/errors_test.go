@@ -3,6 +3,8 @@ package mcp
 import (
 	"errors"
 	"testing"
+
+	"github.com/sgaunet/pplx/pkg/clerrors"
 )
 
 func TestParameterError(t *testing.T) {
@@ -94,7 +96,7 @@ func TestValidationError(t *testing.T) {
 
 	t.Run("errors.As compatibility", func(t *testing.T) {
 		err := NewValidationError("field", "value", "message")
-		var valErr *ValidationError
+		var valErr *clerrors.ValidationError
 		if !errors.As(err, &valErr) {
 			t.Error("Expected errors.As to work with ValidationError")
 		}

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/sgaunet/pplx/pkg/clerrors"
 	"gopkg.in/yaml.v3"
 )
 
@@ -19,14 +20,6 @@ const (
 	TemplateCreative    = "creative"
 	TemplateNews        = "news"
 	TemplateFullExample = "full-example"
-)
-
-var (
-	// ErrTemplateNotFound is returned when a template name is not recognized.
-	ErrTemplateNotFound = errors.New("template not found")
-
-	// ErrTemplateInvalid is returned when a template file cannot be parsed.
-	ErrTemplateInvalid = errors.New("template is invalid")
 )
 
 // templateFileMap maps template names to their file paths in the embedded filesystem.
@@ -57,19 +50,19 @@ func LoadTemplate(name string) (*ConfigData, error) {
 	// Check if template exists
 	filePath, exists := templateFileMap[name]
 	if !exists {
-		return nil, fmt.Errorf("%w: %s", ErrTemplateNotFound, name)
+		return nil, fmt.Errorf("%w: %s", clerrors.ErrTemplateNotFound, name)
 	}
 
 	// Read the embedded template file
 	data, err := templatesFS.ReadFile(filePath)
 	if err != nil {
-		return nil, fmt.Errorf("%w: failed to read template %s: %w", ErrTemplateInvalid, name, err)
+		return nil, fmt.Errorf("%w: failed to read template %s: %w", clerrors.ErrTemplateInvalid, name, err)
 	}
 
 	// Parse YAML into ConfigData
 	var config ConfigData
 	if err := yaml.Unmarshal(data, &config); err != nil {
-		return nil, fmt.Errorf("%w: failed to parse template %s: %w", ErrTemplateInvalid, name, err)
+		return nil, fmt.Errorf("%w: failed to parse template %s: %w", clerrors.ErrTemplateInvalid, name, err)
 	}
 
 	return &config, nil
@@ -111,10 +104,10 @@ func GetTemplateDescription(name string) (*TemplateInfo, error) {
 			return &templates[i], nil
 		}
 	}
-	return nil, fmt.Errorf("%w: %s", ErrTemplateNotFound, name)
+	return nil, fmt.Errorf("%w: %s", clerrors.ErrTemplateNotFound, name)
 }
 
 // IsTemplateNotFoundError checks if an error is a template not found error.
 func IsTemplateNotFoundError(err error) bool {
-	return errors.Is(err, ErrTemplateNotFound)
+	return errors.Is(err, clerrors.ErrTemplateNotFound)
 }
