@@ -1,13 +1,13 @@
 package cmd
 
 import (
-	"errors"
 	"fmt"
 	"io"
 	"os"
 	"path/filepath"
 	"strings"
 
+	"github.com/sgaunet/pplx/pkg/clerrors"
 	"github.com/sgaunet/pplx/pkg/logger"
 	"github.com/spf13/cobra"
 )
@@ -25,9 +25,6 @@ const (
 var (
 	completionUninstall  bool
 	completionOutputFile string
-
-	errUnsupportedShell = errors.New("unsupported shell")
-	errNoShellEnv       = errors.New("SHELL environment variable not set")
 )
 
 // completionCmd represents the completion command.
@@ -251,7 +248,7 @@ func generateCompletion(rootCmd *cobra.Command, shell string, out io.Writer) err
 	case shellPowershell:
 		err = rootCmd.GenPowerShellCompletionWithDesc(out)
 	default:
-		return fmt.Errorf("%w: %s", errUnsupportedShell, shell)
+		return fmt.Errorf("%w: %s", clerrors.ErrUnsupportedShell, shell)
 	}
 	if err != nil {
 		return fmt.Errorf("failed to generate %s completion: %w", shell, err)
@@ -263,7 +260,7 @@ func generateCompletion(rootCmd *cobra.Command, shell string, out io.Writer) err
 func detectShell() (string, error) {
 	shell := os.Getenv("SHELL")
 	if shell == "" {
-		return "", errNoShellEnv
+		return "", clerrors.ErrNoShellEnv
 	}
 
 	base := filepath.Base(shell)
@@ -277,7 +274,7 @@ func detectShell() (string, error) {
 	case strings.Contains(base, "pwsh") || strings.Contains(base, shellPowershell):
 		return shellPowershell, nil
 	default:
-		return "", fmt.Errorf("%w: %s", errUnsupportedShell, base)
+		return "", fmt.Errorf("%w: %s", clerrors.ErrUnsupportedShell, base)
 	}
 }
 
@@ -299,7 +296,7 @@ func getInstallTarget(homeDir, shell string) (*shellInstallTarget, error) {
 	case shellPowershell:
 		return getPowershellInstallTarget(homeDir)
 	default:
-		return nil, fmt.Errorf("%w: %s", errUnsupportedShell, shell)
+		return nil, fmt.Errorf("%w: %s", clerrors.ErrUnsupportedShell, shell)
 	}
 }
 
@@ -426,7 +423,7 @@ func getUninstallPaths(homeDir, shell string) ([]string, error) {
 			filepath.Join(homeDir, "Documents", "PowerShell", "Scripts", "pplx-completion.ps1"),
 		}, nil
 	default:
-		return nil, fmt.Errorf("%w: %s", errUnsupportedShell, shell)
+		return nil, fmt.Errorf("%w: %s", clerrors.ErrUnsupportedShell, shell)
 	}
 }
 

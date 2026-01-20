@@ -2,20 +2,14 @@ package cmd
 
 import (
 	"bufio"
-	"errors"
 	"fmt"
 	"os"
 	"slices"
 	"strconv"
 	"strings"
 
+	"github.com/sgaunet/pplx/pkg/clerrors"
 	"github.com/sgaunet/pplx/pkg/config"
-)
-
-// Wizard errors.
-var (
-	ErrFailedToReadInput = errors.New("failed to read input")
-	ErrFailedToReadAPIKey = errors.New("failed to read API key")
 )
 
 const (
@@ -198,7 +192,7 @@ func (w *WizardState) promptSearchMode() error {
 	fmt.Println()
 	fmt.Print("Search mode (web/academic) [web]: ")
 	if !w.scanner.Scan() {
-		return ErrFailedToReadInput
+		return clerrors.ErrFailedToReadInput
 	}
 
 	mode := strings.TrimSpace(w.scanner.Text())
@@ -213,7 +207,7 @@ func (w *WizardState) promptSearchMode() error {
 func (w *WizardState) promptRecencyFilter() error {
 	fmt.Print("Recency filter (day/week/month/year) [skip]: ")
 	if !w.scanner.Scan() {
-		return ErrFailedToReadInput
+		return clerrors.ErrFailedToReadInput
 	}
 
 	recency := strings.TrimSpace(w.scanner.Text())
@@ -228,7 +222,7 @@ func (w *WizardState) promptRecencyFilter() error {
 func (w *WizardState) promptContextSize() error {
 	fmt.Print("Context size (low/medium/high) [skip]: ")
 	if !w.scanner.Scan() {
-		return ErrFailedToReadInput
+		return clerrors.ErrFailedToReadInput
 	}
 
 	contextSize := strings.TrimSpace(w.scanner.Text())
@@ -255,7 +249,7 @@ func (w *WizardState) selectSearchFilters() error {
 
 	fmt.Print("Configure search preferences? (y/N): ")
 	if !w.scanner.Scan() {
-		return ErrFailedToReadInput
+		return clerrors.ErrFailedToReadInput
 	}
 
 	response := strings.ToLower(strings.TrimSpace(w.scanner.Text()))
@@ -316,7 +310,7 @@ func (w *WizardState) readAndStoreAPIKey() error {
 	fmt.Println()
 	fmt.Print("Enter your Perplexity API key: ")
 	if !w.scanner.Scan() {
-		return ErrFailedToReadAPIKey
+		return clerrors.ErrFailedToReadAPIKey
 	}
 
 	w.apiKey = strings.TrimSpace(w.scanner.Text())
@@ -519,7 +513,7 @@ func (w *WizardState) promptChoice(prompt string, validChoices []string) (string
 	for {
 		fmt.Printf("%s: ", prompt)
 		if !w.scanner.Scan() {
-			return "", ErrFailedToReadInput
+			return "", clerrors.ErrFailedToReadInput
 		}
 
 		choice := strings.TrimSpace(w.scanner.Text())
@@ -540,7 +534,7 @@ func (w *WizardState) promptYesNo(prompt string, defaultYes bool) (bool, error) 
 
 	fmt.Printf("%s %s: ", prompt, defaultIndicator)
 	if !w.scanner.Scan() {
-		return false, ErrFailedToReadInput
+		return false, clerrors.ErrFailedToReadInput
 	}
 
 	response := strings.ToLower(strings.TrimSpace(w.scanner.Text()))
@@ -584,7 +578,7 @@ func (w *WizardState) promptFloat(prompt string, minVal, maxVal, defaultVal floa
 	for {
 		fmt.Print(prompt)
 		if !w.scanner.Scan() {
-			return 0, false, ErrFailedToReadInput
+			return 0, false, clerrors.ErrFailedToReadInput
 		}
 
 		input := strings.TrimSpace(w.scanner.Text())
@@ -614,7 +608,7 @@ func (w *WizardState) promptInt(prompt string, minVal, maxVal, defaultVal int) (
 	for {
 		fmt.Print(prompt)
 		if !w.scanner.Scan() {
-			return 0, false, ErrFailedToReadInput
+			return 0, false, clerrors.ErrFailedToReadInput
 		}
 
 		input := strings.TrimSpace(w.scanner.Text())

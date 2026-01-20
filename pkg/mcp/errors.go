@@ -5,6 +5,7 @@ package mcp
 import (
 	"fmt"
 
+	"github.com/sgaunet/pplx/pkg/clerrors"
 	"github.com/sgaunet/pplx/pkg/security"
 )
 
@@ -62,28 +63,8 @@ func (e *StreamError) Unwrap() error {
 	return e.Err
 }
 
-// ValidationError represents a validation error for query parameters.
-type ValidationError struct {
-	Field   string
-	Value   string
-	Message string
-}
-
-// NewValidationError creates a new validation error.
-func NewValidationError(field, value, message string) *ValidationError {
-	return &ValidationError{
-		Field:   field,
-		Value:   value,
-		Message: message,
-	}
-}
-
-func (e *ValidationError) Error() string {
-	// Sanitize value in error output
-	safeValue := security.SanitizeString(e.Value)
-
-	if safeValue == "" {
-		return fmt.Sprintf("validation failed for %s: %s", e.Field, e.Message)
-	}
-	return fmt.Sprintf("validation failed for %s=%s: %s", e.Field, safeValue, e.Message)
+// NewValidationError is a convenience wrapper for clerrors.NewValidationError.
+// Use clerrors.ValidationError for type assertions.
+func NewValidationError(field, value, message string) *clerrors.ValidationError {
+	return clerrors.NewValidationError(field, value, message)
 }

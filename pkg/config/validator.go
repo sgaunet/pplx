@@ -4,7 +4,8 @@ import (
 	"fmt"
 	"net/url"
 	"regexp"
-	"strings"
+
+	"github.com/sgaunet/pplx/pkg/clerrors"
 )
 
 const (
@@ -12,48 +13,21 @@ const (
 	maxPenalty     = 2.0
 )
 
-// ValidationError represents a configuration validation error.
-type ValidationError struct {
-	Field   string
-	Message string
-}
-
-// Error implements the error interface.
-func (e *ValidationError) Error() string {
-	return fmt.Sprintf("%s: %s", e.Field, e.Message)
-}
-
-// ValidationErrors is a collection of validation errors.
-type ValidationErrors []ValidationError
-
-// Error implements the error interface.
-func (e ValidationErrors) Error() string {
-	if len(e) == 0 {
-		return ""
-	}
-
-	messages := make([]string, 0, len(e))
-	for _, err := range e {
-		messages = append(messages, err.Error())
-	}
-	return strings.Join(messages, "; ")
-}
-
 // Validator validates configuration data.
 type Validator struct {
-	errors ValidationErrors
+	errors clerrors.ValidationErrors
 }
 
 // NewValidator creates a new validator.
 func NewValidator() *Validator {
 	return &Validator{
-		errors: make(ValidationErrors, 0),
+		errors: make(clerrors.ValidationErrors, 0),
 	}
 }
 
 // Validate validates the configuration data.
 func (v *Validator) Validate(data *ConfigData) error {
-	v.errors = make(ValidationErrors, 0)
+	v.errors = make(clerrors.ValidationErrors, 0)
 
 	// Validate defaults
 	v.validateDefaults(&data.Defaults)
@@ -85,7 +59,7 @@ func (v *Validator) Validate(data *ConfigData) error {
 }
 
 // Errors returns all validation errors.
-func (v *Validator) Errors() ValidationErrors {
+func (v *Validator) Errors() clerrors.ValidationErrors {
 	return v.errors
 }
 
@@ -233,8 +207,9 @@ func (v *Validator) validateProfiles(profiles map[string]*Profile) {
 
 // addError adds a validation error.
 func (v *Validator) addError(field, message string) {
-	v.errors = append(v.errors, ValidationError{
+	v.errors = append(v.errors, clerrors.ValidationError{
 		Field:   field,
+		Value:   "", // Config validation doesn't use Value field
 		Message: message,
 	})
 }

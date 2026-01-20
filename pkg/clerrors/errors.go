@@ -1,8 +1,8 @@
-// Package clerrors provides custom error types for the Perplexity CLI.
 package clerrors
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/sgaunet/pplx/pkg/security"
 )
@@ -126,4 +126,24 @@ func (e *IOError) Error() string {
 // Unwrap returns the wrapped error.
 func (e *IOError) Unwrap() error {
 	return e.Err
+}
+
+// ValidationErrors is a collection of validation errors.
+// It allows multiple validation errors to be collected and returned together,
+// providing comprehensive validation feedback in a single error.
+type ValidationErrors []ValidationError
+
+// Error implements the error interface by joining all validation error messages.
+func (e ValidationErrors) Error() string {
+	if len(e) == 0 {
+		return ""
+	}
+
+	messages := make([]string, 0, len(e))
+	for _, err := range e {
+		messages = append(messages, err.Error())
+	}
+
+	// Join all error messages with semicolons for readability
+	return strings.Join(messages, "; ")
 }
