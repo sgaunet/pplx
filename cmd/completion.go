@@ -285,6 +285,7 @@ type shellInstallTarget struct {
 }
 
 // getInstallTarget returns the installation target path and setup instructions for a shell.
+// Delegates to shell-specific helpers that handle platform conventions and package manager paths.
 func getInstallTarget(homeDir, shell string) (*shellInstallTarget, error) {
 	switch shell {
 	case shellBash:
@@ -300,20 +301,46 @@ func getInstallTarget(homeDir, shell string) (*shellInstallTarget, error) {
 	}
 }
 
+// getBashInstallTarget determines bash completion installation path with Homebrew detection.
+// Uses a sophisticated fallback strategy to handle both package manager and user installations.
+//
+// Path resolution strategy for bash (most complex of all shells):
+// 1. Try Homebrew system location: $HOMEBREW_PREFIX/etc/bash_completion.d/pplx
+//    - Honors HOMEBREW_PREFIX environment variable (custom Homebrew installations)
+//    - Falls back to /usr/local if HOMEBREW_PREFIX not set (default macOS Homebrew)
+//    - Tests if directory exists before using (Stat check on parent directory)
+// 2. Fallback to user directory: ~/.bash_completion.d/pplx
+//    - Used when Homebrew directory doesn't exist (Linux, non-Homebrew macOS, etc.)
+//    - Requires manual sourcing in ~/.bashrc (returns setup instructions)
+//
+// Rationale for Homebrew preference:
+// On macOS, Homebrew's bash-completion package provides automatic loading via
+// /etc/bash_completion.d. If user has bash-completion installed (common on macOS),
+// system-wide path provides zero-config experience. If not, user path provides
+// compatibility with Linux conventions and doesn't require package dependencies.
+//
+// Setup instructions difference:
+// - Homebrew path: No instructions (bash-completion package auto-sources)
+// - User path: Must add source line to ~/.bashrc (manual setup required)
+//
+// This is the ONLY shell that needs Homebrew detection - others use consistent user paths.
 func getBashInstallTarget(homeDir string) (*shellInstallTarget, error) {
-	// Try macOS Homebrew location first, then Linux
+	// Attempt 1: Homebrew system location
+	// Check HOMEBREW_PREFIX environment variable for custom Homebrew installations
 	brewPrefix := os.Getenv("HOMEBREW_PREFIX")
 	if brewPrefix == "" {
-		brewPrefix = "/usr/local" // Default Homebrew prefix
+		brewPrefix = "/usr/local" // Default Homebrew prefix on macOS
 	}
 
 	targetPath := filepath.Join(brewPrefix, "etc", "bash_completion.d", "pplx")
+	// Check if Homebrew bash_completion.d directory exists
 	if _, err := os.Stat(filepath.Dir(targetPath)); os.IsNotExist(err) {
-		// Fallback to user directory
+		// Attempt 2: User directory fallback (Linux-style path)
 		targetPath = filepath.Join(homeDir, ".bash_completion.d", "pplx")
 		if err := os.MkdirAll(filepath.Dir(targetPath), dirPerms); err != nil { // #nosec G301
 			return nil, fmt.Errorf("failed to create directory %s: %w", filepath.Dir(targetPath), err)
 		}
+		// User path requires manual sourcing in ~/.bashrc
 		return &shellInstallTarget{
 			targetPath: targetPath,
 			setupInstructions: fmt.Sprintf(
@@ -321,9 +348,13 @@ func getBashInstallTarget(homeDir string) (*shellInstallTarget, error) {
 				targetPath, targetPath),
 		}, nil
 	}
+	// Homebrew path: bash-completion package auto-sources, no setup needed
 	return &shellInstallTarget{targetPath: targetPath}, nil
 }
 
+// getZshInstallTarget returns zsh completion path following zsh conventions.
+// Path: ~/.zsh/completions/_pplx (underscore prefix is zsh convention for completion files)
+// Setup: User must add completion directory to fpath and enable compinit in ~/.zshrc.
 func getZshInstallTarget(homeDir string) (*shellInstallTarget, error) {
 	targetPath := filepath.Join(homeDir, ".zsh", "completions", "_pplx")
 	if err := os.MkdirAll(filepath.Dir(targetPath), dirPerms); err != nil { // #nosec G301
@@ -338,6 +369,9 @@ func getZshInstallTarget(homeDir string) (*shellInstallTarget, error) {
 	}, nil
 }
 
+// getFishInstallTarget returns fish completion path following XDG Base Directory spec.
+// Path: ~/.config/fish/completions/pplx.fish
+// Setup: No manual setup needed - fish auto-loads from this directory.
 func getFishInstallTarget(homeDir string) (*shellInstallTarget, error) {
 	configDir := filepath.Join(homeDir, ".config", "fish", "completions")
 	if err := os.MkdirAll(configDir, dirPerms); err != nil { // #nosec G301
@@ -348,6 +382,9 @@ func getFishInstallTarget(homeDir string) (*shellInstallTarget, error) {
 	}, nil
 }
 
+// getPowershellInstallTarget returns PowerShell completion path following Windows conventions.
+// Path: ~/Documents/PowerShell/Scripts/pplx-completion.ps1
+// Setup: User must dot-source the script in their PowerShell profile.
 func getPowershellInstallTarget(homeDir string) (*shellInstallTarget, error) {
 	targetPath := filepath.Join(homeDir, "Documents", "PowerShell", "Scripts", "pplx-completion.ps1")
 	if err := os.MkdirAll(filepath.Dir(targetPath), dirPerms); err != nil { // #nosec G301
@@ -428,6 +465,30 @@ func getUninstallPaths(homeDir, shell string) ([]string, error) {
 }
 
 // uninstallCompletion removes the completion script for the specified shell.
+// Handles multiple potential installation paths and fails gracefully if files don't exist.
+//
+// Multi-path checking rationale:
+// Completion files may exist in different locations depending on:
+// - Installation method (Homebrew vs user install for bash)
+// - Legacy installations (user may have moved files or installed multiple times)
+// - Tool version changes (old versions may have used different paths)
+//
+// Error handling: Intentional silent failure for missing files
+// Philosophy: Uninstall should succeed if the end state is "completion not installed",
+// regardless of whether files existed before. This makes uninstall idempotent:
+// - Running uninstall twice doesn't error on second run
+// - Running uninstall after manual deletion doesn't error
+// - Partial installations (file deleted but not others) are cleaned up gracefully
+//
+// The "removed" flag tracks whether ANY file was actually deleted to provide
+// meaningful user feedback:
+// - If files found and removed: Show success message + manual cleanup reminder
+// - If no files found: Inform user (not an error, just informative)
+//
+// Logging strategy for removal failures:
+// - Warn instead of error: File exists but can't delete (permissions, in use, etc.)
+// - Continue processing other paths: One failure shouldn't prevent cleaning other locations
+// - Don't fail entire operation: Partial cleanup is better than no cleanup.
 func uninstallCompletion(shell string) error {
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
@@ -441,19 +502,26 @@ func uninstallCompletion(shell string) error {
 
 	removed := false
 	for _, path := range targetPaths {
+		// Check if file exists before attempting removal
 		if _, err := os.Stat(path); err == nil {
+			// File exists - attempt removal
 			if err := os.Remove(path); err != nil {
+				// Warn but don't fail: permission issues, file in use, etc.
 				logger.Warn("failed to remove completion file", "path", path, "error", err)
 			} else {
 				fmt.Printf("✓ Removed completion file: %s\n", path)
 				removed = true
 			}
 		}
+		// File doesn't exist: Silent skip (not an error - desired end state achieved)
 	}
 
+	// Provide user feedback based on what was found and removed
 	if !removed {
 		fmt.Println("No completion files found to remove.")
 	} else {
+		// Remind user about manual shell config cleanup
+		// We only delete completion files, not the source/fpath lines in shell config
 		fmt.Println("\nYou may need to restart your shell or manually remove any " +
 			"source lines from your shell configuration.")
 	}
