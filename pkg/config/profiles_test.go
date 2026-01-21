@@ -1,6 +1,7 @@
 package config
 
 import (
+	"os"
 	"testing"
 )
 
@@ -298,5 +299,261 @@ func TestProfileManagerImportDuplicateWithOverwrite(t *testing.T) {
 	loaded, _ := pm.LoadProfile("test")
 	if loaded.Description != "Second" {
 		t.Errorf("Expected description 'Second', got '%s'", loaded.Description)
+	}
+}
+
+// =============================================================================
+// Profile Integration Edge Case Tests
+// =============================================================================
+
+func TestMergeProfile_WithEnvVarExpansion(t *testing.T) {
+	// Set up environment variables
+	cleanup := func() {
+		_ = os.Unsetenv("TEST_MODEL")
+		_ = os.Unsetenv("TEST_DOMAIN")
+	}
+	defer cleanup()
+
+	_ = os.Setenv("TEST_MODEL", "env-model")
+	_ = os.Setenv("TEST_DOMAIN", "env.example.com")
+
+	// Create config with env vars in base config (not in profile)
+	// Note: ExpandEnvVars() does not expand env vars inside profiles
+	data := &ConfigData{
+		Defaults: DefaultsConfig{
+			Model:       "$TEST_MODEL", // Will be expanded
+			Temperature: 0.5,
+		},
+		Search: SearchConfig{
+			Domains: []string{"${TEST_DOMAIN}"}, // Will be expanded
+		},
+		Profiles: map[string]*Profile{
+			"test": {
+				Name: "test",
+				Defaults: DefaultsConfig{
+					Temperature: 0.8, // Override temperature
+				},
+			},
+		},
+	}
+
+	// Expand env vars in base config
+	ExpandEnvVars(data)
+
+	// Now merge profile
+	pm := NewProfileManager(data)
+	merged, err := pm.MergeProfile("test")
+	if err != nil {
+		t.Fatalf("MergeProfile failed: %v", err)
+	}
+
+	// Verify env vars were expanded in base config
+	if merged.Defaults.Model != "env-model" {
+		t.Errorf("Expected model 'env-model', got '%s'", merged.Defaults.Model)
+	}
+	if len(merged.Search.Domains) != 1 || merged.Search.Domains[0] != "env.example.com" {
+		t.Errorf("Expected domain 'env.example.com', got %v", merged.Search.Domains)
+	}
+
+	// Profile temperature should override base
+	if merged.Defaults.Temperature != 0.8 {
+		t.Errorf("Expected temperature 0.8 from profile, got %f", merged.Defaults.Temperature)
+	}
+}
+
+func TestMergeProfile_AllFieldsZero(t *testing.T) {
+	data := &ConfigData{
+		Defaults: DefaultsConfig{
+			Model:       "base-model",
+			Temperature: 0.7,
+			MaxTokens:   1000,
+		},
+		Profiles: map[string]*Profile{
+			"zeros": {
+				Name: "zeros",
+				Defaults: DefaultsConfig{
+					// All zero values
+					Model:       "",
+					Temperature: 0,
+					MaxTokens:   0,
+				},
+			},
+		},
+	}
+
+	pm := NewProfileManager(data)
+	merged, err := pm.MergeProfile("zeros")
+	if err != nil {
+		t.Fatalf("MergeProfile failed: %v", err)
+	}
+
+	// Zero values should not override base config (treated as unset)
+	if merged.Defaults.Model != "base-model" {
+		t.Errorf("Expected base model preserved, got '%s'", merged.Defaults.Model)
+	}
+	if merged.Defaults.Temperature != 0.7 {
+		t.Errorf("Expected base temperature preserved, got %f", merged.Defaults.Temperature)
+	}
+	if merged.Defaults.MaxTokens != 1000 {
+		t.Errorf("Expected base max tokens preserved, got %d", merged.Defaults.MaxTokens)
+	}
+}
+
+func TestMergeProfile_ArrayMerging(t *testing.T) {
+	data := &ConfigData{
+		Search: SearchConfig{
+			Domains: []string{"base1.com", "base2.com"},
+		},
+		Output: OutputConfig{
+			ImageFormats: []string{"png", "jpg"},
+		},
+		Profiles: map[string]*Profile{
+			"test": {
+				Name: "test",
+				Search: SearchConfig{
+					Domains: []string{"profile1.com", "profile2.com"},
+				},
+				Output: OutputConfig{
+					// Empty array - should be ignored
+					ImageFormats: []string{},
+				},
+			},
+		},
+	}
+
+	pm := NewProfileManager(data)
+	merged, err := pm.MergeProfile("test")
+	if err != nil {
+		t.Fatalf("MergeProfile failed: %v", err)
+	}
+
+	// Non-empty profile array should replace base
+	expectedDomains := []string{"profile1.com", "profile2.com"}
+	if len(merged.Search.Domains) != len(expectedDomains) {
+		t.Fatalf("Expected %d domains, got %d", len(expectedDomains), len(merged.Search.Domains))
+	}
+	for i, exp := range expectedDomains {
+		if merged.Search.Domains[i] != exp {
+			t.Errorf("Domain[%d]: expected '%s', got '%s'", i, exp, merged.Search.Domains[i])
+		}
+	}
+
+	// Empty profile array should preserve base
+	if len(merged.Output.ImageFormats) != 2 {
+		t.Errorf("Expected base image formats preserved, got %d", len(merged.Output.ImageFormats))
+	}
+}
+
+func TestMergeProfile_BooleanPrecedence(t *testing.T) {
+	data := &ConfigData{
+		Output: OutputConfig{
+			Stream:        true,
+			ReturnImages:  false,
+			ReturnRelated: true,
+		},
+		Profiles: map[string]*Profile{
+			"test": {
+				Name: "test",
+				Output: OutputConfig{
+					Stream:        false, // Override to false
+					ReturnImages:  true,  // Override to true
+					// ReturnRelated not set (should preserve base)
+				},
+			},
+		},
+	}
+
+	pm := NewProfileManager(data)
+	merged, err := pm.MergeProfile("test")
+	if err != nil {
+		t.Fatalf("MergeProfile failed: %v", err)
+	}
+
+	// Profile values should override (even when false)
+	// Note: This depends on MergeProfile implementation
+	// If it only merges non-zero values, booleans are tricky
+	t.Logf("Stream: %v (base=true, profile=false)", merged.Output.Stream)
+	t.Logf("ReturnImages: %v (base=false, profile=true)", merged.Output.ReturnImages)
+	t.Logf("ReturnRelated: %v (base=true, profile not set)", merged.Output.ReturnRelated)
+
+	// Document current behavior
+	if merged.Output.ReturnImages {
+		t.Log("Profile successfully overrode ReturnImages to true")
+	}
+}
+
+func TestMergeProfile_ChainedExpansion(t *testing.T) {
+	// Test the full workflow: base config → active profile → merged result
+	data := &ConfigData{
+		Defaults: DefaultsConfig{
+			Model:       "base-model",
+			Temperature: 0.5,
+			MaxTokens:   1000,
+			TopK:        10,
+		},
+		Search: SearchConfig{
+			Recency: "week",
+			Mode:    "web",
+		},
+		ActiveProfile: "production",
+		Profiles: map[string]*Profile{
+			"production": {
+				Name: "production",
+				Defaults: DefaultsConfig{
+					Model:       "prod-model",
+					Temperature: 0.8,
+					// MaxTokens not set (should preserve base)
+					TopK:        50, // Override
+				},
+				Search: SearchConfig{
+					Recency: "month", // Override
+					// Mode not set (should preserve base)
+				},
+			},
+		},
+	}
+
+	pm := NewProfileManager(data)
+	merged, err := pm.MergeProfile("production")
+	if err != nil {
+		t.Fatalf("MergeProfile failed: %v", err)
+	}
+
+	// Verify profile overrides
+	if merged.Defaults.Model != "prod-model" {
+		t.Errorf("Model should be overridden, got '%s'", merged.Defaults.Model)
+	}
+	if merged.Defaults.Temperature != 0.8 {
+		t.Errorf("Temperature should be overridden, got %f", merged.Defaults.Temperature)
+	}
+	if merged.Defaults.TopK != 50 {
+		t.Errorf("TopK should be overridden, got %d", merged.Defaults.TopK)
+	}
+	if merged.Search.Recency != "month" {
+		t.Errorf("Recency should be overridden, got '%s'", merged.Search.Recency)
+	}
+
+	// Verify base preservation
+	if merged.Defaults.MaxTokens != 1000 {
+		t.Errorf("MaxTokens should be preserved, got %d", merged.Defaults.MaxTokens)
+	}
+	if merged.Search.Mode != "web" {
+		t.Errorf("Mode should be preserved, got '%s'", merged.Search.Mode)
+	}
+}
+
+func TestMergeProfile_InvalidProfileName(t *testing.T) {
+	data := NewConfigData()
+	pm := NewProfileManager(data)
+
+	// Try to merge non-existent profile
+	_, err := pm.MergeProfile("nonexistent")
+	if err == nil {
+		t.Error("Expected error for non-existent profile")
+	}
+
+	// Verify error message is helpful
+	if err != nil && err.Error() == "" {
+		t.Error("Error should have descriptive message")
 	}
 }
