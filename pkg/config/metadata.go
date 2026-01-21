@@ -70,10 +70,28 @@ func NewMetadataRegistry() *MetadataRegistry {
 }
 
 // initialize populates the registry with all configuration options.
+// This registry serves as a single source of truth for configuration metadata, used by:
+//   - config wizard for interactive setup with validation and examples
+//   - config list command for displaying all available options
+//   - documentation generation for user-facing help text
+//
+// Design rationale: Metadata registry pattern vs hardcoded validation
+// Centralizing metadata here prevents documentation drift where CLI help text,
+// config wizard prompts, and validation logic become inconsistent over time.
+// This single definition ensures all user-facing surfaces show identical information.
+//
+// Structure: 4 sections covering 31 total configuration options
+//   - Defaults: Model parameters and execution settings (8 options)
+//   - Search: Query behavior and filtering options (11 options)
+//   - Output: Response format and presentation (9 options)
+//   - API: Authentication and connection settings (3 options)
 //
 //nolint:funcorder,funlen,maintidx // Keep initialization near constructor; metadata registry initialization
 func (r *MetadataRegistry) initialize() {
-	// Defaults section (8 options)
+	// Defaults section: Model parameters and execution settings
+	// Controls how the AI model generates responses: which model to use, creativity level,
+	// length limits, and sampling strategies. These are the core settings users tune
+	// for different use cases (factual queries vs creative writing, etc.)
 	r.addOption(&OptionMetadata{
 		Section:     SectionDefaults,
 		Name:        "model",
@@ -172,7 +190,10 @@ func (r *MetadataRegistry) initialize() {
 		},
 	})
 
-	// Search section (11 options)
+	// Search section: Query behavior and filtering options
+	// Controls how the Perplexity API searches for information: domain restrictions,
+	// time-based filtering, geographic location, search mode (web vs academic), and
+	// context size. These settings shape what sources are considered when answering queries.
 	r.addOption(&OptionMetadata{
 		Section:     SectionSearch,
 		Name:        "domains",
@@ -305,7 +326,10 @@ func (r *MetadataRegistry) initialize() {
 		},
 	})
 
-	// Output section (9 options)
+	// Output section: Response format and presentation
+	// Controls how responses are delivered and formatted: streaming vs batch, JSON vs text,
+	// inclusion of images and related questions, response format constraints (JSON schema/regex),
+	// and reasoning effort for deep research models. These affect the user experience and output structure.
 	r.addOption(&OptionMetadata{
 		Section:     SectionOutput,
 		Name:        "stream",
@@ -393,7 +417,10 @@ func (r *MetadataRegistry) initialize() {
 		},
 	})
 
-	// API section (3 options)
+	// API section: Authentication and connection settings
+	// Essential options for connecting to the Perplexity API: authentication key (required),
+	// optional custom base URL for proxies or alternative endpoints, and request timeout.
+	// These are the minimum settings required for any API interaction.
 	r.addOption(&OptionMetadata{
 		Section:     SectionAPI,
 		Name:        "key",

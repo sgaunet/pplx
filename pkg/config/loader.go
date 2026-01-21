@@ -217,15 +217,29 @@ func ListConfigFiles() ([]ConfigFileInfo, error) {
 // sortConfigFiles sorts config files by precedence.
 // Standard names (config.yaml, pplx.yaml, config.yml, pplx.yml) come first in that order,
 // followed by other files sorted alphabetically.
+//
+// Precedence rationale: Matches viper's config file resolution order.
+// config.yaml > pplx.yaml prioritizes generic over tool-specific naming convention.
+// .yaml extension > .yml extension matches Go community preference.
+//
+// Algorithm: Bubble sort chosen for simplicity - file list size is typically 1-5 files,
+// so O(n²) vs O(n log n) difference is negligible (~10-25 comparisons max).
+// Readability and simplicity outweigh theoretical performance concerns at this scale.
 func sortConfigFiles(files []ConfigFileInfo) {
+	// Precedence constants: lower number = higher precedence (appears first in list)
+	// Values chosen with gaps (1,2,3,4,100) to allow future insertions without renumbering
+	// Example: Could insert precedenceConfigToml = 2.5 between config.yaml and pplx.yaml
 	const (
-		precedenceConfig     = 1
-		precedencePplx       = 2
-		precedenceConfigYml  = 3
-		precedencePplxYml    = 4
-		precedenceNonStandard = 100
+		precedenceConfig      = 1   // config.yaml: most generic, highest priority
+		precedencePplx        = 2   // pplx.yaml: tool-specific fallback
+		precedenceConfigYml   = 3   // config.yml: .yml variant of config.yaml
+		precedencePplxYml     = 4   // pplx.yml: .yml variant of pplx.yaml
+		precedenceNonStandard = 100 // custom names: lowest priority
 	)
 
+	// Map-based precedence lookup for O(1) access
+	// Alternative considered: linear search through array would be O(n) for each lookup
+	// Map is more maintainable and faster even though n is small
 	precedence := map[string]int{
 		"config.yaml": precedenceConfig,
 		"pplx.yaml":   precedencePplx,
@@ -233,6 +247,8 @@ func sortConfigFiles(files []ConfigFileInfo) {
 		"pplx.yml":    precedencePplxYml,
 	}
 
+	// Helper closure: returns precedence value, defaults to 100 for non-standard names
+	// Encapsulated as closure to keep precedence map private to sort function
 	getPrecedence := func(name string) int {
 		if p, ok := precedence[name]; ok {
 			return p
@@ -240,18 +256,25 @@ func sortConfigFiles(files []ConfigFileInfo) {
 		return precedenceNonStandard
 	}
 
-	// Simple bubble sort by precedence, then alphabetically
+	// Bubble sort implementation
+	// Outer loop: for each position in array
 	for i := range files {
+		// Inner loop: compare with all remaining unsorted elements
 		for j := i + 1; j < len(files); j++ {
 			pi := getPrecedence(files[i].Name)
 			pj := getPrecedence(files[j].Name)
 
+			// Comparison logic:
+			// 1. If same precedence (both standard or both custom): sort alphabetically
+			// 2. If different precedence: lower number (higher priority) comes first
 			var shouldSwap bool
 			if pi == pj {
-				// Same precedence level, sort alphabetically
+				// Same precedence level: alphabetical sort
+				// Example: both custom files "my-config.yaml" vs "other-config.yaml"
 				shouldSwap = files[i].Name > files[j].Name
 			} else {
-				// Different precedence levels
+				// Different precedence levels: lower precedence value = higher priority
+				// Example: precedenceConfig (1) should come before precedencePplx (2)
 				shouldSwap = pi > pj
 			}
 
