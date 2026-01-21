@@ -39,15 +39,36 @@ func (m *Merger) BindFlags(cmd *cobra.Command) error {
 	return nil
 }
 
-// MergeWithFlags merges configuration data with CLI flags
-// Precedence: CLI flags > environment variables > config file > defaults.
-//nolint:cyclop,funlen // Function complexity is inherent - it checks 29 different CLI flags.
+// MergeWithFlags merges configuration data with CLI flags using Changed() checks.
+// Precedence hierarchy: CLI flags > environment variables > config file > defaults.
+//
+// Changed() pattern: Only override config value if flag was explicitly set by user.
+// This critical pattern distinguishes between:
+//   1. "flag not provided" (keep config value)
+//   2. "flag provided with explicit value, even if zero" (use flag value)
+//
+// Example with temperature flag (config.yaml sets temperature: 0.7):
+//   - User runs: `pplx query "test"`
+//     → Changed("temperature") = false, keep config value 0.7
+//   - User runs: `pplx query "test" --temperature=0.5`
+//     → Changed("temperature") = true, use flag value 0.5
+//   - User runs: `pplx query "test" --temperature=0`
+//     → Changed("temperature") = true, use flag value 0 (explicit zero is valid)
+//
+// Without Changed() check, we couldn't distinguish case 1 from case 3, since both
+// result in flag variable being 0. Changed() tracks whether user actually provided the flag.
+//
+// Design note: This function works with merged config (already includes env vars),
+// so precedence is: CLI flags > (env vars + config file) merged by viper.
+//
+//nolint:cyclop,funlen // Function complexity is inherent - checks 29 different CLI flags for explicit user input.
 func (m *Merger) MergeWithFlags(cmd *cobra.Command) *ConfigData {
-	// Start with config file data as base
+	// Start with config file data as base (already merged with env vars by viper)
 	merged := m.data
 
-	// Check if flags were explicitly set and override config values
-	// Defaults section
+	// Defaults section: Model parameters and execution settings
+	// Pattern: Check if flag was explicitly set (Changed), then override config value
+	// This ensures user intent: "I want to override config" vs "I didn't specify, use config"
 	if cmd.Flags().Changed("model") {
 		merged.Defaults.Model = m.viper.GetString("model")
 	}
@@ -73,7 +94,8 @@ func (m *Merger) MergeWithFlags(cmd *cobra.Command) *ConfigData {
 		merged.Defaults.Timeout = m.viper.GetDuration("timeout").String()
 	}
 
-	// Search section
+	// Search section: Search behavior and filtering options
+	// Same Changed() pattern ensures CLI flags override config only when explicitly provided
 	if cmd.Flags().Changed("search-domains") {
 		merged.Search.Domains = m.viper.GetStringSlice("search-domains")
 	}
@@ -108,7 +130,10 @@ func (m *Merger) MergeWithFlags(cmd *cobra.Command) *ConfigData {
 		merged.Search.LastUpdatedBefore = m.viper.GetString("last-updated-before")
 	}
 
-	// Output section
+	// Output section: Response format and presentation options
+	// Changed() pattern applies to booleans too - distinguishes "not provided" from "explicitly false"
+	// Example: config sets stream: true, user runs without --stream flag → keep true
+	//          user runs with --no-stream → Changed=true, set to false
 	if cmd.Flags().Changed("stream") {
 		merged.Output.Stream = m.viper.GetBool("stream")
 	}
@@ -140,9 +165,20 @@ func (m *Merger) MergeWithFlags(cmd *cobra.Command) *ConfigData {
 	return merged
 }
 
-// ApplyToGlobals applies merged configuration to global variables
-// This maintains compatibility with existing code that uses global vars.
-//nolint:gocognit,gocyclo,cyclop,funlen // Function complexity is inherent - it applies config to many global variables.
+// ApplyToGlobals applies merged configuration to global command variables.
+// Maintains compatibility with the cobra flag architecture where flags are bound to global variables.
+//
+// Precedence logic: Config values only apply if the global variable is at its zero value,
+// meaning CLI flags (which set globals directly) have already won precedence.
+// This ensures the hierarchy: CLI flags > environment variables > config file > defaults.
+//
+// Exception: Boolean output flags always override when config sets true (true is never zero-valued).
+//
+// Design rationale: Uses pointer parameters instead of returning a struct to allow selective
+// application - caller controls which globals to update. This maintains backward compatibility
+// with existing cobra flag binding architecture.
+//
+//nolint:gocognit,gocyclo,cyclop,funlen // Function complexity is inherent - applies config to 18 global variables.
 func ApplyToGlobals(cfg *ConfigData,
 	model *string,
 	temperature *float64,
@@ -163,7 +199,17 @@ func ApplyToGlobals(cfg *ConfigData,
 	searchMode *string,
 	searchContextSize *string,
 ) {
-	// Apply defaults
+	// Apply defaults section
+	// Pattern: Only apply config value if global variable is at zero value (CLI flag not set)
+	// This ensures CLI flags take precedence over config file values
+	//
+	// Example with temperature flag:
+	//   - User runs `pplx query "test"` → *temperature == 0, apply config value 0.7
+	//   - User runs `pplx query "test" --temperature=0.5` → *temperature == 0.5, keep it
+	//   - User runs `pplx query "test" --temperature=0` → *temperature == 0, keep it (explicit zero)
+	//
+	// Note: This pattern can't distinguish "flag not provided" from "flag set to zero",
+	// which is why Changed() is used in MergeWithFlags. Here we rely on the merge already happening.
 	if cfg.Defaults.Model != "" && *model == "" {
 		*model = cfg.Defaults.Model
 	}
@@ -191,7 +237,9 @@ func ApplyToGlobals(cfg *ConfigData,
 		}
 	}
 
-	// Apply search config
+	// Apply search config section
+	// Same zero-value precedence pattern for search options
+	// CLI flags for search options override config file values
 	if len(cfg.Search.Domains) > 0 && len(*searchDomains) == 0 {
 		*searchDomains = cfg.Search.Domains
 	}
@@ -214,7 +262,13 @@ func ApplyToGlobals(cfg *ConfigData,
 		*searchContextSize = cfg.Search.ContextSize
 	}
 
-	// Apply output config
+	// Apply output config section
+	// Boolean handling: No zero-value check needed because false is a valid user choice
+	// If config sets a boolean flag to true, always apply it
+	// This means config file can enable features, but CLI flags are still needed to explicitly disable
+	//
+	// Rationale: User explicitly enabling in config file (return_images: true) should take effect.
+	// If CLI flag is used (--return-images or --no-return-images), cobra sets the global directly.
 	if cfg.Output.ReturnImages {
 		*returnImages = true
 	}

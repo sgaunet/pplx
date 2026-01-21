@@ -43,13 +43,19 @@ var queryCmd = &cobra.Command{
 	Short: "",
 	Long:  ``,
 	RunE: func(cmd *cobra.Command, _ []string) error {
-		// 1. Load and apply configuration
+		// Step 1: Load and merge configuration
+		// Graceful degradation: If config load fails, continue with CLI flags only.
+		// Rationale: User may not have a config file yet, but CLI should still work.
+		// This allows the tool to be used immediately after installation without setup.
 		cfg, err := config.LoadAndMergeConfig(cmd, configFilePath)
 		if err != nil {
 			// Non-fatal: continue with CLI flags only
 			cfg = config.NewConfigData()
 		}
 
+		// Apply merged config to global variables
+		// Design note: Uses globals for cobra flag compatibility - flags are bound to globals,
+		// and ApplyToGlobals ensures config values only apply when flags aren't set.
 		config.ApplyToGlobals(cfg,
 			&model, &temperature, &maxTokens, &topK, &topP,
 			&frequencyPenalty, &presencePenalty, &timeout,
@@ -58,7 +64,10 @@ var queryCmd = &cobra.Command{
 			&searchMode, &searchContextSize,
 		)
 
-		// 2. Initialize client
+		// Step 2: Initialize API client
+		// API key checked here (not in config load) because it's required at runtime,
+		// but config file is optional. This provides fast feedback if key is missing.
+		// Fail fast principle: better to error immediately than during expensive API call.
 		if os.Getenv("PPLX_API_KEY") == "" {
 			return clerrors.NewConfigError("PPLX_API_KEY environment variable is not set", nil)
 		}
@@ -66,18 +75,26 @@ var queryCmd = &cobra.Command{
 		client := perplexity.NewClient(os.Getenv("PPLX_API_KEY"))
 		client.SetHTTPTimeout(timeout)
 
-		// 3. Validate inputs
+		// Step 3: Validate inputs
+		// Early validation before expensive API call provides fast feedback on errors.
+		// Catches malformed options (invalid dates, conflicting flags) before network call.
 		if err := validateInputs(); err != nil {
 			return err
 		}
 
-		// 4. Build request
+		// Step 4: Build request with all options
+		// Separated into dedicated function for testability and reusability.
+		// Allows testing request building logic independently from API calls.
 		req, err := buildAllOptions()
 		if err != nil {
 			return err
 		}
 
-		// 5. Execute request (streaming or non-streaming)
+		// Step 5: Execute request (streaming or non-streaming)
+		// Different code paths because streaming requires goroutine coordination
+		// while non-streaming uses synchronous request-response pattern.
+		// Streaming: incremental rendering with channels and goroutines
+		// Non-streaming: spinner while waiting, then render complete response
 		if stream {
 			return handleStreamingResponse(client, req)
 		}
@@ -346,37 +363,56 @@ func validateResponseFormats() error {
 	return nil
 }
 
-// buildAllOptions builds all completion request options.
-// Combines options from all builders and validates the final request.
+// buildAllOptions builds all completion request options using the builder aggregation pattern.
+// Each builder contributes a subset of options for its concern (search, format, dates, etc.),
+// making individual builders testable and allowing conditional inclusion based on flags.
+//
+// Design rationale: Separating builders by concern (rather than one monolithic function)
+// improves maintainability and testability. Each builder can be tested independently,
+// and new option categories can be added without modifying existing builders.
 func buildAllOptions() (*perplexity.CompletionRequest, error) {
-	// Build base options
+	// Build base options first - always required, no conditionals
+	// These establish the request foundation: model, messages, temperature, etc.
+	// Must come first as other builders may depend on model selection
 	baseOpts, err := buildBaseOptions()
 	if err != nil {
 		return nil, err
 	}
 
-	// Append all option groups
+	// Append-only builders: these never fail, safe to chain unconditionally
+	// Each builder checks its relevant flags and adds options if set
+	// Order doesn't matter for these - they're independent concerns
 	opts := baseOpts
-	opts = append(opts, buildSearchOptions()...)
-	opts = append(opts, buildResponseOptions()...)
-	opts = append(opts, buildImageOptions()...)
+	opts = append(opts, buildSearchOptions()...)      // Domain filters, recency, location
+	opts = append(opts, buildResponseOptions()...)    // Return images, related questions
+	opts = append(opts, buildImageOptions()...)       // Image domain/format filters
 
-	// These can return errors, so handle them
+	// Error-returning builders: handle validation during option creation
+	// These validate input format/syntax before API call to provide fast feedback
+
+	// Format options: validates JSON schema syntax and checks mutual exclusivity
+	// (can't have both JSON schema and regex at same time)
 	formatOpts, err := buildResponseFormatOptions()
 	if err != nil {
 		return nil, err
 	}
 	opts = append(opts, formatOpts...)
 
+	// Date options: validates MM/DD/YYYY format before sending to API
+	// Catches malformed dates early rather than getting API error
 	dateOpts, err := buildDateFilterOptions()
 	if err != nil {
 		return nil, err
 	}
 	opts = append(opts, dateOpts...)
 
+	// Deep research options: appended last for clarity (order doesn't matter functionally)
+	// Keeps research-specific options isolated from standard query options
 	opts = append(opts, buildDeepResearchOptions()...)
 
-	// Create and validate request
+	// Create request and run final validation
+	// This checks the complete option set for conflicts that span multiple builders
+	// Example: response format requires sonar model (checked across base + format builders)
 	req := perplexity.NewCompletionRequest(opts...)
 	if err := req.Validate(); err != nil {
 		return nil, clerrors.NewValidationError("request", "", err.Error())
@@ -386,38 +422,50 @@ func buildAllOptions() (*perplexity.CompletionRequest, error) {
 }
 
 // handleStreamingResponse processes a streaming completion request.
-// Manages goroutines for incremental rendering and final output.
+// Uses goroutine-based concurrency to handle incremental token rendering while
+// maintaining the final response for complete metadata (citations, images, related questions).
+// The goroutine consumes from responseChannel while the main thread produces via SendSSEHTTPRequest.
 func handleStreamingResponse(client *perplexity.Client, req *perplexity.CompletionRequest) error {
+	// Unbuffered channel ensures backpressure: server won't send next chunk until we process current one
+	// This prevents memory buildup if rendering is slower than server response generation
 	responseChannel := make(chan perplexity.CompletionResponse)
 	var wg sync.WaitGroup
 	wg.Add(1)
 
-	// Start goroutine to handle streaming responses
+	// Start consumer goroutine - must be running before SendSSEHTTPRequest starts producing
+	// Goroutine lifecycle: spawn -> consume from channel -> defer wg.Done() -> terminate when channel closes
 	go func() {
 		defer wg.Done()
 		var lastResponse *perplexity.CompletionResponse
 
 		if outputJSON {
-			// For JSON output, just collect the final response
+			// JSON mode: skip incremental rendering, just collect final response
+			// Rationale: JSON clients expect complete, valid JSON - not streaming fragments
+			// The lastResponse will contain the full completion with all metadata
 			for response := range responseChannel {
 				lastResponse = &response
 			}
 		} else {
-			// For console output, render incrementally
+			// Console mode: render tokens incrementally for better user experience
+			// Shows progress as the model generates output (similar to ChatGPT interface)
 			renderer := console.NewStreamingRenderer(os.Stdout)
 			for response := range responseChannel {
 				err := renderer.RenderIncremental(&response)
 				if err != nil {
 					logger.Error("failed to render streaming content", "error", err)
 				}
+				// Preserve last response for complete metadata (citations, images, related questions)
+				// Only the final chunk contains these - intermediate chunks have partial text only
 				lastResponse = &response
 			}
 		}
 
-		// After streaming is complete, render output
+		// After channel closes (streaming complete), render final metadata
+		// This includes citations, images, and related questions that only arrive in the final chunk
 		if lastResponse != nil {
 			if !outputJSON {
-				fmt.Println() // Add newline after streaming content
+				// Visual separation between streaming content and metadata sections
+				fmt.Println()
 			}
 			err := console.RenderResponse(lastResponse, os.Stdout, outputJSON)
 			if err != nil {
@@ -426,13 +474,17 @@ func handleStreamingResponse(client *perplexity.Client, req *perplexity.Completi
 		}
 	}()
 
-	// Send the streaming request
+	// Producer: sends SSE request, server writes to responseChannel as tokens arrive
+	// Must happen after goroutine spawn to ensure consumer is ready to receive
+	// If called before goroutine starts, channel would block and deadlock
 	err := client.SendSSEHTTPRequest(&wg, req, responseChannel)
 	if err != nil {
 		return clerrors.NewAPIError("failed to send streaming request", err)
 	}
 
-	// Wait for streaming to complete
+	// Wait for consumer goroutine to finish processing all responses
+	// Critical: prevents goroutine leak and ensures all output is written before function returns
+	// Without this, main function might exit while goroutine is still rendering
 	wg.Wait()
 	return nil
 }

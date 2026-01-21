@@ -156,11 +156,17 @@ func (c *Chat) buildRequestOptions() ([]perplexity.CompletionRequestOption, erro
 	return opts, nil
 }
 
+// addSearchOptions adds search-related options to the completion request.
+// Validates search recency against API-supported time windows.
 func (c *Chat) addSearchOptions(opts *[]perplexity.CompletionRequestOption) error {
 	if len(c.options.SearchDomains) > 0 {
 		*opts = append(*opts, perplexity.WithSearchDomainFilter(c.options.SearchDomains))
 	}
 	if c.options.SearchRecency != "" {
+		// Validation map: API only accepts these exact time window strings
+		// Rationale: Centralized here rather than in validator package because
+		// these constraints come from the Perplexity API specification, not our domain logic.
+		// Keeping validation close to API call makes it easier to update when API changes.
 		validRecency := map[string]bool{"day": true, "week": true, "month": true, "year": true, "hour": true}
 		if !validRecency[c.options.SearchRecency] {
 			return fmt.Errorf("%w: '%s'. Must be one of: day, week, month, year, hour",
@@ -216,8 +222,13 @@ func (c *Chat) addFormatOptions(opts *[]perplexity.CompletionRequestOption) erro
 	return nil
 }
 
+// addModeOptions adds search mode and context size options.
+// Validates against API-supported mode and context size values.
 func (c *Chat) addModeOptions(opts *[]perplexity.CompletionRequestOption) error {
 	if c.options.SearchMode != "" {
+		// Search mode validation: API supports two distinct search behaviors
+		// "web" = general internet search (default, broader results)
+		// "academic" = scholarly sources only (research papers, journals)
 		validModes := map[string]bool{"web": true, "academic": true}
 		if !validModes[c.options.SearchMode] {
 			return fmt.Errorf("%w: '%s'. Must be one of: web, academic", clerrors.ErrInvalidSearchMode, c.options.SearchMode)
@@ -225,6 +236,10 @@ func (c *Chat) addModeOptions(opts *[]perplexity.CompletionRequestOption) error 
 		*opts = append(*opts, perplexity.WithSearchMode(c.options.SearchMode))
 	}
 	if c.options.SearchContextSize != "" {
+		// Context size validation: controls how much search context to include in the model prompt
+		// "low" = minimal context (faster, cheaper)
+		// "medium" = balanced context (default)
+		// "high" = maximum context (slower, more comprehensive)
 		validSizes := map[string]bool{"low": true, "medium": true, "high": true}
 		if !validSizes[c.options.SearchContextSize] {
 			return fmt.Errorf("%w: '%s'. Must be one of: low, medium, high",
@@ -235,7 +250,12 @@ func (c *Chat) addModeOptions(opts *[]perplexity.CompletionRequestOption) error 
 	return nil
 }
 
+// addDateOptions adds date filter options for search results.
+// Parses and validates dates in MM/DD/YYYY format (required by Perplexity API).
 func (c *Chat) addDateOptions(opts *[]perplexity.CompletionRequestOption) error {
+	// Date format: MM/DD/YYYY is required by Perplexity API
+	// Using Go reference time "01/02/2006" (January 2, 2006 at 3:04:05 PM MST)
+	// Examples: "12/31/2024", "01/01/2025"
 	if c.options.SearchAfterDate != "" {
 		date, err := time.Parse("01/02/2006", c.options.SearchAfterDate)
 		if err != nil {
@@ -267,13 +287,22 @@ func (c *Chat) addDateOptions(opts *[]perplexity.CompletionRequestOption) error 
 	return nil
 }
 
+// addResearchOptions adds deep research model options.
+// Validates reasoning effort level and warns if used with incompatible model.
 func (c *Chat) addResearchOptions(opts *[]perplexity.CompletionRequestOption) error {
 	if c.options.ReasoningEffort != "" {
+		// Reasoning effort validation: controls depth of analysis for deep-research models
+		// "low" = faster, less thorough (suitable for simple queries)
+		// "medium" = balanced analysis (default)
+		// "high" = maximum depth (slower, comprehensive for complex research tasks)
 		validEfforts := map[string]bool{"low": true, "medium": true, "high": true}
 		if !validEfforts[c.options.ReasoningEffort] {
 			return fmt.Errorf("%w: '%s'. Must be one of: low, medium, high",
 				clerrors.ErrInvalidReasoningEffort, c.options.ReasoningEffort)
 		}
+		// Warning instead of error: allows user to set reasoning-effort in config/flags
+		// before switching models. Feature degrades gracefully (parameter ignored by API)
+		// rather than failing hard. This improves UX when experimenting with different models.
 		if !strings.Contains(c.options.Model, "deep-research") {
 			logger.Warn("reasoning-effort only supported by sonar-deep-research model",
 				"current_model", c.options.Model)

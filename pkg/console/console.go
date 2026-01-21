@@ -146,16 +146,46 @@ func NewStreamingRenderer(output io.Writer) *StreamingRenderer {
 }
 
 // RenderIncremental renders only the new content since last render.
+// Handles the cumulative content model used by Perplexity's streaming API.
+//
+// Perplexity's streaming behavior: Cumulative, not incremental
+// Each SSE event contains the COMPLETE response generated so far, not just the delta.
+// For example, if the answer is "The sky is blue":
+//   Event 1: "The"
+//   Event 2: "The sky"           (not just " sky")
+//   Event 3: "The sky is"         (not just " is")
+//   Event 4: "The sky is blue"    (not just " blue")
+//
+// This cumulative model is simpler for the API server (stateless) but requires
+// the client to track what's already been displayed to avoid reprinting.
+//
+// Implementation: Substring extraction using tracked position
+// We maintain lastContentLength (position of last character we printed) and use
+// it to extract the new suffix via string slicing: content[lastContentLength:]
+//
+// Alternative designs considered:
+// - String diffing: More robust but overkill and computationally expensive
+// - Content hashing: Could detect if server resends from start, but adds complexity
+//   without solving a real problem (server resend is not expected behavior)
+// - Simple approach wins: Track length, extract suffix, update length
+//
+// Edge cases handled:
+// - Empty content: No-op, skip rendering
+// - Content shorter than lastContentLength: No-op (should never happen, but handled safely)
+// - First render (lastContentLength = 0): Prints entire content.
 func (sr *StreamingRenderer) RenderIncremental(pplxResponse *perplexity.CompletionResponse) error {
 	content := pplxResponse.GetLastContent()
 	if content == "" {
 		return nil
 	}
-	
-	// Since Perplexity sends cumulative content, we need to track what we've already rendered
+
+	// Track cumulative content: only render the new suffix since last call
+	// Example: if last render was "Hello" (length 5) and current is "Hello World" (length 11),
+	// extract content[5:] = " World" to print just the new part
 	contentLength := len(content)
 	if contentLength > sr.lastContentLength {
-		// Extract only the new content
+		// Extract only the new content using string slicing
+		// This works because content is cumulative: content[0:lastContentLength] already rendered
 		newContent := content[sr.lastContentLength:]
 		_, err := fmt.Fprint(sr.output, newContent)
 		if err != nil {
@@ -163,7 +193,7 @@ func (sr *StreamingRenderer) RenderIncremental(pplxResponse *perplexity.Completi
 		}
 		sr.lastContentLength = contentLength
 	}
-	
+
 	return nil
 }
 
@@ -203,24 +233,46 @@ func RenderJSON(pplxResponse *perplexity.CompletionResponse, output io.Writer) e
 }
 
 // buildJSONResponse creates a structured JSON response from the Perplexity API response.
+// Handles optional fields with nil-safety checks to produce clean JSON output.
+//
+// Field handling pattern: Conditional inclusion of optional fields
+// Core fields (content, model, usage) are always included.
+// Optional fields (search_results, images, related_questions) are only included if:
+//   1. The pointer is non-nil (field was present in API response)
+//   2. The dereferenced slice has length > 0 (not empty)
+//
+// Rationale for this pattern:
+// - Cleaner JSON: Omitting empty optional fields makes output more readable
+// - API compatibility: Matches common API design where absent fields mean "not applicable"
+// - Backward compatibility: If API adds new optional fields, old clients work fine
+// - JSON marshaling: json.Marshal honors omitempty tags, but we do explicit checks
+//   for clarity and to ensure consistency regardless of struct tags
+//
+// The repeated pointer-check pattern (if field != nil && len(*field) > 0) is intentional:
+// - First check: Prevents nil pointer dereference
+// - Second check: Prevents including empty arrays in output
+// - Could be abstracted into a helper, but the 3 instances are simple enough
+//   that inline code is more readable than indirection
 func buildJSONResponse(pplxResponse *perplexity.CompletionResponse) map[string]any {
+	// Core fields: always included
 	result := map[string]any{
 		"content": pplxResponse.Choices[0].Message.Content,
 		"model":   pplxResponse.Model,
 		"usage":   pplxResponse.Usage,
 	}
 
-	// Add search results if available
+	// Optional field 1: Search results (citations with metadata)
+	// Only include if present and non-empty to keep JSON clean
 	if pplxResponse.SearchResults != nil && len(*pplxResponse.SearchResults) > 0 {
 		result["search_results"] = *pplxResponse.SearchResults
 	}
 
-	// Add images if available
+	// Optional field 2: Images (URLs and dimensions)
 	if pplxResponse.Images != nil && len(*pplxResponse.Images) > 0 {
 		result["images"] = *pplxResponse.Images
 	}
 
-	// Add related questions if available
+	// Optional field 3: Related questions (suggested follow-ups)
 	if pplxResponse.RelatedQuestions != nil && len(*pplxResponse.RelatedQuestions) > 0 {
 		result["related_questions"] = *pplxResponse.RelatedQuestions
 	}

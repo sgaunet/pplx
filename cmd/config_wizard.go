@@ -43,44 +43,77 @@ func NewWizardState() *WizardState {
 }
 
 // Run executes the wizard flow and returns the configured ConfigData.
+// Guides users through 7 sequential steps to build a personalized configuration.
+//
+// Wizard philosophy: Progressive disclosure with smart defaults
+// Rather than overwhelming users with all ~30 configuration options at once, the wizard:
+// - Asks 5 essential questions (use case, model, streaming, filters, API key)
+// - Offers optional advanced customization (step 6)
+// - Provides template-based defaults based on use case selection
+// - Builds final config by merging user selections with template defaults
+//
+// Error handling strategy: Fail fast with context
+// Each step returns errors wrapped with contextual information (e.g., "use case selection failed").
+// This allows the caller to understand where in the flow the error occurred.
+// No recovery/retry is attempted - wizard exits on first error, preserving user's partial input
+// in the WizardState for potential debugging but not persisting incomplete config.
+//
+// Step sequence rationale:
+// 1. Use case: Determines template selection (research vs general vs creative)
+// 2. Model: Most important technical choice, influences available features
+// 3. Streaming: Simple boolean, affects UX significantly
+// 4. Search filters: Optional refinements (mode, recency, context size)
+// 5. API key: Required credential (user may skip if already set in env)
+// 6. Customization: Advanced users can tweak temperature, max_tokens, etc.
+// 7. Build config: Merges all selections into final ConfigData structure
+//
+// This order flows naturally (conceptual → technical → refinements → credentials → advanced)
+// and builds on previous selections (e.g., model choice may influence filter recommendations).
 func (w *WizardState) Run() (*config.ConfigData, error) {
-	// Print welcome banner
+	// Welcome banner: Sets user expectations for the wizard flow
 	w.printWelcome()
 
 	// Step 1: Use case selection
+	// Determines which template to load (research, general, creative, or none)
 	if err := w.selectUseCase(); err != nil {
 		return nil, fmt.Errorf("use case selection failed: %w", err)
 	}
 
 	// Step 2: Model selection
+	// Primary technical choice: sonar vs sonar-pro vs sonar-deep-research
 	if err := w.selectModel(); err != nil {
 		return nil, fmt.Errorf("model selection failed: %w", err)
 	}
 
 	// Step 3: Streaming toggle
+	// Simple boolean: stream tokens as generated (better UX) vs wait for complete response
 	if err := w.configureStreaming(); err != nil {
 		return nil, fmt.Errorf("streaming configuration failed: %w", err)
 	}
 
 	// Step 4: Search filters
+	// Optional refinements: search mode (web/academic), recency (day/week/month), context size
 	if err := w.selectSearchFilters(); err != nil {
 		return nil, fmt.Errorf("search filter selection failed: %w", err)
 	}
 
 	// Step 5: API key
+	// Required credential (unless already set via PERPLEXITY_API_KEY env var)
 	if err := w.configureAPIKey(); err != nil {
 		return nil, fmt.Errorf("API key configuration failed: %w", err)
 	}
 
 	// Step 6: Additional customization
+	// Advanced options: temperature, max_tokens, etc. (skippable)
 	if err := w.offerCustomization(); err != nil {
 		return nil, fmt.Errorf("customization failed: %w", err)
 	}
 
 	// Step 7: Generate final configuration
+	// Merges template defaults + user selections into ConfigData
 	w.buildConfiguration()
 
-	// Print summary
+	// Print summary: Shows user what will be saved before persisting
 	w.printSummary()
 
 	return w.config, nil
@@ -451,25 +484,94 @@ func (w *WizardState) applyCustomSettings() {
 }
 
 // buildConfiguration constructs the final ConfigData from wizard selections.
+// Merges template defaults with user selections using a layered override strategy.
+//
+// Configuration precedence hierarchy (lowest to highest priority):
+// 1. Empty ConfigData defaults (zero values)
+// 2. Template defaults (if use case selected: research, general, creative)
+// 3. User selections from wizard (model, streaming, filters)
+// 4. Custom settings (if user chose advanced customization)
+// 5. API key (if provided during wizard, not inherited from environment)
+//
+// Rationale for this order:
+// - Templates provide sensible defaults for common use cases
+// - User's explicit selections (model, streaming) override template values
+//   because they answered these questions after choosing the template
+// - Custom settings have highest priority because they represent deliberate
+//   fine-tuning by advanced users who understand the implications
+//
+// Example precedence flow:
+// - Template "research" sets temperature=0.2, model=sonar-pro
+// - User selects model=sonar-deep-research → model becomes sonar-deep-research
+// - User customizes temperature=0.5 → temperature becomes 0.5
+// - Final config: model=sonar-deep-research, temperature=0.5
+//
+// Design choice: Imperative merge vs functional composition
+// This imperative approach (load template, set field, apply filters, apply custom)
+// makes the precedence order explicit and easy to understand. Alternative functional
+// approach (Merge(template, selections, custom)) would be more elegant but less
+// transparent about which values win conflicts.
 func (w *WizardState) buildConfiguration() {
+	// Layer 1-2: Start with template defaults (if applicable)
+	// Loads research.yaml, general.yaml, or creative.yaml based on use case selection
 	w.loadTemplateIfApplicable()
 
+	// Layer 3: Apply user selections from wizard steps
+	// These override template values because user answered these questions explicitly
 	w.config.Defaults.Model = w.selectedModel
 	w.config.Output.Stream = w.enableStream
 
+	// Layer 3 continued: Apply search filters (mode, recency, context)
+	// Parsed from "mode:web", "recency:week" format into config fields
 	w.applySearchFilters()
+
+	// Layer 4: Apply custom settings (highest priority for user-specified values)
+	// Advanced users can override any default or template value
 	w.applyCustomSettings()
 
+	// Layer 5: Apply API key if provided
+	// Only sets if user provided key during wizard (doesn't override env var)
 	if w.apiKey != "" {
 		w.config.API.Key = w.apiKey
 	}
 }
 
 // applySearchFilters applies the selected search filters to the configuration.
+// Parses filter strings in "key:value" format and maps them to config fields.
+//
+// Filter format: "key:value"
+// Expected keys: "mode", "recency", "context"
+// Examples: "mode:web", "recency:week", "context:high"
+//
+// The format choice (colon separator) rationale:
+// - Simple and unambiguous (no need for escaping in common values)
+// - Familiar from URL query strings and many config syntaxes
+// - Easy to split with strings.SplitN (explicit 2-part limit)
+//
+// Error handling: Silent skip of malformed filters
+// Rationale: Defensive programming for user input that might come from:
+// - Hand-edited config files with typos
+// - Legacy config files from old tool versions
+// - Programmatic generation that might inject invalid values
+//
+// Alternative approaches considered:
+// - Hard error on malformed filter: Would break wizard on any typo (bad UX)
+// - Warning message: Could spam console if many filters (annoying)
+// - Validation before storage: Already done in selectSearchFilters step
+//
+// Since filters were already validated during wizard collection (selectSearchFilters),
+// malformed filters here indicate programmer error, config corruption, or future
+// incompatibility. Silent skip allows graceful degradation: user gets partial
+// configuration rather than complete failure.
+//
+// The magic constant filterSeparatorParts = 2 enforces exact "key:value" structure.
+// If filter contains multiple colons like "key:value:extra", only first 2 parts used.
 func (w *WizardState) applySearchFilters() {
 	for _, filter := range w.searchFilters {
+		// Parse "key:value" format, enforcing exactly 2 parts
 		parts := strings.SplitN(filter, ":", filterSeparatorParts)
 		if len(parts) != filterSeparatorParts {
+			// Malformed filter (missing colon or empty): skip silently
 			continue
 		}
 
@@ -482,6 +584,8 @@ func (w *WizardState) applySearchFilters() {
 		case "context":
 			w.config.Search.ContextSize = value
 		}
+		// Note: Unknown keys are silently ignored (allows forward compatibility
+		// if new filter types are added in future versions)
 	}
 }
 
