@@ -737,12 +737,10 @@ func (w *WizardState) promptInt(prompt string, minVal, maxVal, defaultVal int) (
 
 // isValidRecency checks if a recency value is valid.
 func isValidRecency(value string) bool {
-	validRecency := []string{"day", "week", "month", "year", "hour"}
-	return slices.Contains(validRecency, value)
+	return config.IsValidSearchRecency(value)
 }
 
 // isValidContextSize checks if a context size value is valid.
 func isValidContextSize(value string) bool {
-	validSizes := []string{"low", "medium", "high"}
-	return slices.Contains(validSizes, value)
+	return config.IsValidContextSize(value)
 }

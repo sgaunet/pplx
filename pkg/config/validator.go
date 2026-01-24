@@ -99,10 +99,7 @@ func (v *Validator) validateSearch(search *SearchConfig) {
 // validateSearchRecency validates the recency field.
 func (v *Validator) validateSearchRecency(recency string) {
 	if recency != "" {
-		validRecency := map[string]bool{
-			"hour": true, "day": true, "week": true, "month": true, "year": true,
-		}
-		if !validRecency[recency] {
+		if !IsValidSearchRecency(recency) {
 			v.addError("search.recency", "must be one of: hour, day, week, month, year")
 		}
 	}
@@ -110,7 +107,7 @@ func (v *Validator) validateSearchRecency(recency string) {
 
 // validateSearchMode validates the mode field.
 func (v *Validator) validateSearchMode(mode string) {
-	if mode != "" && mode != "web" && mode != "academic" {
+	if mode != "" && !IsValidSearchMode(mode) {
 		v.addError("search.mode", "must be 'web' or 'academic'")
 	}
 }
@@ -118,7 +115,7 @@ func (v *Validator) validateSearchMode(mode string) {
 // validateSearchContextSize validates the context_size field.
 func (v *Validator) validateSearchContextSize(contextSize string) {
 	if contextSize != "" {
-		if contextSize != "low" && contextSize != "medium" && contextSize != "high" {
+		if !IsValidContextSize(contextSize) {
 			v.addError("search.context_size", "must be 'low', 'medium', or 'high'")
 		}
 	}
@@ -156,7 +153,7 @@ func (v *Validator) validateSearchDates(search *SearchConfig) {
 func (v *Validator) validateOutput(output *OutputConfig) {
 	// Validate reasoning effort
 	if output.ReasoningEffort != "" {
-		if output.ReasoningEffort != "low" && output.ReasoningEffort != "medium" && output.ReasoningEffort != "high" {
+		if !IsValidReasoningEffort(output.ReasoningEffort) {
 			v.addError("output.reasoning_effort", "must be 'low', 'medium', or 'high'")
 		}
 	}
