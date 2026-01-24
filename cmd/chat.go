@@ -27,13 +27,7 @@ You can ask questions and get answers from the API. As long as you don't enter a
 		}
 
 		// Apply configuration to global variables
-		config.ApplyToGlobals(cfg,
-			&model, &temperature, &maxTokens, &topK, &topP,
-			&frequencyPenalty, &presencePenalty, &timeout,
-			&searchDomains, &searchRecency, &locationLat, &locationLon, &locationCountry,
-			&returnImages, &returnRelated, &stream,
-			&searchMode, &searchContextSize,
-		)
+		config.ApplyToGlobals(cfg, globalOpts)
 
 		// Check env var PPLX_API_KEY exists
 		if os.Getenv("PPLX_API_KEY") == "" {
@@ -41,7 +35,7 @@ You can ask questions and get answers from the API. As long as you don't enter a
 		}
 
 		client := perplexity.NewClient(os.Getenv("PPLX_API_KEY"))
-		client.SetHTTPTimeout(timeout)
+		client.SetHTTPTimeout(globalOpts.Timeout)
 
 		systemMessage, err := console.Input("system message (optional - enter to skip)")
 		if err != nil {
@@ -49,36 +43,36 @@ You can ask questions and get answers from the API. As long as you don't enter a
 		}
 		// Create chat options
 		chatOptions := chat.Options{
-			Model:            model,
-			FrequencyPenalty: frequencyPenalty,
-			MaxTokens:        maxTokens,
-			PresencePenalty:  presencePenalty,
-			Temperature:      temperature,
-			TopK:             topK,
-			TopP:             topP,
-			SearchDomains:    searchDomains,
-			SearchRecency:    searchRecency,
-			LocationLat:      locationLat,
-			LocationLon:      locationLon,
-			LocationCountry:  locationCountry,
-			ReturnImages:     returnImages,
-			ReturnRelated:    returnRelated,
-			Stream:           stream,
-			ImageDomains:     imageDomains,
-			ImageFormats:     imageFormats,
+			Model:            globalOpts.Model,
+			FrequencyPenalty: globalOpts.FrequencyPenalty,
+			MaxTokens:        globalOpts.MaxTokens,
+			PresencePenalty:  globalOpts.PresencePenalty,
+			Temperature:      globalOpts.Temperature,
+			TopK:             globalOpts.TopK,
+			TopP:             globalOpts.TopP,
+			SearchDomains:    globalOpts.SearchDomains,
+			SearchRecency:    globalOpts.SearchRecency,
+			LocationLat:      globalOpts.LocationLat,
+			LocationLon:      globalOpts.LocationLon,
+			LocationCountry:  globalOpts.LocationCountry,
+			ReturnImages:     globalOpts.ReturnImages,
+			ReturnRelated:    globalOpts.ReturnRelated,
+			Stream:           globalOpts.Stream,
+			ImageDomains:     globalOpts.ImageDomains,
+			ImageFormats:     globalOpts.ImageFormats,
 			// Response format options
-			ResponseFormatJSONSchema: responseFormatJSONSchema,
-			ResponseFormatRegex:      responseFormatRegex,
+			ResponseFormatJSONSchema: globalOpts.ResponseFormatJSONSchema,
+			ResponseFormatRegex:      globalOpts.ResponseFormatRegex,
 			// Search mode options
-			SearchMode:        searchMode,
-			SearchContextSize: searchContextSize,
+			SearchMode:        globalOpts.SearchMode,
+			SearchContextSize: globalOpts.SearchContextSize,
 			// Date filtering options
-			SearchAfterDate:   searchAfterDate,
-			SearchBeforeDate:  searchBeforeDate,
-			LastUpdatedAfter:  lastUpdatedAfter,
-			LastUpdatedBefore: lastUpdatedBefore,
+			SearchAfterDate:   globalOpts.SearchAfterDate,
+			SearchBeforeDate:  globalOpts.SearchBeforeDate,
+			LastUpdatedAfter:  globalOpts.LastUpdatedAfter,
+			LastUpdatedBefore: globalOpts.LastUpdatedBefore,
 			// Deep research options
-			ReasoningEffort: reasoningEffort,
+			ReasoningEffort: globalOpts.ReasoningEffort,
 		}
 		c := chat.NewChatWithOptions(client, systemMessage, chatOptions)
 

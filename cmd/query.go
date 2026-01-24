@@ -35,13 +35,7 @@ var queryCmd = &cobra.Command{
 		// Apply merged config to global variables
 		// Design note: Uses globals for cobra flag compatibility - flags are bound to globals,
 		// and ApplyToGlobals ensures config values only apply when flags aren't set.
-		config.ApplyToGlobals(cfg,
-			&model, &temperature, &maxTokens, &topK, &topP,
-			&frequencyPenalty, &presencePenalty, &timeout,
-			&searchDomains, &searchRecency, &locationLat, &locationLon, &locationCountry,
-			&returnImages, &returnRelated, &stream,
-			&searchMode, &searchContextSize,
-		)
+		config.ApplyToGlobals(cfg, globalOpts)
 
 		// Step 2: Initialize API client
 		// API key checked here (not in config load) because it's required at runtime,
@@ -52,7 +46,7 @@ var queryCmd = &cobra.Command{
 		}
 
 		client := perplexity.NewClient(os.Getenv("PPLX_API_KEY"))
-		client.SetHTTPTimeout(timeout)
+		client.SetHTTPTimeout(globalOpts.Timeout)
 
 		// Step 3: Validate inputs
 		// Early validation before expensive API call provides fast feedback on errors.
@@ -74,7 +68,7 @@ var queryCmd = &cobra.Command{
 		// while non-streaming uses synchronous request-response pattern.
 		// Streaming: incremental rendering with channels and goroutines
 		// Non-streaming: spinner while waiting, then render complete response
-		if stream {
+		if globalOpts.Stream {
 			return handleStreamingResponse(client, req)
 		}
 		return handleNonStreamingResponse(client, req)
@@ -109,20 +103,20 @@ func validateStringEnum(fieldName, value string, validValues map[string]bool, va
 // buildBaseOptions creates the base completion request options.
 // These options are always included in every request.
 func buildBaseOptions() ([]perplexity.CompletionRequestOption, error) {
-	msg := perplexity.NewMessages(perplexity.WithSystemMessage(systemPrompt))
-	if err := msg.AddUserMessage(userPrompt); err != nil {
+	msg := perplexity.NewMessages(perplexity.WithSystemMessage(globalOpts.SystemPrompt))
+	if err := msg.AddUserMessage(globalOpts.UserPrompt); err != nil {
 		return nil, fmt.Errorf("failed to add user message to request: %w", err)
 	}
 
 	return []perplexity.CompletionRequestOption{
 		perplexity.WithMessages(msg.GetMessages()),
-		perplexity.WithModel(model),
-		perplexity.WithFrequencyPenalty(frequencyPenalty),
-		perplexity.WithMaxTokens(maxTokens),
-		perplexity.WithPresencePenalty(presencePenalty),
-		perplexity.WithTemperature(temperature),
-		perplexity.WithTopK(topK),
-		perplexity.WithTopP(topP),
+		perplexity.WithModel(globalOpts.Model),
+		perplexity.WithFrequencyPenalty(globalOpts.FrequencyPenalty),
+		perplexity.WithMaxTokens(globalOpts.MaxTokens),
+		perplexity.WithPresencePenalty(globalOpts.PresencePenalty),
+		perplexity.WithTemperature(globalOpts.Temperature),
+		perplexity.WithTopK(globalOpts.TopK),
+		perplexity.WithTopP(globalOpts.TopP),
 	}, nil
 }
 
@@ -131,30 +125,30 @@ func buildBaseOptions() ([]perplexity.CompletionRequestOption, error) {
 func buildSearchOptions() []perplexity.CompletionRequestOption {
 	var opts []perplexity.CompletionRequestOption
 
-	if len(searchDomains) > 0 {
-		opts = append(opts, perplexity.WithSearchDomainFilter(searchDomains))
+	if len(globalOpts.SearchDomains) > 0 {
+		opts = append(opts, perplexity.WithSearchDomainFilter(globalOpts.SearchDomains))
 	}
 
 	// Handle search recency - incompatible with images
-	if searchRecency != "" {
-		if returnImages {
+	if globalOpts.SearchRecency != "" {
+		if globalOpts.ReturnImages {
 			// User-facing notification (not a log message)
 			fmt.Printf("Note: When using --return-images, search-recency is automatically disabled\nProceeding with image search...\n")
 		} else {
-			opts = append(opts, perplexity.WithSearchRecencyFilter(searchRecency))
+			opts = append(opts, perplexity.WithSearchRecencyFilter(globalOpts.SearchRecency))
 		}
 	}
 
-	if locationLat != 0 || locationLon != 0 || locationCountry != "" {
-		opts = append(opts, perplexity.WithUserLocation(locationLat, locationLon, locationCountry))
+	if globalOpts.LocationLat != 0 || globalOpts.LocationLon != 0 || globalOpts.LocationCountry != "" {
+		opts = append(opts, perplexity.WithUserLocation(globalOpts.LocationLat, globalOpts.LocationLon, globalOpts.LocationCountry))
 	}
 
-	if searchMode != "" {
-		opts = append(opts, perplexity.WithSearchMode(searchMode))
+	if globalOpts.SearchMode != "" {
+		opts = append(opts, perplexity.WithSearchMode(globalOpts.SearchMode))
 	}
 
-	if searchContextSize != "" {
-		opts = append(opts, perplexity.WithSearchContextSize(searchContextSize))
+	if globalOpts.SearchContextSize != "" {
+		opts = append(opts, perplexity.WithSearchContextSize(globalOpts.SearchContextSize))
 	}
 
 	return opts
@@ -165,18 +159,18 @@ func buildSearchOptions() []perplexity.CompletionRequestOption {
 func buildResponseOptions() []perplexity.CompletionRequestOption {
 	var opts []perplexity.CompletionRequestOption
 
-	if returnImages {
-		opts = append(opts, perplexity.WithReturnImages(returnImages))
+	if globalOpts.ReturnImages {
+		opts = append(opts, perplexity.WithReturnImages(globalOpts.ReturnImages))
 		// When images are requested, explicitly disable search recency
 		opts = append(opts, perplexity.WithSearchRecencyFilter(""))
 	}
 
-	if returnRelated {
-		opts = append(opts, perplexity.WithReturnRelatedQuestions(returnRelated))
+	if globalOpts.ReturnRelated {
+		opts = append(opts, perplexity.WithReturnRelatedQuestions(globalOpts.ReturnRelated))
 	}
 
-	if stream {
-		opts = append(opts, perplexity.WithStream(stream))
+	if globalOpts.Stream {
+		opts = append(opts, perplexity.WithStream(globalOpts.Stream))
 	}
 
 	return opts
@@ -187,20 +181,20 @@ func buildResponseOptions() []perplexity.CompletionRequestOption {
 func buildImageOptions() []perplexity.CompletionRequestOption {
 	var opts []perplexity.CompletionRequestOption
 
-	if len(imageDomains) > 0 {
-		opts = append(opts, perplexity.WithImageDomainFilter(imageDomains))
+	if len(globalOpts.ImageDomains) > 0 {
+		opts = append(opts, perplexity.WithImageDomainFilter(globalOpts.ImageDomains))
 	}
 
-	if len(imageFormats) > 0 {
+	if len(globalOpts.ImageFormats) > 0 {
 		// Validate image formats
-		for _, format := range imageFormats {
+		for _, format := range globalOpts.ImageFormats {
 			if !config.ValidImageFormats[format] {
 				logger.Warn("image format may not be supported",
 					"format", format,
 					"supported", "jpg, jpeg, png, gif, webp, svg, bmp")
 			}
 		}
-		opts = append(opts, perplexity.WithImageFormatFilter(imageFormats))
+		opts = append(opts, perplexity.WithImageFormatFilter(globalOpts.ImageFormats))
 	}
 
 	return opts
@@ -211,18 +205,18 @@ func buildImageOptions() []perplexity.CompletionRequestOption {
 func buildResponseFormatOptions() ([]perplexity.CompletionRequestOption, error) {
 	var opts []perplexity.CompletionRequestOption
 
-	if responseFormatJSONSchema != "" {
+	if globalOpts.ResponseFormatJSONSchema != "" {
 		var schema any
-		err := json.Unmarshal([]byte(responseFormatJSONSchema), &schema)
+		err := json.Unmarshal([]byte(globalOpts.ResponseFormatJSONSchema), &schema)
 		if err != nil {
 			return nil, clerrors.NewValidationError("response-format-json-schema",
-				responseFormatJSONSchema, fmt.Sprintf("invalid JSON schema: %v", err))
+				globalOpts.ResponseFormatJSONSchema, fmt.Sprintf("invalid JSON schema: %v", err))
 		}
 		opts = append(opts, perplexity.WithJSONSchemaResponseFormat(schema))
 	}
 
-	if responseFormatRegex != "" {
-		opts = append(opts, perplexity.WithRegexResponseFormat(responseFormatRegex))
+	if globalOpts.ResponseFormatRegex != "" {
+		opts = append(opts, perplexity.WithRegexResponseFormat(globalOpts.ResponseFormatRegex))
 	}
 
 	return opts, nil
@@ -233,32 +227,32 @@ func buildResponseFormatOptions() ([]perplexity.CompletionRequestOption, error) 
 func buildDateFilterOptions() ([]perplexity.CompletionRequestOption, error) {
 	var opts []perplexity.CompletionRequestOption
 
-	if searchAfterDate != "" {
-		date, err := parseDateFilter("search-after-date", searchAfterDate)
+	if globalOpts.SearchAfterDate != "" {
+		date, err := parseDateFilter("search-after-date", globalOpts.SearchAfterDate)
 		if err != nil {
 			return nil, err
 		}
 		opts = append(opts, perplexity.WithSearchAfterDateFilter(date))
 	}
 
-	if searchBeforeDate != "" {
-		date, err := parseDateFilter("search-before-date", searchBeforeDate)
+	if globalOpts.SearchBeforeDate != "" {
+		date, err := parseDateFilter("search-before-date", globalOpts.SearchBeforeDate)
 		if err != nil {
 			return nil, err
 		}
 		opts = append(opts, perplexity.WithSearchBeforeDateFilter(date))
 	}
 
-	if lastUpdatedAfter != "" {
-		date, err := parseDateFilter("last-updated-after", lastUpdatedAfter)
+	if globalOpts.LastUpdatedAfter != "" {
+		date, err := parseDateFilter("last-updated-after", globalOpts.LastUpdatedAfter)
 		if err != nil {
 			return nil, err
 		}
 		opts = append(opts, perplexity.WithLastUpdatedAfterFilter(date))
 	}
 
-	if lastUpdatedBefore != "" {
-		date, err := parseDateFilter("last-updated-before", lastUpdatedBefore)
+	if globalOpts.LastUpdatedBefore != "" {
+		date, err := parseDateFilter("last-updated-before", globalOpts.LastUpdatedBefore)
 		if err != nil {
 			return nil, err
 		}
@@ -273,13 +267,13 @@ func buildDateFilterOptions() ([]perplexity.CompletionRequestOption, error) {
 func buildDeepResearchOptions() []perplexity.CompletionRequestOption {
 	var opts []perplexity.CompletionRequestOption
 
-	if reasoningEffort != "" {
+	if globalOpts.ReasoningEffort != "" {
 		// Warn if model doesn't support reasoning effort
-		if !strings.Contains(model, "deep-research") {
+		if !strings.Contains(globalOpts.Model, "deep-research") {
 			logger.Warn("reasoning-effort only supported by sonar-deep-research model",
-				"current_model", model)
+				"current_model", globalOpts.Model)
 		}
-		opts = append(opts, perplexity.WithReasoningEffort(reasoningEffort))
+		opts = append(opts, perplexity.WithReasoningEffort(globalOpts.ReasoningEffort))
 	}
 
 	return opts
@@ -288,7 +282,7 @@ func buildDeepResearchOptions() []perplexity.CompletionRequestOption {
 // validateInputs validates user inputs before building the request.
 // This centralizes all pre-request validation logic.
 func validateInputs() error {
-	if userPrompt == "" {
+	if globalOpts.UserPrompt == "" {
 		return clerrors.NewValidationError("user-prompt", "", "user prompt is required")
 	}
 
@@ -302,40 +296,40 @@ func validateInputs() error {
 // validateEnumFields validates all enum-based configuration options.
 func validateEnumFields() error {
 	// Validate search recency
-	if err := validateStringEnum("search-recency", searchRecency,
+	if err := validateStringEnum("search-recency", globalOpts.SearchRecency,
 		config.ValidSearchRecency, "day, week, month, year, hour"); err != nil {
 		return err
 	}
 
 	// Validate search mode
-	if err := validateStringEnum("search-mode", searchMode,
+	if err := validateStringEnum("search-mode", globalOpts.SearchMode,
 		config.ValidSearchModes, "web, academic"); err != nil {
 		return err
 	}
 
 	// Validate search context size
-	if err := validateStringEnum("search-context-size", searchContextSize,
+	if err := validateStringEnum("search-context-size", globalOpts.SearchContextSize,
 		config.ValidContextSizes, "low, medium, high"); err != nil {
 		return err
 	}
 
 	// Validate reasoning effort
-	return validateStringEnum("reasoning-effort", reasoningEffort,
+	return validateStringEnum("reasoning-effort", globalOpts.ReasoningEffort,
 		config.ValidReasoningEfforts, "low, medium, high")
 }
 
 // validateResponseFormats validates response format options and model compatibility.
 func validateResponseFormats() error {
 	// Validate response format mutual exclusivity
-	if responseFormatJSONSchema != "" && responseFormatRegex != "" {
+	if globalOpts.ResponseFormatJSONSchema != "" && globalOpts.ResponseFormatRegex != "" {
 		return clerrors.NewValidationError("response-format", "",
 			"cannot use both --response-format-json-schema and --response-format-regex")
 	}
 
 	// Validate model for response formats
-	hasResponseFormat := responseFormatJSONSchema != "" || responseFormatRegex != ""
-	if hasResponseFormat && !strings.HasPrefix(model, "sonar") {
-		return clerrors.NewValidationError("model", model,
+	hasResponseFormat := globalOpts.ResponseFormatJSONSchema != "" || globalOpts.ResponseFormatRegex != ""
+	if hasResponseFormat && !strings.HasPrefix(globalOpts.Model, "sonar") {
+		return clerrors.NewValidationError("model", globalOpts.Model,
 			"response formats (JSON schema and regex) are only supported by sonar models")
 	}
 
@@ -417,7 +411,7 @@ func handleStreamingResponse(client *perplexity.Client, req *perplexity.Completi
 		defer wg.Done()
 		var lastResponse *perplexity.CompletionResponse
 
-		if outputJSON {
+		if globalOpts.OutputJSON {
 			// JSON mode: skip incremental rendering, just collect final response
 			// Rationale: JSON clients expect complete, valid JSON - not streaming fragments
 			// The lastResponse will contain the full completion with all metadata
@@ -442,11 +436,11 @@ func handleStreamingResponse(client *perplexity.Client, req *perplexity.Completi
 		// After channel closes (streaming complete), render final metadata
 		// This includes citations, images, and related questions that only arrive in the final chunk
 		if lastResponse != nil {
-			if !outputJSON {
+			if !globalOpts.OutputJSON {
 				// Visual separation between streaming content and metadata sections
 				fmt.Println()
 			}
-			err := console.RenderResponse(lastResponse, os.Stdout, outputJSON)
+			err := console.RenderResponse(lastResponse, os.Stdout, globalOpts.OutputJSON)
 			if err != nil {
 				logger.Error("failed to render response", "error", err)
 			}
@@ -472,7 +466,7 @@ func handleStreamingResponse(client *perplexity.Client, req *perplexity.Completi
 // Shows a spinner while waiting for the response (unless JSON output is requested).
 func handleNonStreamingResponse(client *perplexity.Client, req *perplexity.CompletionRequest) error {
 	var spinnerInfo *pterm.SpinnerPrinter
-	if !outputJSON {
+	if !globalOpts.OutputJSON {
 		spinnerInfo, _ = pterm.DefaultSpinner.Start("Waiting for response from perplexity...")
 	}
 
@@ -481,11 +475,11 @@ func handleNonStreamingResponse(client *perplexity.Client, req *perplexity.Compl
 		return clerrors.NewAPIError("failed to send completion request", err)
 	}
 
-	if !outputJSON {
+	if !globalOpts.OutputJSON {
 		spinnerInfo.Success("Response received")
 	}
 
-	err = console.RenderResponse(res, os.Stdout, outputJSON)
+	err = console.RenderResponse(res, os.Stdout, globalOpts.OutputJSON)
 	if err != nil {
 		return clerrors.NewIOError("failed to render response", err)
 	}

@@ -125,37 +125,37 @@ func TestValidateStringEnum(t *testing.T) {
 
 func TestBuildSearchOptions(t *testing.T) {
 	// Save original values
-	origSearchDomains := searchDomains
-	origSearchRecency := searchRecency
-	origReturnImages := returnImages
-	origLocationLat := locationLat
-	origLocationLon := locationLon
-	origLocationCountry := locationCountry
-	origSearchMode := searchMode
-	origSearchContextSize := searchContextSize
+	origSearchDomains := globalOpts.SearchDomains
+	origSearchRecency := globalOpts.SearchRecency
+	origReturnImages := globalOpts.ReturnImages
+	origLocationLat := globalOpts.LocationLat
+	origLocationLon := globalOpts.LocationLon
+	origLocationCountry := globalOpts.LocationCountry
+	origSearchMode := globalOpts.SearchMode
+	origSearchContextSize := globalOpts.SearchContextSize
 
 	// Restore original values after test
 	defer func() {
-		searchDomains = origSearchDomains
-		searchRecency = origSearchRecency
-		returnImages = origReturnImages
-		locationLat = origLocationLat
-		locationLon = origLocationLon
-		locationCountry = origLocationCountry
-		searchMode = origSearchMode
-		searchContextSize = origSearchContextSize
+		globalOpts.SearchDomains = origSearchDomains
+		globalOpts.SearchRecency = origSearchRecency
+		globalOpts.ReturnImages = origReturnImages
+		globalOpts.LocationLat = origLocationLat
+		globalOpts.LocationLon = origLocationLon
+		globalOpts.LocationCountry = origLocationCountry
+		globalOpts.SearchMode = origSearchMode
+		globalOpts.SearchContextSize = origSearchContextSize
 	}()
 
 	t.Run("empty options", func(t *testing.T) {
 		// Reset all search-related globals
-		searchDomains = []string{}
-		searchRecency = ""
-		returnImages = false
-		locationLat = 0
-		locationLon = 0
-		locationCountry = ""
-		searchMode = ""
-		searchContextSize = ""
+		globalOpts.SearchDomains = []string{}
+		globalOpts.SearchRecency = ""
+		globalOpts.ReturnImages = false
+		globalOpts.LocationLat = 0
+		globalOpts.LocationLon = 0
+		globalOpts.LocationCountry = ""
+		globalOpts.SearchMode = ""
+		globalOpts.SearchContextSize = ""
 
 		opts := buildSearchOptions()
 		if len(opts) != 0 {
@@ -164,14 +164,14 @@ func TestBuildSearchOptions(t *testing.T) {
 	})
 
 	t.Run("with search domains", func(t *testing.T) {
-		searchDomains = []string{"example.com", "test.com"}
-		searchRecency = ""
-		returnImages = false
-		locationLat = 0
-		locationLon = 0
-		locationCountry = ""
-		searchMode = ""
-		searchContextSize = ""
+		globalOpts.SearchDomains = []string{"example.com", "test.com"}
+		globalOpts.SearchRecency = ""
+		globalOpts.ReturnImages = false
+		globalOpts.LocationLat = 0
+		globalOpts.LocationLon = 0
+		globalOpts.LocationCountry = ""
+		globalOpts.SearchMode = ""
+		globalOpts.SearchContextSize = ""
 
 		opts := buildSearchOptions()
 		if len(opts) != 1 {
@@ -180,14 +180,14 @@ func TestBuildSearchOptions(t *testing.T) {
 	})
 
 	t.Run("with search recency and no images", func(t *testing.T) {
-		searchDomains = []string{}
-		searchRecency = "week"
-		returnImages = false
-		locationLat = 0
-		locationLon = 0
-		locationCountry = ""
-		searchMode = ""
-		searchContextSize = ""
+		globalOpts.SearchDomains = []string{}
+		globalOpts.SearchRecency = "week"
+		globalOpts.ReturnImages = false
+		globalOpts.LocationLat = 0
+		globalOpts.LocationLon = 0
+		globalOpts.LocationCountry = ""
+		globalOpts.SearchMode = ""
+		globalOpts.SearchContextSize = ""
 
 		opts := buildSearchOptions()
 		// Should have 1 option (search recency)
@@ -197,14 +197,14 @@ func TestBuildSearchOptions(t *testing.T) {
 	})
 
 	t.Run("with search recency and images - recency should be skipped", func(t *testing.T) {
-		searchDomains = []string{}
-		searchRecency = "week"
-		returnImages = true
-		locationLat = 0
-		locationLon = 0
-		locationCountry = ""
-		searchMode = ""
-		searchContextSize = ""
+		globalOpts.SearchDomains = []string{}
+		globalOpts.SearchRecency = "week"
+		globalOpts.ReturnImages = true
+		globalOpts.LocationLat = 0
+		globalOpts.LocationLon = 0
+		globalOpts.LocationCountry = ""
+		globalOpts.SearchMode = ""
+		globalOpts.SearchContextSize = ""
 
 		opts := buildSearchOptions()
 		// Should have 0 options (recency skipped due to images)
@@ -214,14 +214,14 @@ func TestBuildSearchOptions(t *testing.T) {
 	})
 
 	t.Run("with location", func(t *testing.T) {
-		searchDomains = []string{}
-		searchRecency = ""
-		returnImages = false
-		locationLat = 40.7128
-		locationLon = -74.0060
-		locationCountry = "US"
-		searchMode = ""
-		searchContextSize = ""
+		globalOpts.SearchDomains = []string{}
+		globalOpts.SearchRecency = ""
+		globalOpts.ReturnImages = false
+		globalOpts.LocationLat = 40.7128
+		globalOpts.LocationLon = -74.0060
+		globalOpts.LocationCountry = "US"
+		globalOpts.SearchMode = ""
+		globalOpts.SearchContextSize = ""
 
 		opts := buildSearchOptions()
 		if len(opts) != 1 {
@@ -230,14 +230,14 @@ func TestBuildSearchOptions(t *testing.T) {
 	})
 
 	t.Run("with search mode and context size", func(t *testing.T) {
-		searchDomains = []string{}
-		searchRecency = ""
-		returnImages = false
-		locationLat = 0
-		locationLon = 0
-		locationCountry = ""
-		searchMode = "web"
-		searchContextSize = "medium"
+		globalOpts.SearchDomains = []string{}
+		globalOpts.SearchRecency = ""
+		globalOpts.ReturnImages = false
+		globalOpts.LocationLat = 0
+		globalOpts.LocationLon = 0
+		globalOpts.LocationCountry = ""
+		globalOpts.SearchMode = "web"
+		globalOpts.SearchContextSize = "medium"
 
 		opts := buildSearchOptions()
 		// Should have 2 options (mode + context size)
@@ -247,14 +247,14 @@ func TestBuildSearchOptions(t *testing.T) {
 	})
 
 	t.Run("with all options", func(t *testing.T) {
-		searchDomains = []string{"example.com"}
-		searchRecency = "week"
-		returnImages = false
-		locationLat = 40.7128
-		locationLon = -74.0060
-		locationCountry = "US"
-		searchMode = "web"
-		searchContextSize = "high"
+		globalOpts.SearchDomains = []string{"example.com"}
+		globalOpts.SearchRecency = "week"
+		globalOpts.ReturnImages = false
+		globalOpts.LocationLat = 40.7128
+		globalOpts.LocationLon = -74.0060
+		globalOpts.LocationCountry = "US"
+		globalOpts.SearchMode = "web"
+		globalOpts.SearchContextSize = "high"
 
 		opts := buildSearchOptions()
 		// Should have 5 options (domains, recency, location, mode, context)
@@ -266,24 +266,24 @@ func TestBuildSearchOptions(t *testing.T) {
 
 func TestBuildDateFilterOptions(t *testing.T) {
 	// Save original values
-	origSearchAfterDate := searchAfterDate
-	origSearchBeforeDate := searchBeforeDate
-	origLastUpdatedAfter := lastUpdatedAfter
-	origLastUpdatedBefore := lastUpdatedBefore
+	origSearchAfterDate := globalOpts.SearchAfterDate
+	origSearchBeforeDate := globalOpts.SearchBeforeDate
+	origLastUpdatedAfter := globalOpts.LastUpdatedAfter
+	origLastUpdatedBefore := globalOpts.LastUpdatedBefore
 
 	// Restore original values after test
 	defer func() {
-		searchAfterDate = origSearchAfterDate
-		searchBeforeDate = origSearchBeforeDate
-		lastUpdatedAfter = origLastUpdatedAfter
-		lastUpdatedBefore = origLastUpdatedBefore
+		globalOpts.SearchAfterDate = origSearchAfterDate
+		globalOpts.SearchBeforeDate = origSearchBeforeDate
+		globalOpts.LastUpdatedAfter = origLastUpdatedAfter
+		globalOpts.LastUpdatedBefore = origLastUpdatedBefore
 	}()
 
 	t.Run("no date filters", func(t *testing.T) {
-		searchAfterDate = ""
-		searchBeforeDate = ""
-		lastUpdatedAfter = ""
-		lastUpdatedBefore = ""
+		globalOpts.SearchAfterDate = ""
+		globalOpts.SearchBeforeDate = ""
+		globalOpts.LastUpdatedAfter = ""
+		globalOpts.LastUpdatedBefore = ""
 
 		opts, err := buildDateFilterOptions()
 		if err != nil {
@@ -295,10 +295,10 @@ func TestBuildDateFilterOptions(t *testing.T) {
 	})
 
 	t.Run("with valid search after date", func(t *testing.T) {
-		searchAfterDate = "01/01/2024"
-		searchBeforeDate = ""
-		lastUpdatedAfter = ""
-		lastUpdatedBefore = ""
+		globalOpts.SearchAfterDate = "01/01/2024"
+		globalOpts.SearchBeforeDate = ""
+		globalOpts.LastUpdatedAfter = ""
+		globalOpts.LastUpdatedBefore = ""
 
 		opts, err := buildDateFilterOptions()
 		if err != nil {
@@ -310,10 +310,10 @@ func TestBuildDateFilterOptions(t *testing.T) {
 	})
 
 	t.Run("with invalid date format", func(t *testing.T) {
-		searchAfterDate = "2024-01-01"
-		searchBeforeDate = ""
-		lastUpdatedAfter = ""
-		lastUpdatedBefore = ""
+		globalOpts.SearchAfterDate = "2024-01-01"
+		globalOpts.SearchBeforeDate = ""
+		globalOpts.LastUpdatedAfter = ""
+		globalOpts.LastUpdatedBefore = ""
 
 		_, err := buildDateFilterOptions()
 		if err == nil {
@@ -322,10 +322,10 @@ func TestBuildDateFilterOptions(t *testing.T) {
 	})
 
 	t.Run("with all date filters", func(t *testing.T) {
-		searchAfterDate = "01/01/2024"
-		searchBeforeDate = "12/31/2024"
-		lastUpdatedAfter = "06/01/2024"
-		lastUpdatedBefore = "06/30/2024"
+		globalOpts.SearchAfterDate = "01/01/2024"
+		globalOpts.SearchBeforeDate = "12/31/2024"
+		globalOpts.LastUpdatedAfter = "06/01/2024"
+		globalOpts.LastUpdatedBefore = "06/30/2024"
 
 		opts, err := buildDateFilterOptions()
 		if err != nil {
@@ -339,35 +339,35 @@ func TestBuildDateFilterOptions(t *testing.T) {
 
 func TestValidateInputs(t *testing.T) {
 	// Save original values
-	origUserPrompt := userPrompt
-	origSearchRecency := searchRecency
-	origSearchMode := searchMode
-	origSearchContextSize := searchContextSize
-	origReasoningEffort := reasoningEffort
-	origResponseFormatJSONSchema := responseFormatJSONSchema
-	origResponseFormatRegex := responseFormatRegex
-	origModel := model
+	origUserPrompt := globalOpts.UserPrompt
+	origSearchRecency := globalOpts.SearchRecency
+	origSearchMode := globalOpts.SearchMode
+	origSearchContextSize := globalOpts.SearchContextSize
+	origReasoningEffort := globalOpts.ReasoningEffort
+	origResponseFormatJSONSchema := globalOpts.ResponseFormatJSONSchema
+	origResponseFormatRegex := globalOpts.ResponseFormatRegex
+	origModel := globalOpts.Model
 
 	// Restore original values after test
 	defer func() {
-		userPrompt = origUserPrompt
-		searchRecency = origSearchRecency
-		searchMode = origSearchMode
-		searchContextSize = origSearchContextSize
-		reasoningEffort = origReasoningEffort
-		responseFormatJSONSchema = origResponseFormatJSONSchema
-		responseFormatRegex = origResponseFormatRegex
-		model = origModel
+		globalOpts.UserPrompt = origUserPrompt
+		globalOpts.SearchRecency = origSearchRecency
+		globalOpts.SearchMode = origSearchMode
+		globalOpts.SearchContextSize = origSearchContextSize
+		globalOpts.ReasoningEffort = origReasoningEffort
+		globalOpts.ResponseFormatJSONSchema = origResponseFormatJSONSchema
+		globalOpts.ResponseFormatRegex = origResponseFormatRegex
+		globalOpts.Model= origModel
 	}()
 
 	t.Run("missing user prompt", func(t *testing.T) {
-		userPrompt = ""
-		searchRecency = ""
-		searchMode = ""
-		searchContextSize = ""
-		reasoningEffort = ""
-		responseFormatJSONSchema = ""
-		responseFormatRegex = ""
+		globalOpts.UserPrompt = ""
+		globalOpts.SearchRecency = ""
+		globalOpts.SearchMode = ""
+		globalOpts.SearchContextSize = ""
+		globalOpts.ReasoningEffort = ""
+		globalOpts.ResponseFormatJSONSchema = ""
+		globalOpts.ResponseFormatRegex = ""
 
 		err := validateInputs()
 		if err == nil {
@@ -376,14 +376,14 @@ func TestValidateInputs(t *testing.T) {
 	})
 
 	t.Run("valid inputs", func(t *testing.T) {
-		userPrompt = "test query"
-		searchRecency = "week"
-		searchMode = "web"
-		searchContextSize = "medium"
-		reasoningEffort = "high"
-		responseFormatJSONSchema = ""
-		responseFormatRegex = ""
-		model = "sonar-pro"
+		globalOpts.UserPrompt = "test query"
+		globalOpts.SearchRecency = "week"
+		globalOpts.SearchMode = "web"
+		globalOpts.SearchContextSize = "medium"
+		globalOpts.ReasoningEffort = "high"
+		globalOpts.ResponseFormatJSONSchema = ""
+		globalOpts.ResponseFormatRegex = ""
+		globalOpts.Model= "sonar-pro"
 
 		err := validateInputs()
 		if err != nil {
@@ -392,13 +392,13 @@ func TestValidateInputs(t *testing.T) {
 	})
 
 	t.Run("invalid search recency", func(t *testing.T) {
-		userPrompt = "test query"
-		searchRecency = "invalid"
-		searchMode = ""
-		searchContextSize = ""
-		reasoningEffort = ""
-		responseFormatJSONSchema = ""
-		responseFormatRegex = ""
+		globalOpts.UserPrompt = "test query"
+		globalOpts.SearchRecency = "invalid"
+		globalOpts.SearchMode = ""
+		globalOpts.SearchContextSize = ""
+		globalOpts.ReasoningEffort = ""
+		globalOpts.ResponseFormatJSONSchema = ""
+		globalOpts.ResponseFormatRegex = ""
 
 		err := validateInputs()
 		if err == nil {
@@ -407,13 +407,13 @@ func TestValidateInputs(t *testing.T) {
 	})
 
 	t.Run("invalid search mode", func(t *testing.T) {
-		userPrompt = "test query"
-		searchRecency = ""
-		searchMode = "invalid"
-		searchContextSize = ""
-		reasoningEffort = ""
-		responseFormatJSONSchema = ""
-		responseFormatRegex = ""
+		globalOpts.UserPrompt = "test query"
+		globalOpts.SearchRecency = ""
+		globalOpts.SearchMode = "invalid"
+		globalOpts.SearchContextSize = ""
+		globalOpts.ReasoningEffort = ""
+		globalOpts.ResponseFormatJSONSchema = ""
+		globalOpts.ResponseFormatRegex = ""
 
 		err := validateInputs()
 		if err == nil {
@@ -422,14 +422,14 @@ func TestValidateInputs(t *testing.T) {
 	})
 
 	t.Run("both JSON schema and regex", func(t *testing.T) {
-		userPrompt = "test query"
-		searchRecency = ""
-		searchMode = ""
-		searchContextSize = ""
-		reasoningEffort = ""
-		responseFormatJSONSchema = "{}"
-		responseFormatRegex = "test"
-		model = "sonar-pro"
+		globalOpts.UserPrompt = "test query"
+		globalOpts.SearchRecency = ""
+		globalOpts.SearchMode = ""
+		globalOpts.SearchContextSize = ""
+		globalOpts.ReasoningEffort = ""
+		globalOpts.ResponseFormatJSONSchema = "{}"
+		globalOpts.ResponseFormatRegex = "test"
+		globalOpts.Model= "sonar-pro"
 
 		err := validateInputs()
 		if err == nil {
@@ -437,19 +437,19 @@ func TestValidateInputs(t *testing.T) {
 		}
 	})
 
-	t.Run("response format with non-sonar model", func(t *testing.T) {
-		userPrompt = "test query"
-		searchRecency = ""
-		searchMode = ""
-		searchContextSize = ""
-		reasoningEffort = ""
-		responseFormatJSONSchema = "{}"
-		responseFormatRegex = ""
-		model = "llama-3.1-70b"
+	t.Run("response format with non-sonar globalOpts.Model", func(t *testing.T) {
+		globalOpts.UserPrompt = "test query"
+		globalOpts.SearchRecency = ""
+		globalOpts.SearchMode = ""
+		globalOpts.SearchContextSize = ""
+		globalOpts.ReasoningEffort = ""
+		globalOpts.ResponseFormatJSONSchema = "{}"
+		globalOpts.ResponseFormatRegex = ""
+		globalOpts.Model= "llama-3.1-70b"
 
 		err := validateInputs()
 		if err == nil {
-			t.Errorf("validateInputs() expected error for response format with non-sonar model, got nil")
+			t.Errorf("validateInputs() expected error for response format with non-sonar globalOpts.Model, got nil")
 		}
 	})
 }

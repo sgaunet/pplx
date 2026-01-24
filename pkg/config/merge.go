@@ -178,105 +178,99 @@ func (m *Merger) MergeWithFlags(cmd *cobra.Command) *ConfigData {
 // application - caller controls which globals to update. This maintains backward compatibility
 // with existing cobra flag binding architecture.
 //
-//nolint:gocognit,gocyclo,cyclop,funlen // Function complexity is inherent - applies config to 18 global variables.
-func ApplyToGlobals(cfg *ConfigData,
-	model *string,
-	temperature *float64,
-	maxTokens *int,
-	topK *int,
-	topP *float64,
-	frequencyPenalty *float64,
-	presencePenalty *float64,
-	timeout *time.Duration,
-	searchDomains *[]string,
-	searchRecency *string,
-	locationLat *float64,
-	locationLon *float64,
-	locationCountry *string,
-	returnImages *bool,
-	returnRelated *bool,
-	stream *bool,
-	searchMode *string,
-	searchContextSize *string,
-) {
-	// Apply defaults section
-	// Pattern: Only apply config value if global variable is at zero value (CLI flag not set)
-	// This ensures CLI flags take precedence over config file values
-	//
-	// Example with temperature flag:
-	//   - User runs `pplx query "test"` → *temperature == 0, apply config value 0.7
-	//   - User runs `pplx query "test" --temperature=0.5` → *temperature == 0.5, keep it
-	//   - User runs `pplx query "test" --temperature=0` → *temperature == 0, keep it (explicit zero)
-	//
-	// Note: This pattern can't distinguish "flag not provided" from "flag set to zero",
-	// which is why Changed() is used in MergeWithFlags. Here we rely on the merge already happening.
-	if cfg.Defaults.Model != "" && *model == "" {
-		*model = cfg.Defaults.Model
+func ApplyToGlobals(cfg *ConfigData, opts *GlobalOptions) {
+	applyDefaults(cfg, opts)
+	applySearchOptions(cfg, opts)
+	applyOutputOptions(cfg, opts)
+}
+
+// applyDefaults applies default configuration values to GlobalOptions.
+// Pattern: Only apply config value if global variable is at zero value (CLI flag not set).
+// This ensures CLI flags take precedence over config file values.
+//
+// Example with temperature flag:
+//   - User runs `pplx query "test"` → opts.Temperature == 0, apply config value 0.7
+//   - User runs `pplx query "test" --temperature=0.5` → opts.Temperature == 0.5, keep it
+//   - User runs `pplx query "test" --temperature=0` → opts.Temperature == 0, keep it (explicit zero)
+//
+// Note: This pattern can't distinguish "flag not provided" from "flag set to zero",
+// which is why Changed() is used in MergeWithFlags. Here we rely on the merge already happening.
+//
+//nolint:cyclop // Function complexity is inherent - checks 8 different default configuration fields.
+func applyDefaults(cfg *ConfigData, opts *GlobalOptions) {
+	if cfg.Defaults.Model != "" && opts.Model == "" {
+		opts.Model = cfg.Defaults.Model
 	}
-	if cfg.Defaults.Temperature != 0 && *temperature == 0 {
-		*temperature = cfg.Defaults.Temperature
+	if cfg.Defaults.Temperature != 0 && opts.Temperature == 0 {
+		opts.Temperature = cfg.Defaults.Temperature
 	}
-	if cfg.Defaults.MaxTokens != 0 && *maxTokens == 0 {
-		*maxTokens = cfg.Defaults.MaxTokens
+	if cfg.Defaults.MaxTokens != 0 && opts.MaxTokens == 0 {
+		opts.MaxTokens = cfg.Defaults.MaxTokens
 	}
-	if cfg.Defaults.TopK != 0 && *topK == 0 {
-		*topK = cfg.Defaults.TopK
+	if cfg.Defaults.TopK != 0 && opts.TopK == 0 {
+		opts.TopK = cfg.Defaults.TopK
 	}
-	if cfg.Defaults.TopP != 0 && *topP == 0 {
-		*topP = cfg.Defaults.TopP
+	if cfg.Defaults.TopP != 0 && opts.TopP == 0 {
+		opts.TopP = cfg.Defaults.TopP
 	}
-	if cfg.Defaults.FrequencyPenalty != 0 && *frequencyPenalty == 0 {
-		*frequencyPenalty = cfg.Defaults.FrequencyPenalty
+	if cfg.Defaults.FrequencyPenalty != 0 && opts.FrequencyPenalty == 0 {
+		opts.FrequencyPenalty = cfg.Defaults.FrequencyPenalty
 	}
-	if cfg.Defaults.PresencePenalty != 0 && *presencePenalty == 0 {
-		*presencePenalty = cfg.Defaults.PresencePenalty
+	if cfg.Defaults.PresencePenalty != 0 && opts.PresencePenalty == 0 {
+		opts.PresencePenalty = cfg.Defaults.PresencePenalty
 	}
 	if cfg.Defaults.Timeout != "" {
-		if d, err := time.ParseDuration(cfg.Defaults.Timeout); err == nil && *timeout == 0 {
-			*timeout = d
+		if d, err := time.ParseDuration(cfg.Defaults.Timeout); err == nil && opts.Timeout == 0 {
+			opts.Timeout = d
 		}
 	}
+}
 
-	// Apply search config section
-	// Same zero-value precedence pattern for search options
-	// CLI flags for search options override config file values
-	if len(cfg.Search.Domains) > 0 && len(*searchDomains) == 0 {
-		*searchDomains = cfg.Search.Domains
+// applySearchOptions applies search configuration values to GlobalOptions.
+// Same zero-value precedence pattern for search options.
+// CLI flags for search options override config file values.
+//
+//nolint:cyclop // Function complexity is inherent - checks 7 different search configuration fields.
+func applySearchOptions(cfg *ConfigData, opts *GlobalOptions) {
+	if len(cfg.Search.Domains) > 0 && len(opts.SearchDomains) == 0 {
+		opts.SearchDomains = cfg.Search.Domains
 	}
-	if cfg.Search.Recency != "" && *searchRecency == "" {
-		*searchRecency = cfg.Search.Recency
+	if cfg.Search.Recency != "" && opts.SearchRecency == "" {
+		opts.SearchRecency = cfg.Search.Recency
 	}
-	if cfg.Search.LocationLat != 0 && *locationLat == 0 {
-		*locationLat = cfg.Search.LocationLat
+	if cfg.Search.LocationLat != 0 && opts.LocationLat == 0 {
+		opts.LocationLat = cfg.Search.LocationLat
 	}
-	if cfg.Search.LocationLon != 0 && *locationLon == 0 {
-		*locationLon = cfg.Search.LocationLon
+	if cfg.Search.LocationLon != 0 && opts.LocationLon == 0 {
+		opts.LocationLon = cfg.Search.LocationLon
 	}
-	if cfg.Search.LocationCountry != "" && *locationCountry == "" {
-		*locationCountry = cfg.Search.LocationCountry
+	if cfg.Search.LocationCountry != "" && opts.LocationCountry == "" {
+		opts.LocationCountry = cfg.Search.LocationCountry
 	}
-	if cfg.Search.Mode != "" && *searchMode == "" {
-		*searchMode = cfg.Search.Mode
+	if cfg.Search.Mode != "" && opts.SearchMode == "" {
+		opts.SearchMode = cfg.Search.Mode
 	}
-	if cfg.Search.ContextSize != "" && *searchContextSize == "" {
-		*searchContextSize = cfg.Search.ContextSize
+	if cfg.Search.ContextSize != "" && opts.SearchContextSize == "" {
+		opts.SearchContextSize = cfg.Search.ContextSize
 	}
+}
 
-	// Apply output config section
-	// Boolean handling: No zero-value check needed because false is a valid user choice
-	// If config sets a boolean flag to true, always apply it
-	// This means config file can enable features, but CLI flags are still needed to explicitly disable
-	//
-	// Rationale: User explicitly enabling in config file (return_images: true) should take effect.
-	// If CLI flag is used (--return-images or --no-return-images), cobra sets the global directly.
+// applyOutputOptions applies output configuration values to GlobalOptions.
+// Boolean handling: No zero-value check needed because false is a valid user choice.
+// If config sets a boolean flag to true, always apply it.
+// This means config file can enable features, but CLI flags are still needed to explicitly disable.
+//
+// Rationale: User explicitly enabling in config file (return_images: true) should take effect.
+// If CLI flag is used (--return-images or --no-return-images), cobra sets the global directly.
+func applyOutputOptions(cfg *ConfigData, opts *GlobalOptions) {
 	if cfg.Output.ReturnImages {
-		*returnImages = true
+		opts.ReturnImages = true
 	}
 	if cfg.Output.ReturnRelated {
-		*returnRelated = true
+		opts.ReturnRelated = true
 	}
 	if cfg.Output.Stream {
-		*stream = true
+		opts.Stream = true
 	}
 }
 

@@ -23,9 +23,9 @@ func TestSearchRecencyImagesIncompatibility(t *testing.T) {
 	os.Stdout = w
 
 	// Set flags that trigger the incompatibility
-	searchRecency = "week"
-	returnImages = true
-	userPrompt = "test query"
+	globalOpts.SearchRecency = "week"
+	globalOpts.ReturnImages = true
+	globalOpts.UserPrompt = "test query"
 
 	// Create a goroutine to capture output
 	outputChan := make(chan string)
@@ -62,9 +62,9 @@ func TestSearchRecencyImagesIncompatibility(t *testing.T) {
 	}
 
 	// Reset flags
-	searchRecency = ""
-	returnImages = false
-	userPrompt = ""
+	globalOpts.SearchRecency = ""
+	globalOpts.ReturnImages = false
+	globalOpts.UserPrompt = ""
 }
 
 // TestSearchRecencyWithoutImages tests that when search-recency is used
@@ -81,9 +81,9 @@ func TestSearchRecencyWithoutImages(t *testing.T) {
 	os.Stdout = w
 
 	// Set flags without the incompatibility
-	searchRecency = "week"
-	returnImages = false
-	userPrompt = "test query"
+	globalOpts.SearchRecency = "week"
+	globalOpts.ReturnImages = false
+	globalOpts.UserPrompt = "test query"
 
 	// Create a goroutine to capture output
 	outputChan := make(chan string)
@@ -111,7 +111,7 @@ func TestSearchRecencyWithoutImages(t *testing.T) {
 	}
 
 	// Reset flags
-	searchRecency = ""
-	returnImages = false
-	userPrompt = ""
+	globalOpts.SearchRecency = ""
+	globalOpts.ReturnImages = false
+	globalOpts.UserPrompt = ""
 }
