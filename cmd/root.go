@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/sgaunet/perplexity-go/v2"
 	"github.com/sgaunet/pplx/pkg/clerrors"
 	"github.com/sgaunet/pplx/pkg/completion"
+	"github.com/sgaunet/pplx/pkg/config"
 	"github.com/sgaunet/pplx/pkg/logger"
 	"github.com/spf13/cobra"
 )
@@ -24,56 +24,8 @@ const (
 )
 
 var (
-	systemPrompt     string
-	userPrompt       string
-	model            string  = perplexity.DefaultModel
-	frequencyPenalty float64 = perplexity.DefaultFrequencyPenalty
-	maxTokens        int     = perplexity.DefaultMaxTokens
-	presencePenalty  float64 = perplexity.DefaultPresencePenalty
-	temperature      float64 = perplexity.DefaultTemperature
-	topK             int     = perplexity.DefaultTopK
-	topP             float64 = perplexity.DefaultTopP
-	timeout                  = perplexity.DefaultTimeout
-
-	// Search/Web options.
-	searchDomains    []string
-	searchRecency    string
-	locationLat      float64
-	locationLon      float64
-	locationCountry  string
-
-	// Response enhancement options.
-	returnImages    bool
-	returnRelated   bool
-	stream          bool
-
-	// Image filtering options.
-	imageDomains []string
-	imageFormats []string
-
-	// Response format options.
-	responseFormatJSONSchema string
-	responseFormatRegex      string
-
-	// Search mode options.
-	searchMode        string
-	searchContextSize string
-
-	// Date filtering options.
-	searchAfterDate     string
-	searchBeforeDate    string
-	lastUpdatedAfter    string
-	lastUpdatedBefore   string
-
-	// Deep research options.
-	reasoningEffort string
-
-	// Output options.
-	outputJSON bool
-
-	// Logging options.
-	logLevel  string
-	logFormat string
+	// globalOpts contains all global flag values for the application.
+	globalOpts = config.NewGlobalOptions()
 )
 
 // rootCmd represents the base command when called without any subcommands.
@@ -105,15 +57,15 @@ func Execute() {
 // initLogger initializes the logger with the configured level and format.
 func initLogger() error {
 	// Parse log level
-	level, ok := logger.ParseLevel(logLevel)
+	level, ok := logger.ParseLevel(globalOpts.LogLevel)
 	if !ok {
-		return fmt.Errorf("%w: %q, must be one of: %v", clerrors.ErrInvalidLogLevel, logLevel, logger.ValidLevels())
+		return fmt.Errorf("%w: %q, must be one of: %v", clerrors.ErrInvalidLogLevel, globalOpts.LogLevel, logger.ValidLevels())
 	}
 
 	// Parse log format
-	format, ok := logger.ParseFormat(logFormat)
+	format, ok := logger.ParseFormat(globalOpts.LogFormat)
 	if !ok {
-		return fmt.Errorf("%w: %q, must be one of: %v", clerrors.ErrInvalidLogFormat, logFormat, logger.ValidFormats())
+		return fmt.Errorf("%w: %q, must be one of: %v", clerrors.ErrInvalidLogFormat, globalOpts.LogFormat, logger.ValidFormats())
 	}
 
 	// Initialize logger
@@ -163,73 +115,73 @@ func getExitCode(err error) int {
 }
 
 func addChatFlags(cmd *cobra.Command) {
-	cmd.PersistentFlags().StringVarP(&model, "model", "m", perplexity.DefaultModel,
+	cmd.PersistentFlags().StringVarP(&globalOpts.Model, "model", "m", globalOpts.Model,
 		"List of models: https://docs.perplexity.ai/guides/model-cards")
-	cmd.PersistentFlags().Float64Var(&frequencyPenalty, "frequency-penalty", frequencyPenalty, "Frequency penalty")
-	cmd.PersistentFlags().IntVarP(&maxTokens, "max-tokens", "T", maxTokens, "Max tokens")
-	cmd.PersistentFlags().Float64Var(&presencePenalty, "presence-penalty", presencePenalty, "Presence penalty")
-	cmd.PersistentFlags().Float64VarP(&temperature, "temperature", "t", temperature, "Temperature")
-	cmd.PersistentFlags().IntVarP(&topK, "top-k", "k", topK, "Top K")
-	cmd.PersistentFlags().Float64Var(&topP, "top-p", topP, "Top P")
-	cmd.PersistentFlags().DurationVar(&timeout, "timeout", timeout, "HTTP timeout")
+	cmd.PersistentFlags().Float64Var(&globalOpts.FrequencyPenalty, "frequency-penalty", globalOpts.FrequencyPenalty, "Frequency penalty")
+	cmd.PersistentFlags().IntVarP(&globalOpts.MaxTokens, "max-tokens", "T", globalOpts.MaxTokens, "Max tokens")
+	cmd.PersistentFlags().Float64Var(&globalOpts.PresencePenalty, "presence-penalty", globalOpts.PresencePenalty, "Presence penalty")
+	cmd.PersistentFlags().Float64VarP(&globalOpts.Temperature, "temperature", "t", globalOpts.Temperature, "Temperature")
+	cmd.PersistentFlags().IntVarP(&globalOpts.TopK, "top-k", "k", globalOpts.TopK, "Top K")
+	cmd.PersistentFlags().Float64Var(&globalOpts.TopP, "top-p", globalOpts.TopP, "Top P")
+	cmd.PersistentFlags().DurationVar(&globalOpts.Timeout, "timeout", globalOpts.Timeout, "HTTP timeout")
 }
 
 func addSearchFlags(cmd *cobra.Command) {
-	cmd.PersistentFlags().StringSliceVarP(&searchDomains, "search-domains", "d", searchDomains,
+	cmd.PersistentFlags().StringSliceVarP(&globalOpts.SearchDomains, "search-domains", "d", globalOpts.SearchDomains,
 		"Filter search results to specific domains")
-	cmd.PersistentFlags().StringVarP(&searchRecency, "search-recency", "r", searchRecency,
+	cmd.PersistentFlags().StringVarP(&globalOpts.SearchRecency, "search-recency", "r", globalOpts.SearchRecency,
 		"Filter by time: day, week, month, year")
-	cmd.PersistentFlags().Float64Var(&locationLat, "location-lat", locationLat, "User location latitude")
-	cmd.PersistentFlags().Float64Var(&locationLon, "location-lon", locationLon, "User location longitude")
-	cmd.PersistentFlags().StringVar(&locationCountry, "location-country", locationCountry, "User location country code")
+	cmd.PersistentFlags().Float64Var(&globalOpts.LocationLat, "location-lat", globalOpts.LocationLat, "User location latitude")
+	cmd.PersistentFlags().Float64Var(&globalOpts.LocationLon, "location-lon", globalOpts.LocationLon, "User location longitude")
+	cmd.PersistentFlags().StringVar(&globalOpts.LocationCountry, "location-country", globalOpts.LocationCountry, "User location country code")
 }
 
 func addResponseFlags(cmd *cobra.Command) {
-	cmd.PersistentFlags().BoolVarP(&returnImages, "return-images", "i", returnImages, "Include images in response (note: automatically disables --search-recency)")
-	cmd.PersistentFlags().BoolVarP(&returnRelated, "return-related", "q", returnRelated, "Include related questions")
-	cmd.PersistentFlags().BoolVarP(&stream, "stream", "S", stream, "Enable streaming responses")
+	cmd.PersistentFlags().BoolVarP(&globalOpts.ReturnImages, "return-images", "i", globalOpts.ReturnImages, "Include images in response (note: automatically disables --search-recency)")
+	cmd.PersistentFlags().BoolVarP(&globalOpts.ReturnRelated, "return-related", "q", globalOpts.ReturnRelated, "Include related questions")
+	cmd.PersistentFlags().BoolVarP(&globalOpts.Stream, "stream", "S", globalOpts.Stream, "Enable streaming responses")
 }
 
 func addImageFlags(cmd *cobra.Command) {
-	cmd.PersistentFlags().StringSliceVar(&imageDomains, "image-domains", imageDomains, "Filter images by domains")
-	cmd.PersistentFlags().StringSliceVar(&imageFormats, "image-formats", imageFormats,
+	cmd.PersistentFlags().StringSliceVar(&globalOpts.ImageDomains, "image-domains", globalOpts.ImageDomains, "Filter images by domains")
+	cmd.PersistentFlags().StringSliceVar(&globalOpts.ImageFormats, "image-formats", globalOpts.ImageFormats,
 		"Filter images by formats (jpg, png, etc.)")
 }
 
 func addFormatFlags(cmd *cobra.Command) {
-	cmd.PersistentFlags().StringVar(&responseFormatJSONSchema, "response-format-json-schema",
-		responseFormatJSONSchema, "JSON schema for structured output (sonar model only)")
-	cmd.PersistentFlags().StringVar(&responseFormatRegex, "response-format-regex",
-		responseFormatRegex, "Regex pattern for structured output (sonar model only)")
-	cmd.PersistentFlags().StringVarP(&searchMode, "search-mode", "a", searchMode, "Search mode: web (default) or academic")
-	cmd.PersistentFlags().StringVarP(&searchContextSize, "search-context-size", "c", searchContextSize,
+	cmd.PersistentFlags().StringVar(&globalOpts.ResponseFormatJSONSchema, "response-format-json-schema",
+		globalOpts.ResponseFormatJSONSchema, "JSON schema for structured output (sonar model only)")
+	cmd.PersistentFlags().StringVar(&globalOpts.ResponseFormatRegex, "response-format-regex",
+		globalOpts.ResponseFormatRegex, "Regex pattern for structured output (sonar model only)")
+	cmd.PersistentFlags().StringVarP(&globalOpts.SearchMode, "search-mode", "a", globalOpts.SearchMode, "Search mode: web (default) or academic")
+	cmd.PersistentFlags().StringVarP(&globalOpts.SearchContextSize, "search-context-size", "c", globalOpts.SearchContextSize,
 		"Search context size: low, medium, or high")
 }
 
 func addDateFlags(cmd *cobra.Command) {
-	cmd.PersistentFlags().StringVar(&searchAfterDate, "search-after-date", searchAfterDate,
+	cmd.PersistentFlags().StringVar(&globalOpts.SearchAfterDate, "search-after-date", globalOpts.SearchAfterDate,
 		"Filter results published after date (MM/DD/YYYY)")
-	cmd.PersistentFlags().StringVar(&searchBeforeDate, "search-before-date", searchBeforeDate,
+	cmd.PersistentFlags().StringVar(&globalOpts.SearchBeforeDate, "search-before-date", globalOpts.SearchBeforeDate,
 		"Filter results published before date (MM/DD/YYYY)")
-	cmd.PersistentFlags().StringVar(&lastUpdatedAfter, "last-updated-after", lastUpdatedAfter,
+	cmd.PersistentFlags().StringVar(&globalOpts.LastUpdatedAfter, "last-updated-after", globalOpts.LastUpdatedAfter,
 		"Filter results last updated after date (MM/DD/YYYY)")
-	cmd.PersistentFlags().StringVar(&lastUpdatedBefore, "last-updated-before", lastUpdatedBefore,
+	cmd.PersistentFlags().StringVar(&globalOpts.LastUpdatedBefore, "last-updated-before", globalOpts.LastUpdatedBefore,
 		"Filter results last updated before date (MM/DD/YYYY)")
 }
 
 func addResearchFlags(cmd *cobra.Command) {
-	cmd.PersistentFlags().StringVar(&reasoningEffort, "reasoning-effort", reasoningEffort,
+	cmd.PersistentFlags().StringVar(&globalOpts.ReasoningEffort, "reasoning-effort", globalOpts.ReasoningEffort,
 		"Reasoning effort for sonar-deep-research: low, medium, or high")
 }
 
 func addOutputFlags(cmd *cobra.Command) {
-	cmd.PersistentFlags().BoolVar(&outputJSON, "json", outputJSON, "Output response in JSON format")
+	cmd.PersistentFlags().BoolVar(&globalOpts.OutputJSON, "json", globalOpts.OutputJSON, "Output response in JSON format")
 }
 
 func addLoggingFlags(cmd *cobra.Command) {
-	cmd.PersistentFlags().StringVar(&logLevel, "log-level", "info",
+	cmd.PersistentFlags().StringVar(&globalOpts.LogLevel, "log-level", globalOpts.LogLevel,
 		"Log level (debug, info, warn, error)")
-	cmd.PersistentFlags().StringVar(&logFormat, "log-format", "text",
+	cmd.PersistentFlags().StringVar(&globalOpts.LogFormat, "log-format", globalOpts.LogFormat,
 		"Log format (text, json)")
 }
 
@@ -328,8 +280,8 @@ func init() {
 	registerFlagCompletions(chatCmd)
 
 	rootCmd.AddCommand(queryCmd)
-	queryCmd.PersistentFlags().StringVarP(&systemPrompt, "sys-prompt", "s", "", "system prompt")
-	queryCmd.PersistentFlags().StringVarP(&userPrompt, "user-prompt", "p", "", "user prompt")
+	queryCmd.PersistentFlags().StringVarP(&globalOpts.SystemPrompt, "sys-prompt", "s", "", "system prompt")
+	queryCmd.PersistentFlags().StringVarP(&globalOpts.UserPrompt, "user-prompt", "p", "", "user prompt")
 	addChatFlags(queryCmd)
 	addSearchFlags(queryCmd)
 	addResponseFlags(queryCmd)
