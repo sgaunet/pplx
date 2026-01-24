@@ -179,17 +179,25 @@ func (m *Merger) MergeWithFlags(cmd *cobra.Command) *ConfigData {
 // with existing cobra flag binding architecture.
 //
 func ApplyToGlobals(cfg *ConfigData, opts *GlobalOptions) {
-	// Apply defaults section
-	// Pattern: Only apply config value if global variable is at zero value (CLI flag not set)
-	// This ensures CLI flags take precedence over config file values
-	//
-	// Example with temperature flag:
-	//   - User runs `pplx query "test"` → opts.Temperature == 0, apply config value 0.7
-	//   - User runs `pplx query "test" --temperature=0.5` → opts.Temperature == 0.5, keep it
-	//   - User runs `pplx query "test" --temperature=0` → opts.Temperature == 0, keep it (explicit zero)
-	//
-	// Note: This pattern can't distinguish "flag not provided" from "flag set to zero",
-	// which is why Changed() is used in MergeWithFlags. Here we rely on the merge already happening.
+	applyDefaults(cfg, opts)
+	applySearchOptions(cfg, opts)
+	applyOutputOptions(cfg, opts)
+}
+
+// applyDefaults applies default configuration values to GlobalOptions.
+// Pattern: Only apply config value if global variable is at zero value (CLI flag not set).
+// This ensures CLI flags take precedence over config file values.
+//
+// Example with temperature flag:
+//   - User runs `pplx query "test"` → opts.Temperature == 0, apply config value 0.7
+//   - User runs `pplx query "test" --temperature=0.5` → opts.Temperature == 0.5, keep it
+//   - User runs `pplx query "test" --temperature=0` → opts.Temperature == 0, keep it (explicit zero)
+//
+// Note: This pattern can't distinguish "flag not provided" from "flag set to zero",
+// which is why Changed() is used in MergeWithFlags. Here we rely on the merge already happening.
+//
+//nolint:cyclop // Function complexity is inherent - checks 8 different default configuration fields.
+func applyDefaults(cfg *ConfigData, opts *GlobalOptions) {
 	if cfg.Defaults.Model != "" && opts.Model == "" {
 		opts.Model = cfg.Defaults.Model
 	}
@@ -216,10 +224,14 @@ func ApplyToGlobals(cfg *ConfigData, opts *GlobalOptions) {
 			opts.Timeout = d
 		}
 	}
+}
 
-	// Apply search config section
-	// Same zero-value precedence pattern for search options
-	// CLI flags for search options override config file values
+// applySearchOptions applies search configuration values to GlobalOptions.
+// Same zero-value precedence pattern for search options.
+// CLI flags for search options override config file values.
+//
+//nolint:cyclop // Function complexity is inherent - checks 7 different search configuration fields.
+func applySearchOptions(cfg *ConfigData, opts *GlobalOptions) {
 	if len(cfg.Search.Domains) > 0 && len(opts.SearchDomains) == 0 {
 		opts.SearchDomains = cfg.Search.Domains
 	}
@@ -241,14 +253,16 @@ func ApplyToGlobals(cfg *ConfigData, opts *GlobalOptions) {
 	if cfg.Search.ContextSize != "" && opts.SearchContextSize == "" {
 		opts.SearchContextSize = cfg.Search.ContextSize
 	}
+}
 
-	// Apply output config section
-	// Boolean handling: No zero-value check needed because false is a valid user choice
-	// If config sets a boolean flag to true, always apply it
-	// This means config file can enable features, but CLI flags are still needed to explicitly disable
-	//
-	// Rationale: User explicitly enabling in config file (return_images: true) should take effect.
-	// If CLI flag is used (--return-images or --no-return-images), cobra sets the global directly.
+// applyOutputOptions applies output configuration values to GlobalOptions.
+// Boolean handling: No zero-value check needed because false is a valid user choice.
+// If config sets a boolean flag to true, always apply it.
+// This means config file can enable features, but CLI flags are still needed to explicitly disable.
+//
+// Rationale: User explicitly enabling in config file (return_images: true) should take effect.
+// If CLI flag is used (--return-images or --no-return-images), cobra sets the global directly.
+func applyOutputOptions(cfg *ConfigData, opts *GlobalOptions) {
 	if cfg.Output.ReturnImages {
 		opts.ReturnImages = true
 	}
