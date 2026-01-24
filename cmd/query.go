@@ -17,27 +17,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// Validation maps for query command options.
-var (
-	validSearchRecency = map[string]bool{
-		"day": true, "week": true, "month": true,
-		"year": true, "hour": true,
-	}
-	validSearchModes = map[string]bool{
-		"web": true, "academic": true,
-	}
-	validContextSizes = map[string]bool{
-		"low": true, "medium": true, "high": true,
-	}
-	validReasoningEfforts = map[string]bool{
-		"low": true, "medium": true, "high": true,
-	}
-	validImageFormats = map[string]bool{
-		"jpg": true, "jpeg": true, "png": true, "gif": true,
-		"webp": true, "svg": true, "bmp": true,
-	}
-)
-
 var queryCmd = &cobra.Command{
 	Use:   "query",
 	Short: "",
@@ -215,7 +194,7 @@ func buildImageOptions() []perplexity.CompletionRequestOption {
 	if len(imageFormats) > 0 {
 		// Validate image formats
 		for _, format := range imageFormats {
-			if !validImageFormats[format] {
+			if !config.ValidImageFormats[format] {
 				logger.Warn("image format may not be supported",
 					"format", format,
 					"supported", "jpg, jpeg, png, gif, webp, svg, bmp")
@@ -324,25 +303,25 @@ func validateInputs() error {
 func validateEnumFields() error {
 	// Validate search recency
 	if err := validateStringEnum("search-recency", searchRecency,
-		validSearchRecency, "day, week, month, year, hour"); err != nil {
+		config.ValidSearchRecency, "day, week, month, year, hour"); err != nil {
 		return err
 	}
 
 	// Validate search mode
 	if err := validateStringEnum("search-mode", searchMode,
-		validSearchModes, "web, academic"); err != nil {
+		config.ValidSearchModes, "web, academic"); err != nil {
 		return err
 	}
 
 	// Validate search context size
 	if err := validateStringEnum("search-context-size", searchContextSize,
-		validContextSizes, "low, medium, high"); err != nil {
+		config.ValidContextSizes, "low, medium, high"); err != nil {
 		return err
 	}
 
 	// Validate reasoning effort
 	return validateStringEnum("reasoning-effort", reasoningEffort,
-		validReasoningEfforts, "low, medium, high")
+		config.ValidReasoningEfforts, "low, medium, high")
 }
 
 // validateResponseFormats validates response format options and model compatibility.

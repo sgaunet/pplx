@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/sgaunet/perplexity-go/v2"
+	"github.com/sgaunet/pplx/pkg/config"
 )
 
 // QueryHandler handles Perplexity query execution.
@@ -177,12 +178,8 @@ func (h *QueryHandler) buildRequestOptions(
 		// newly supported formats we haven't updated. Warning allows experimentation
 		// while guiding users toward known-good formats. This is a "be liberal in
 		// what you accept" strategy - let the API be the final validator.
-		validFormats := map[string]bool{
-			"jpg": true, "jpeg": true, "png": true, "gif": true,
-			"webp": true, "svg": true, "bmp": true,
-		}
 		for _, format := range params.ImageFormats {
-			if !validFormats[format] {
+			if !config.ValidImageFormats[format] {
 				log.Printf("Warning: Image format '%s' may not be supported. "+
 					"Common formats are: jpg, jpeg, png, gif, webp, svg, bmp", format)
 			}
@@ -298,8 +295,7 @@ func (h *QueryHandler) buildRequestOptions(
 func (h *QueryHandler) validateParameters(params QueryParams) error {
 	// Category 1: Search recency enum validation
 	if params.SearchRecency != "" {
-		validRecency := map[string]bool{"day": true, "week": true, "month": true, "year": true, "hour": true}
-		if !validRecency[params.SearchRecency] {
+		if !config.ValidSearchRecency[params.SearchRecency] {
 			return NewValidationError("search_recency", params.SearchRecency,
 				"must be one of: day, week, month, year, hour")
 		}
@@ -323,8 +319,7 @@ func (h *QueryHandler) validateParameters(params QueryParams) error {
 	// Category 4: Search mode enum validation
 	// Controls whether search uses web or academic (scholarly) backend
 	if params.SearchMode != "" {
-		validModes := map[string]bool{"web": true, "academic": true}
-		if !validModes[params.SearchMode] {
+		if !config.ValidSearchModes[params.SearchMode] {
 			return NewValidationError("search_mode", params.SearchMode,
 				"must be one of: web, academic")
 		}
@@ -334,8 +329,7 @@ func (h *QueryHandler) validateParameters(params QueryParams) error {
 	// Controls how much context from search results is included in the query
 	// (low = less context/faster, high = more context/slower but potentially better answers)
 	if params.SearchContextSize != "" {
-		validSizes := map[string]bool{"low": true, "medium": true, "high": true}
-		if !validSizes[params.SearchContextSize] {
+		if !config.ValidContextSizes[params.SearchContextSize] {
 			return NewValidationError("search_context_size", params.SearchContextSize,
 				"must be one of: low, medium, high")
 		}
@@ -345,8 +339,7 @@ func (h *QueryHandler) validateParameters(params QueryParams) error {
 	// Controls computational resources for deep-research model
 	// (low = faster/cheaper, high = slower/more thorough reasoning)
 	if params.ReasoningEffort != "" {
-		validEfforts := map[string]bool{"low": true, "medium": true, "high": true}
-		if !validEfforts[params.ReasoningEffort] {
+		if !config.ValidReasoningEfforts[params.ReasoningEffort] {
 			return NewValidationError("reasoning_effort", params.ReasoningEffort,
 				"must be one of: low, medium, high")
 		}

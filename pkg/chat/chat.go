@@ -9,6 +9,7 @@ import (
 
 	"github.com/sgaunet/perplexity-go/v2"
 	"github.com/sgaunet/pplx/pkg/clerrors"
+	"github.com/sgaunet/pplx/pkg/config"
 	"github.com/sgaunet/pplx/pkg/logger"
 )
 
@@ -167,8 +168,7 @@ func (c *Chat) addSearchOptions(opts *[]perplexity.CompletionRequestOption) erro
 		// Rationale: Centralized here rather than in validator package because
 		// these constraints come from the Perplexity API specification, not our domain logic.
 		// Keeping validation close to API call makes it easier to update when API changes.
-		validRecency := map[string]bool{"day": true, "week": true, "month": true, "year": true, "hour": true}
-		if !validRecency[c.options.SearchRecency] {
+		if !config.ValidSearchRecency[c.options.SearchRecency] {
 			return fmt.Errorf("%w: '%s'. Must be one of: day, week, month, year, hour",
 				clerrors.ErrInvalidSearchRecency, c.options.SearchRecency)
 		}
@@ -229,8 +229,7 @@ func (c *Chat) addModeOptions(opts *[]perplexity.CompletionRequestOption) error 
 		// Search mode validation: API supports two distinct search behaviors
 		// "web" = general internet search (default, broader results)
 		// "academic" = scholarly sources only (research papers, journals)
-		validModes := map[string]bool{"web": true, "academic": true}
-		if !validModes[c.options.SearchMode] {
+		if !config.ValidSearchModes[c.options.SearchMode] {
 			return fmt.Errorf("%w: '%s'. Must be one of: web, academic", clerrors.ErrInvalidSearchMode, c.options.SearchMode)
 		}
 		*opts = append(*opts, perplexity.WithSearchMode(c.options.SearchMode))
@@ -240,8 +239,7 @@ func (c *Chat) addModeOptions(opts *[]perplexity.CompletionRequestOption) error 
 		// "low" = minimal context (faster, cheaper)
 		// "medium" = balanced context (default)
 		// "high" = maximum context (slower, more comprehensive)
-		validSizes := map[string]bool{"low": true, "medium": true, "high": true}
-		if !validSizes[c.options.SearchContextSize] {
+		if !config.ValidContextSizes[c.options.SearchContextSize] {
 			return fmt.Errorf("%w: '%s'. Must be one of: low, medium, high",
 				clerrors.ErrInvalidSearchContextSize, c.options.SearchContextSize)
 		}
@@ -295,8 +293,7 @@ func (c *Chat) addResearchOptions(opts *[]perplexity.CompletionRequestOption) er
 		// "low" = faster, less thorough (suitable for simple queries)
 		// "medium" = balanced analysis (default)
 		// "high" = maximum depth (slower, comprehensive for complex research tasks)
-		validEfforts := map[string]bool{"low": true, "medium": true, "high": true}
-		if !validEfforts[c.options.ReasoningEffort] {
+		if !config.ValidReasoningEfforts[c.options.ReasoningEffort] {
 			return fmt.Errorf("%w: '%s'. Must be one of: low, medium, high",
 				clerrors.ErrInvalidReasoningEffort, c.options.ReasoningEffort)
 		}

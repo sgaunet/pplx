@@ -44,8 +44,8 @@ func (m *Merger) BindFlags(cmd *cobra.Command) error {
 //
 // Changed() pattern: Only override config value if flag was explicitly set by user.
 // This critical pattern distinguishes between:
-//   1. "flag not provided" (keep config value)
-//   2. "flag provided with explicit value, even if zero" (use flag value)
+//  1. "flag not provided" (keep config value)
+//  2. "flag provided with explicit value, even if zero" (use flag value)
 //
 // Example with temperature flag (config.yaml sets temperature: 0.7):
 //   - User runs: `pplx query "test"`
@@ -283,6 +283,10 @@ func ApplyToGlobals(cfg *ConfigData,
 // ExpandEnvVars expands environment variables in configuration values
 // Supports ${VAR_NAME} and $VAR_NAME syntax.
 func ExpandEnvVars(cfg *ConfigData) {
+	if cfg == nil {
+		return
+	}
+
 	// Expand in API config
 	cfg.API.Key = expandString(cfg.API.Key)
 	cfg.API.BaseURL = expandString(cfg.API.BaseURL)
