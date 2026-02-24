@@ -57,16 +57,9 @@ func RenderAsMarkdown(pplxResponse *perplexity.CompletionResponse, output io.Wri
 func RenderCitations(pplxResponse *perplexity.CompletionResponse, output io.Writer) error {
 	searchResults := pplxResponse.GetSearchResults()
 	if len(searchResults) == 0 {
-		// Fall back to deprecated citations if no search results
-		for i, c := range pplxResponse.GetCitations() {
-			_, err := fmt.Fprintf(output, "[%d]: %s\n", i, c)
-			if err != nil {
-				return fmt.Errorf("error writing citations as markdown to output: %w", err)
-			}
-		}
 		return nil
 	}
-	
+
 	for i, sr := range searchResults {
 		dateInfo := ""
 		if sr.Date != nil {

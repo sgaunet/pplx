@@ -223,7 +223,7 @@ func (h *QueryHandler) buildRequestOptions(
 			return nil, NewValidationError("search_after_date", params.SearchAfterDate,
 				"invalid format, use MM/DD/YYYY")
 		}
-		opts = append(opts, perplexity.WithSearchAfterDateFilter(date))
+		opts = append(opts, perplexity.WithPublishedAfter(date))
 	}
 
 	if params.SearchBeforeDate != "" {
@@ -232,7 +232,7 @@ func (h *QueryHandler) buildRequestOptions(
 			return nil, NewValidationError("search_before_date", params.SearchBeforeDate,
 				"invalid format, use MM/DD/YYYY")
 		}
-		opts = append(opts, perplexity.WithSearchBeforeDateFilter(date))
+		opts = append(opts, perplexity.WithPublishedBefore(date))
 	}
 
 	if params.LastUpdatedAfter != "" {

@@ -232,7 +232,7 @@ func buildDateFilterOptions() ([]perplexity.CompletionRequestOption, error) {
 		if err != nil {
 			return nil, err
 		}
-		opts = append(opts, perplexity.WithSearchAfterDateFilter(date))
+		opts = append(opts, perplexity.WithPublishedAfter(date))
 	}
 
 	if globalOpts.SearchBeforeDate != "" {
@@ -240,7 +240,7 @@ func buildDateFilterOptions() ([]perplexity.CompletionRequestOption, error) {
 		if err != nil {
 			return nil, err
 		}
-		opts = append(opts, perplexity.WithSearchBeforeDateFilter(date))
+		opts = append(opts, perplexity.WithPublishedBefore(date))
 	}
 
 	if globalOpts.LastUpdatedAfter != "" {
