@@ -259,14 +259,14 @@ func (c *Chat) addDateOptions(opts *[]perplexity.CompletionRequestOption) error 
 		if err != nil {
 			return fmt.Errorf("%w: '%s'. Use MM/DD/YYYY", clerrors.ErrInvalidSearchAfterDate, c.options.SearchAfterDate)
 		}
-		*opts = append(*opts, perplexity.WithSearchAfterDateFilter(date))
+		*opts = append(*opts, perplexity.WithPublishedAfter(date))
 	}
 	if c.options.SearchBeforeDate != "" {
 		date, err := time.Parse("01/02/2006", c.options.SearchBeforeDate)
 		if err != nil {
 			return fmt.Errorf("%w: '%s'. Use MM/DD/YYYY", clerrors.ErrInvalidSearchBeforeDate, c.options.SearchBeforeDate)
 		}
-		*opts = append(*opts, perplexity.WithSearchBeforeDateFilter(date))
+		*opts = append(*opts, perplexity.WithPublishedBefore(date))
 	}
 	if c.options.LastUpdatedAfter != "" {
 		date, err := time.Parse("01/02/2006", c.options.LastUpdatedAfter)
