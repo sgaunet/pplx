@@ -334,7 +334,7 @@ func getBashInstallTarget(homeDir string) (*shellInstallTarget, error) {
 
 	targetPath := filepath.Join(brewPrefix, "etc", "bash_completion.d", "pplx")
 	// Check if Homebrew bash_completion.d directory exists
-	if _, err := os.Stat(filepath.Dir(targetPath)); os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Dir(targetPath)); os.IsNotExist(err) { //nolint:gosec // G703: path is constructed from trusted env/home dir sources
 		// Attempt 2: User directory fallback (Linux-style path)
 		targetPath = filepath.Join(homeDir, ".bash_completion.d", "pplx")
 		if err := os.MkdirAll(filepath.Dir(targetPath), dirPerms); err != nil { // #nosec G301

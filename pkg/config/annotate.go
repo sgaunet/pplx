@@ -296,7 +296,7 @@ func GenerateAnnotatedConfig(cfg *ConfigData, opts AnnotationOptions) (string, e
 		output.WriteString("\nprofiles:\n")
 
 		for name, profile := range cfg.Profiles {
-			output.WriteString(fmt.Sprintf("  %s:\n", name))
+			fmt.Fprintf(&output, "  %s:\n", name)
 			profileYAML, err := yaml.Marshal(profile)
 			if err != nil {
 				return "", fmt.Errorf("failed to marshal profile %s: %w", name, err)
@@ -313,7 +313,7 @@ func GenerateAnnotatedConfig(cfg *ConfigData, opts AnnotationOptions) (string, e
 	// Add active profile
 	if cfg.ActiveProfile != "" {
 		output.WriteString("\n# Currently active profile\n")
-		output.WriteString(fmt.Sprintf("active_profile: %s\n", cfg.ActiveProfile))
+		fmt.Fprintf(&output, "active_profile: %s\n", cfg.ActiveProfile)
 	}
 
 	// Add example profiles if requested
