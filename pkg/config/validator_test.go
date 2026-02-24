@@ -582,3 +582,263 @@ func TestValidator_ProfileNameVeryLong(t *testing.T) {
 		t.Logf("Very long profile name (256 chars) accepted")
 	}
 }
+
+// =============================================================================
+// validateDefaults — numeric boundaries
+// =============================================================================
+
+func TestValidator_MaxTokensNegative(t *testing.T) {
+	cfg := &ConfigData{
+		Defaults: DefaultsConfig{
+			MaxTokens: -1,
+		},
+	}
+	validator := NewValidator()
+	if err := validator.Validate(cfg); err == nil {
+		t.Error("Expected validation error for MaxTokens = -1")
+	}
+}
+
+func TestValidator_TopKNegative(t *testing.T) {
+	cfg := &ConfigData{
+		Defaults: DefaultsConfig{
+			TopK: -1,
+		},
+	}
+	validator := NewValidator()
+	if err := validator.Validate(cfg); err == nil {
+		t.Error("Expected validation error for TopK = -1")
+	}
+}
+
+func TestValidator_TopPBoundaries(t *testing.T) {
+	tests := []struct {
+		name    string
+		topP    float64
+		wantErr bool
+	}{
+		{"exact zero", 0.0, false},
+		{"exact one", 1.0, false},
+		{"just below zero", -0.001, true},
+		{"just above one", 1.001, true},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			cfg := &ConfigData{Defaults: DefaultsConfig{TopP: tc.topP}}
+			err := NewValidator().Validate(cfg)
+			if tc.wantErr && err == nil {
+				t.Errorf("TopP=%v: expected error, got nil", tc.topP)
+			}
+			if !tc.wantErr && err != nil {
+				t.Errorf("TopP=%v: expected nil, got %v", tc.topP, err)
+			}
+		})
+	}
+}
+
+func TestValidator_FrequencyPenaltyBoundaries(t *testing.T) {
+	tests := []struct {
+		name    string
+		val     float64
+		wantErr bool
+	}{
+		{"exact zero", 0.0, false},
+		{"exact two", 2.0, false},
+		{"just below zero", -0.001, true},
+		{"just above two", 2.001, true},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			cfg := &ConfigData{Defaults: DefaultsConfig{FrequencyPenalty: tc.val}}
+			err := NewValidator().Validate(cfg)
+			if tc.wantErr && err == nil {
+				t.Errorf("FrequencyPenalty=%v: expected error, got nil", tc.val)
+			}
+			if !tc.wantErr && err != nil {
+				t.Errorf("FrequencyPenalty=%v: expected nil, got %v", tc.val, err)
+			}
+		})
+	}
+}
+
+func TestValidator_PresencePenaltyBoundaries(t *testing.T) {
+	tests := []struct {
+		name    string
+		val     float64
+		wantErr bool
+	}{
+		{"exact zero", 0.0, false},
+		{"exact two", 2.0, false},
+		{"just below zero", -0.001, true},
+		{"just above two", 2.001, true},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			cfg := &ConfigData{Defaults: DefaultsConfig{PresencePenalty: tc.val}}
+			err := NewValidator().Validate(cfg)
+			if tc.wantErr && err == nil {
+				t.Errorf("PresencePenalty=%v: expected error, got nil", tc.val)
+			}
+			if !tc.wantErr && err != nil {
+				t.Errorf("PresencePenalty=%v: expected nil, got %v", tc.val, err)
+			}
+		})
+	}
+}
+
+// =============================================================================
+// validateSearch — enum coverage
+// =============================================================================
+
+func TestValidator_SearchContextSizeAllValid(t *testing.T) {
+	for _, size := range []string{"low", "medium", "high"} {
+		t.Run(size, func(t *testing.T) {
+			cfg := &ConfigData{Search: SearchConfig{ContextSize: size}}
+			if err := NewValidator().Validate(cfg); err != nil {
+				t.Errorf("ContextSize=%q should be valid: %v", size, err)
+			}
+		})
+	}
+}
+
+func TestValidator_SearchContextSizeInvalid(t *testing.T) {
+	cfg := &ConfigData{Search: SearchConfig{ContextSize: "extreme"}}
+	if err := NewValidator().Validate(cfg); err == nil {
+		t.Error("Expected error for ContextSize='extreme'")
+	}
+}
+
+func TestValidator_SearchRecencyAllValid(t *testing.T) {
+	for _, recency := range []string{"hour", "day", "week", "month", "year"} {
+		t.Run(recency, func(t *testing.T) {
+			cfg := &ConfigData{Search: SearchConfig{Recency: recency}}
+			if err := NewValidator().Validate(cfg); err != nil {
+				t.Errorf("Recency=%q should be valid: %v", recency, err)
+			}
+		})
+	}
+}
+
+func TestValidator_SearchModeAcademic(t *testing.T) {
+	cfg := &ConfigData{Search: SearchConfig{Mode: "academic"}}
+	if err := NewValidator().Validate(cfg); err != nil {
+		t.Errorf("Mode='academic' should be valid: %v", err)
+	}
+}
+
+// =============================================================================
+// validateOutput — reasoning effort
+// =============================================================================
+
+func TestValidator_ReasoningEffortAllValid(t *testing.T) {
+	for _, effort := range []string{"low", "medium", "high"} {
+		t.Run(effort, func(t *testing.T) {
+			cfg := &ConfigData{Output: OutputConfig{ReasoningEffort: effort}}
+			if err := NewValidator().Validate(cfg); err != nil {
+				t.Errorf("ReasoningEffort=%q should be valid: %v", effort, err)
+			}
+		})
+	}
+}
+
+func TestValidator_ReasoningEffortInvalid(t *testing.T) {
+	cfg := &ConfigData{Output: OutputConfig{ReasoningEffort: "extreme"}}
+	if err := NewValidator().Validate(cfg); err == nil {
+		t.Error("Expected error for ReasoningEffort='extreme'")
+	}
+}
+
+// =============================================================================
+// validateProfiles — mismatch & nested validation
+// =============================================================================
+
+func TestValidator_ProfileNameMismatch(t *testing.T) {
+	cfg := &ConfigData{
+		Profiles: map[string]*Profile{
+			"work": {Name: "personal"},
+		},
+	}
+	if err := NewValidator().Validate(cfg); err == nil {
+		t.Error("Expected error for profile key/name mismatch (key='work', Name='personal')")
+	}
+}
+
+func TestValidator_ProfileNestedInvalidDefaults(t *testing.T) {
+	cfg := &ConfigData{
+		Profiles: map[string]*Profile{
+			"work": {
+				Name:     "work",
+				Defaults: DefaultsConfig{Temperature: 3.0},
+			},
+		},
+	}
+	if err := NewValidator().Validate(cfg); err == nil {
+		t.Error("Expected error for profile with Temperature=3.0")
+	}
+}
+
+func TestValidator_ProfileNestedInvalidSearch(t *testing.T) {
+	cfg := &ConfigData{
+		Profiles: map[string]*Profile{
+			"work": {
+				Name:   "work",
+				Search: SearchConfig{Recency: "invalid"},
+			},
+		},
+	}
+	if err := NewValidator().Validate(cfg); err == nil {
+		t.Error("Expected error for profile with Recency='invalid'")
+	}
+}
+
+// =============================================================================
+// Validator API behaviour
+// =============================================================================
+
+func TestValidator_ErrorsMethod(t *testing.T) {
+	cfg := &ConfigData{
+		Defaults: DefaultsConfig{Temperature: 3.0},
+		Search:   SearchConfig{Recency: "invalid"},
+	}
+	v := NewValidator()
+	validateErr := v.Validate(cfg)
+	errorsSlice := v.Errors()
+
+	if validateErr == nil {
+		t.Fatal("Expected validation error, got nil")
+	}
+	if len(errorsSlice) == 0 {
+		t.Fatal("Errors() should return non-empty slice after failed validation")
+	}
+
+	verrs, ok := validateErr.(clerrors.ValidationErrors)
+	if !ok {
+		t.Fatalf("Expected ValidationErrors type, got %T", validateErr)
+	}
+	if len(verrs) != len(errorsSlice) {
+		t.Errorf("Validate() returned %d errors, Errors() returned %d", len(verrs), len(errorsSlice))
+	}
+}
+
+func TestValidator_ResetBetweenCalls(t *testing.T) {
+	v := NewValidator()
+
+	// First call with invalid config
+	invalid := &ConfigData{Defaults: DefaultsConfig{Temperature: 3.0}}
+	if err := v.Validate(invalid); err == nil {
+		t.Fatal("Expected error on first (invalid) call")
+	}
+
+	// Second call with valid config — errors must be cleared
+	valid := &ConfigData{}
+	if err := v.Validate(valid); err != nil {
+		t.Errorf("Expected nil on second (valid) call, got: %v", err)
+	}
+}
+
+func TestValidator_EmptyConfig(t *testing.T) {
+	cfg := &ConfigData{}
+	if err := NewValidator().Validate(cfg); err != nil {
+		t.Errorf("Empty ConfigData should be valid, got: %v", err)
+	}
+}
