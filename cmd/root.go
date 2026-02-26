@@ -277,6 +277,7 @@ func init() {
 	addFormatFlags(chatCmd)
 	addDateFlags(chatCmd)
 	addResearchFlags(chatCmd)
+	chatCmd.PersistentFlags().StringVar(&configFilePath, "config", "", "Path to config file")
 	registerFlagCompletions(chatCmd)
 
 	rootCmd.AddCommand(queryCmd)
@@ -290,6 +291,7 @@ func init() {
 	addDateFlags(queryCmd)
 	addResearchFlags(queryCmd)
 	addOutputFlags(queryCmd)
+	queryCmd.PersistentFlags().StringVar(&configFilePath, "config", "", "Path to config file")
 	registerFlagCompletions(queryCmd)
 
 	rootCmd.AddCommand(mcpStdioCmd)
