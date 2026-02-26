@@ -904,6 +904,10 @@ The MCP server returns JSON with the following structure:
 3. **Configuration issues**: Check JSON syntax in MCP config files
 4. **API errors**: Verify your API key is valid and has sufficient credits
 
+### Common Errors
+
+- **`API error: failed to send completion request: unauthorized: check your API key`**: This error can occur not only with an invalid API key but also when your Perplexity account has **0 credits remaining**. Make sure your account has sufficient credits at [perplexity.ai](https://www.perplexity.ai/).
+
 ### Advanced Configuration Examples
 
 #### High-quality research with academic sources
