@@ -403,12 +403,10 @@ func handleStreamingResponse(client *perplexity.Client, req *perplexity.Completi
 	// This prevents memory buildup if rendering is slower than server response generation
 	responseChannel := make(chan perplexity.CompletionResponse)
 	var wg sync.WaitGroup
-	wg.Add(1)
 
 	// Start consumer goroutine - must be running before SendSSEHTTPRequest starts producing
-	// Goroutine lifecycle: spawn -> consume from channel -> defer wg.Done() -> terminate when channel closes
-	go func() {
-		defer wg.Done()
+	// Goroutine lifecycle: spawn -> consume from channel -> terminate when channel closes
+	wg.Go(func() {
 		var lastResponse *perplexity.CompletionResponse
 
 		if globalOpts.OutputJSON {
@@ -445,7 +443,7 @@ func handleStreamingResponse(client *perplexity.Client, req *perplexity.Completi
 				logger.Error("failed to render response", "error", err)
 			}
 		}
-	}()
+	})
 
 	// Producer: sends SSE request, server writes to responseChannel as tokens arrive
 	// Must happen after goroutine spawn to ensure consumer is ready to receive
