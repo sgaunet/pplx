@@ -36,6 +36,9 @@ type Config interface {
 // ConfigData represents the complete configuration structure.
 //nolint:revive // ConfigData name is part of public API; renaming would be a breaking change.
 type ConfigData struct {
+	// Version is the config schema version for migration support
+	Version int `json:"version,omitempty" mapstructure:"version" yaml:"version,omitempty"`
+
 	// Defaults contains default values for CLI flags
 	Defaults DefaultsConfig `json:"defaults" mapstructure:"defaults" yaml:"defaults"`
 
@@ -113,12 +116,54 @@ type APIConfig struct {
 }
 
 // Profile represents a named configuration profile.
+// Uses pointer-based override types so that absent fields (nil) preserve the base
+// config value while present fields (including zero/false) override it.
 type Profile struct {
-	Name        string         `json:"name"                  mapstructure:"name"        yaml:"name"`
-	Description string         `json:"description,omitempty" mapstructure:"description" yaml:"description,omitempty"`
-	Defaults    DefaultsConfig `json:"defaults"              mapstructure:"defaults"    yaml:"defaults"`
-	Search      SearchConfig   `json:"search"                mapstructure:"search"      yaml:"search"`
-	Output      OutputConfig   `json:"output"                mapstructure:"output"      yaml:"output"`
+	Name        string          `json:"name"                  mapstructure:"name"        yaml:"name"`
+	Description string          `json:"description,omitempty" mapstructure:"description" yaml:"description,omitempty"`
+	Defaults    ProfileDefaults `json:"defaults,omitzero"     mapstructure:"defaults"    yaml:"defaults,omitempty"`
+	Search      ProfileSearch   `json:"search,omitzero"       mapstructure:"search"      yaml:"search,omitempty"`
+	Output      ProfileOutput   `json:"output,omitzero"       mapstructure:"output"      yaml:"output,omitempty"`
+}
+
+// ProfileDefaults uses pointers to distinguish "not set" (nil) from "set to zero".
+type ProfileDefaults struct {
+	Model            *string  `json:"model,omitempty"             mapstructure:"model"             yaml:"model,omitempty"`
+	Temperature      *float64 `json:"temperature,omitempty"       mapstructure:"temperature"       yaml:"temperature,omitempty"`       //nolint:lll
+	MaxTokens        *int     `json:"max_tokens,omitempty"        mapstructure:"max_tokens"        yaml:"max_tokens,omitempty"`        //nolint:lll
+	TopK             *int     `json:"top_k,omitempty"             mapstructure:"top_k"             yaml:"top_k,omitempty"`
+	TopP             *float64 `json:"top_p,omitempty"             mapstructure:"top_p"             yaml:"top_p,omitempty"`
+	FrequencyPenalty *float64 `json:"frequency_penalty,omitempty" mapstructure:"frequency_penalty" yaml:"frequency_penalty,omitempty"` //nolint:lll
+	PresencePenalty  *float64 `json:"presence_penalty,omitempty"  mapstructure:"presence_penalty"  yaml:"presence_penalty,omitempty"`  //nolint:lll
+	Timeout          *string  `json:"timeout,omitempty"           mapstructure:"timeout"           yaml:"timeout,omitempty"`
+}
+
+// ProfileSearch uses pointers to distinguish "not set" from "set to empty/zero".
+type ProfileSearch struct {
+	Domains           *[]string `json:"domains,omitempty"             mapstructure:"domains"             yaml:"domains,omitempty"`
+	Recency           *string   `json:"recency,omitempty"             mapstructure:"recency"             yaml:"recency,omitempty"`
+	Mode              *string   `json:"mode,omitempty"                mapstructure:"mode"                yaml:"mode,omitempty"`
+	ContextSize       *string   `json:"context_size,omitempty"        mapstructure:"context_size"        yaml:"context_size,omitempty"`        //nolint:lll
+	LocationLat       *float64  `json:"location_lat,omitempty"        mapstructure:"location_lat"        yaml:"location_lat,omitempty"`        //nolint:lll
+	LocationLon       *float64  `json:"location_lon,omitempty"        mapstructure:"location_lon"        yaml:"location_lon,omitempty"`        //nolint:lll
+	LocationCountry   *string   `json:"location_country,omitempty"    mapstructure:"location_country"    yaml:"location_country,omitempty"`    //nolint:lll
+	AfterDate         *string   `json:"after_date,omitempty"          mapstructure:"after_date"          yaml:"after_date,omitempty"`          //nolint:lll
+	BeforeDate        *string   `json:"before_date,omitempty"         mapstructure:"before_date"         yaml:"before_date,omitempty"`         //nolint:lll
+	LastUpdatedAfter  *string   `json:"last_updated_after,omitempty"  mapstructure:"last_updated_after"  yaml:"last_updated_after,omitempty"`  //nolint:lll
+	LastUpdatedBefore *string   `json:"last_updated_before,omitempty" mapstructure:"last_updated_before" yaml:"last_updated_before,omitempty"` //nolint:lll
+}
+
+// ProfileOutput uses pointers to distinguish "not set" from "set to false".
+type ProfileOutput struct {
+	Stream                   *bool     `json:"stream,omitempty"                      mapstructure:"stream"                      yaml:"stream,omitempty"`                      //nolint:lll
+	ReturnImages             *bool     `json:"return_images,omitempty"               mapstructure:"return_images"               yaml:"return_images,omitempty"`               //nolint:lll
+	ReturnRelated            *bool     `json:"return_related,omitempty"              mapstructure:"return_related"              yaml:"return_related,omitempty"`              //nolint:lll
+	JSON                     *bool     `json:"json,omitempty"                        mapstructure:"json"                        yaml:"json,omitempty"`
+	ImageDomains             *[]string `json:"image_domains,omitempty"               mapstructure:"image_domains"               yaml:"image_domains,omitempty"`               //nolint:lll
+	ImageFormats             *[]string `json:"image_formats,omitempty"               mapstructure:"image_formats"               yaml:"image_formats,omitempty"`               //nolint:lll
+	ResponseFormatJSONSchema *string   `json:"response_format_json_schema,omitempty" mapstructure:"response_format_json_schema" yaml:"response_format_json_schema,omitempty"` //nolint:lll
+	ResponseFormatRegex      *string   `json:"response_format_regex,omitempty"       mapstructure:"response_format_regex"       yaml:"response_format_regex,omitempty"`       //nolint:lll
+	ReasoningEffort          *string   `json:"reasoning_effort,omitempty"            mapstructure:"reasoning_effort"            yaml:"reasoning_effort,omitempty"`            //nolint:lll
 }
 
 // ConfigFileInfo represents metadata about a configuration file.

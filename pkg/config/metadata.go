@@ -643,7 +643,7 @@ func FormatOptions(options []*OptionMetadata, format string) (string, error) {
 	switch strings.ToLower(format) {
 	case "table":
 		formatter = NewTableFormatter()
-	case "json":
+	case formatJSON:
 		formatter = NewJSONFormatter(true)
 	case "yaml", "yml":
 		formatter = NewYAMLFormatter()

@@ -1,5 +1,8 @@
 package config
 
+// formatJSON is the JSON output format identifier used across format switch statements.
+const formatJSON = "json"
+
 // Validation maps for Perplexity API enum values.
 // These define the valid parameter values accepted by the API.
 // Centralized here to eliminate duplication across validator, chat, mcp, and cmd packages.

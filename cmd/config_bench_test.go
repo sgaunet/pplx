@@ -232,13 +232,16 @@ func BenchmarkConfigWithLargeProfiles(b *testing.B) {
 	// Create 50 profiles
 	for i := 0; i < 50; i++ {
 		profileName := fmt.Sprintf("profile-%d", i)
+		model := "sonar"
+		temp := float64(i) / 100.0
+		maxTokens := 2000 + i*100
 		cfg.Profiles[profileName] = &config.Profile{
 			Name:        profileName,
 			Description: fmt.Sprintf("Test profile %d", i),
-			Defaults: config.DefaultsConfig{
-				Model:       "sonar",
-				Temperature: float64(i) / 100.0,
-				MaxTokens:   2000 + i*100,
+			Defaults: config.ProfileDefaults{
+				Model:       &model,
+				Temperature: &temp,
+				MaxTokens:   &maxTokens,
 			},
 		}
 	}

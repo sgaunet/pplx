@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -619,8 +620,12 @@ func TestProfileManagement(t *testing.T) {
 			t.Fatalf("Failed to load creative profile: %v", err)
 		}
 
-		if profile.Defaults.Temperature < 0.8 {
-			t.Errorf("Creative profile should have high temperature, got %f", profile.Defaults.Temperature)
+		if profile.Defaults.Temperature == nil || *profile.Defaults.Temperature < 0.8 {
+			got := "<nil>"
+			if profile.Defaults.Temperature != nil {
+				got = fmt.Sprintf("%f", *profile.Defaults.Temperature)
+			}
+			t.Errorf("Creative profile should have high temperature, got %s", got)
 		}
 
 		// Test switch profile
@@ -687,8 +692,8 @@ func TestConfigPrecedence(t *testing.T) {
 			if tt.useProfile {
 				profile := &config.Profile{
 					Name: "test",
-					Defaults: config.DefaultsConfig{
-						Temperature: tt.profileTemp,
+					Defaults: config.ProfileDefaults{
+						Temperature: &tt.profileTemp,
 					},
 				}
 				cfg.Profiles = map[string]*config.Profile{
@@ -702,8 +707,12 @@ func TestConfigPrecedence(t *testing.T) {
 			if !tt.setEnv {
 				if tt.useProfile {
 					profile := cfg.Profiles["test"]
-					if profile.Defaults.Temperature != tt.expectedTemp {
-						t.Errorf("Expected temperature %f, got %f", tt.expectedTemp, profile.Defaults.Temperature)
+					if profile.Defaults.Temperature == nil || *profile.Defaults.Temperature != tt.expectedTemp {
+						got := "<nil>"
+						if profile.Defaults.Temperature != nil {
+							got = fmt.Sprintf("%f", *profile.Defaults.Temperature)
+						}
+						t.Errorf("Expected temperature %f, got %s", tt.expectedTemp, got)
 					}
 				} else {
 					if cfg.Defaults.Temperature != tt.expectedTemp {

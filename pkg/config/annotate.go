@@ -194,6 +194,14 @@ func wrapComment(text string, indent int) []string {
 	return lines
 }
 
+// toStringSlice checks if value is a string slice and returns it.
+func toStringSlice(value any) ([]string, bool) {
+	if s, ok := value.([]string); ok {
+		return s, len(s) > 0
+	}
+	return nil, false
+}
+
 // formatDefaultForComment formats a default value for display in comments.
 // Returns a human-readable string representation without quotes for strings.
 //
@@ -360,18 +368,25 @@ func generateSection(
 		// Get the field name (remove section prefix)
 		fieldName := strings.TrimPrefix(opt.Name, section+".")
 
-		// Write the field with its value
-		_, _ = fmt.Fprintf(output, "  %s: ", fieldName)
-
 		// Get value from config or use default
 		value := getConfigValue(cfg, section, fieldName, opt.Default)
-		valueYAML, err := yaml.Marshal(value)
-		if err != nil {
-			return fmt.Errorf("failed to marshal value for %s: %w", opt.Name, err)
-		}
 
-		// Trim the trailing newline from YAML marshal
-		output.WriteString(strings.TrimSpace(string(valueYAML)) + "\n")
+		// Write the field with its value.
+		// Slices need special handling: YAML marshals them as multi-line "- item"
+		// sequences that must appear on subsequent indented lines, not inline.
+		if slice, ok := toStringSlice(value); ok {
+			_, _ = fmt.Fprintf(output, "  %s:\n", fieldName)
+			for _, item := range slice {
+				_, _ = fmt.Fprintf(output, "    - %s\n", item)
+			}
+		} else {
+			_, _ = fmt.Fprintf(output, "  %s: ", fieldName)
+			valueYAML, err := yaml.Marshal(value)
+			if err != nil {
+				return fmt.Errorf("failed to marshal value for %s: %w", opt.Name, err)
+			}
+			output.WriteString(strings.TrimSpace(string(valueYAML)) + "\n")
+		}
 	}
 
 	output.WriteString("\n")
@@ -473,7 +488,7 @@ func getConfigValue(cfg *ConfigData, section, fieldName string, defaultValue any
 			return cfg.Output.ReturnImages
 		case "return_related":
 			return cfg.Output.ReturnRelated
-		case "json":
+		case formatJSON:
 			return cfg.Output.JSON
 		case "image_domains":
 			if len(cfg.Output.ImageDomains) > 0 {
