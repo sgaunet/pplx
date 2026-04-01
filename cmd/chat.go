@@ -20,7 +20,7 @@ You can ask questions and get answers from the API. As long as you don't enter a
  the chat will continue.`,
 	RunE: func(cmd *cobra.Command, _ []string) error {
 		// Load configuration from file and merge with CLI flags
-		cfg, err := config.LoadAndMergeConfig(cmd, configFilePath)
+		cfg, err := config.LoadAndMergeConfig(cmd, configFilePath, runtimeProfile)
 		if err != nil {
 			// Non-fatal: continue with CLI flags only
 			cfg = config.NewConfigData()

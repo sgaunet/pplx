@@ -234,6 +234,14 @@ func registerFlagCompletions(cmd *cobra.Command) {
 		fmt.Fprintf(os.Stderr, "Warning: failed to register completion for 'image-formats' flag: %v\n", err)
 	}
 
+	// Profile completion
+	if err := cmd.RegisterFlagCompletionFunc("profile",
+		func(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
+			return completion.ProfileNames(), cobra.ShellCompDirectiveNoFileComp
+		}); err != nil {
+		fmt.Fprintf(os.Stderr, "Warning: failed to register completion for 'profile' flag: %v\n", err)
+	}
+
 	// Domain suggestions (for both search-domains and image-domains)
 	domainCompletion := func(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
 		return completion.CommonDomains(), cobra.ShellCompDirectiveNoFileComp
@@ -278,6 +286,7 @@ func init() {
 	addDateFlags(chatCmd)
 	addResearchFlags(chatCmd)
 	chatCmd.PersistentFlags().StringVar(&configFilePath, "config", "", "Path to config file")
+	chatCmd.PersistentFlags().StringVar(&runtimeProfile, "profile", "", "Use a named configuration profile")
 	registerFlagCompletions(chatCmd)
 
 	rootCmd.AddCommand(queryCmd)
@@ -292,6 +301,7 @@ func init() {
 	addResearchFlags(queryCmd)
 	addOutputFlags(queryCmd)
 	queryCmd.PersistentFlags().StringVar(&configFilePath, "config", "", "Path to config file")
+	queryCmd.PersistentFlags().StringVar(&runtimeProfile, "profile", "", "Use a named configuration profile")
 	registerFlagCompletions(queryCmd)
 
 	rootCmd.AddCommand(mcpStdioCmd)
