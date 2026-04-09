@@ -63,6 +63,18 @@ var (
 
 	// ErrUnsupportedFormat is returned when an unsupported output format is requested.
 	ErrUnsupportedFormat = errors.New("unsupported format")
+
+	// ErrFieldNotSettable is returned when a struct field cannot be set via reflection.
+	ErrFieldNotSettable = errors.New("field is not settable")
+
+	// ErrFieldNotFound is returned when a struct field matching a yaml tag is not found.
+	ErrFieldNotFound = errors.New("field not found")
+
+	// ErrUnsupportedSliceType is returned when a slice field has a non-string element type.
+	ErrUnsupportedSliceType = errors.New("unsupported slice element type")
+
+	// ErrUnsupportedFieldKind is returned when a field has a kind that cannot be set from a string.
+	ErrUnsupportedFieldKind = errors.New("unsupported field kind")
 )
 
 // Chat errors relate to chat parameter validation and API interaction.
@@ -97,6 +109,12 @@ var (
 
 	// ErrInvalidReasoningEffort is returned when an invalid reasoning effort level is provided.
 	ErrInvalidReasoningEffort = errors.New("invalid reasoning effort")
+)
+
+// Doctor errors relate to the config doctor command.
+var (
+	// ErrHealthChecksFailed is returned when one or more health checks fail.
+	ErrHealthChecksFailed = errors.New("health checks failed")
 )
 
 // Command errors relate to CLI command execution and parameter validation.

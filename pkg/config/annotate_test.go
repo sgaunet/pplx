@@ -491,9 +491,9 @@ func TestGenerateAnnotatedConfig(t *testing.T) {
 				},
 				Profiles: map[string]*Profile{
 					"test-profile": {
-						Defaults: DefaultsConfig{
-							Model:       "sonar-pro",
-							Temperature: 0.5,
+						Defaults: ProfileDefaults{
+							Model:       func() *string { s := "sonar-pro"; return &s }(),
+							Temperature: func() *float64 { f := 0.5; return &f }(),
 						},
 					},
 				},

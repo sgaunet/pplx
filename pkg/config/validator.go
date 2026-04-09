@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"net/url"
 	"regexp"
+	"strings"
+	"time"
 
 	"github.com/sgaunet/pplx/pkg/clerrors"
 )
@@ -11,6 +13,8 @@ import (
 const (
 	maxTemperature = 2.0
 	maxPenalty     = 2.0
+	// enumSuggestMaxDistance is the maximum edit distance for enum suggestions.
+	enumSuggestMaxDistance = 2
 )
 
 // Validator validates configuration data.
@@ -66,7 +70,7 @@ func (v *Validator) Errors() clerrors.ValidationErrors {
 // validateRange checks if a value is within a range (0 to maxVal) and adds an error if not.
 func (v *Validator) validateRange(field string, value, maxVal float64) {
 	if value < 0 || value > maxVal {
-		v.addError(field, fmt.Sprintf("must be between 0.0 and %.1f", maxVal))
+		v.addError(field, fmt.Sprintf("%g is out of range (must be between 0.0 and %.1f)", value, maxVal))
 	}
 }
 
@@ -98,26 +102,46 @@ func (v *Validator) validateSearch(search *SearchConfig) {
 
 // validateSearchRecency validates the recency field.
 func (v *Validator) validateSearchRecency(recency string) {
-	if recency != "" {
-		if !IsValidSearchRecency(recency) {
-			v.addError("search.recency", "must be one of: hour, day, week, month, year")
+	if recency == "" {
+		return
+	}
+	valid := GetValidSearchRecencyValues()
+	if !IsValidSearchRecency(recency) {
+		msg := fmt.Sprintf("%q is not valid (must be one of: %s)", recency, strings.Join(valid, ", "))
+		if suggestion := SuggestEnum(recency, valid, enumSuggestMaxDistance); suggestion != "" {
+			msg += fmt.Sprintf(`. Did you mean %q?`, suggestion)
 		}
+		v.addError("search.recency", msg)
 	}
 }
 
 // validateSearchMode validates the mode field.
 func (v *Validator) validateSearchMode(mode string) {
-	if mode != "" && !IsValidSearchMode(mode) {
-		v.addError("search.mode", "must be 'web' or 'academic'")
+	if mode == "" {
+		return
+	}
+	valid := GetValidSearchModeValues()
+	if !IsValidSearchMode(mode) {
+		msg := fmt.Sprintf("%q is not valid (must be one of: %s)", mode, strings.Join(valid, ", "))
+		if suggestion := SuggestEnum(mode, valid, enumSuggestMaxDistance); suggestion != "" {
+			msg += fmt.Sprintf(`. Did you mean %q?`, suggestion)
+		}
+		v.addError("search.mode", msg)
 	}
 }
 
 // validateSearchContextSize validates the context_size field.
 func (v *Validator) validateSearchContextSize(contextSize string) {
-	if contextSize != "" {
-		if !IsValidContextSize(contextSize) {
-			v.addError("search.context_size", "must be 'low', 'medium', or 'high'")
+	if contextSize == "" {
+		return
+	}
+	valid := GetValidContextSizeValues()
+	if !IsValidContextSize(contextSize) {
+		msg := fmt.Sprintf("%q is not valid (must be one of: %s)", contextSize, strings.Join(valid, ", "))
+		if suggestion := SuggestEnum(contextSize, valid, enumSuggestMaxDistance); suggestion != "" {
+			msg += fmt.Sprintf(`. Did you mean %q?`, suggestion)
 		}
+		v.addError("search.context_size", msg)
 	}
 }
 
@@ -131,31 +155,48 @@ func (v *Validator) validateCoordinates(lat, lon float64) {
 	}
 }
 
-// validateSearchDates validates date format fields.
-func (v *Validator) validateSearchDates(search *SearchConfig) {
-	datePattern := regexp.MustCompile(`^\d{2}/\d{2}/\d{4}$`)
+// isValidDate reports whether s is a valid date in either YYYY-MM-DD (ISO 8601)
+// or MM/DD/YYYY format.
+func isValidDate(s string) bool {
+	if _, err := time.Parse("2006-01-02", s); err == nil {
+		return true
+	}
+	_, err := time.Parse("01/02/2006", s)
+	return err == nil
+}
 
-	if search.AfterDate != "" && !datePattern.MatchString(search.AfterDate) {
-		v.addError("search.after_date", "must be in MM/DD/YYYY format")
+// validateSearchDates validates date format fields.
+// Accepted formats: YYYY-MM-DD (ISO 8601) and MM/DD/YYYY.
+func (v *Validator) validateSearchDates(search *SearchConfig) {
+	const dateErrMsg = "must be in YYYY-MM-DD or MM/DD/YYYY format"
+
+	if search.AfterDate != "" && !isValidDate(search.AfterDate) {
+		v.addError("search.after_date", dateErrMsg)
 	}
-	if search.BeforeDate != "" && !datePattern.MatchString(search.BeforeDate) {
-		v.addError("search.before_date", "must be in MM/DD/YYYY format")
+	if search.BeforeDate != "" && !isValidDate(search.BeforeDate) {
+		v.addError("search.before_date", dateErrMsg)
 	}
-	if search.LastUpdatedAfter != "" && !datePattern.MatchString(search.LastUpdatedAfter) {
-		v.addError("search.last_updated_after", "must be in MM/DD/YYYY format")
+	if search.LastUpdatedAfter != "" && !isValidDate(search.LastUpdatedAfter) {
+		v.addError("search.last_updated_after", dateErrMsg)
 	}
-	if search.LastUpdatedBefore != "" && !datePattern.MatchString(search.LastUpdatedBefore) {
-		v.addError("search.last_updated_before", "must be in MM/DD/YYYY format")
+	if search.LastUpdatedBefore != "" && !isValidDate(search.LastUpdatedBefore) {
+		v.addError("search.last_updated_before", dateErrMsg)
 	}
 }
 
 // validateOutput validates output configuration.
 func (v *Validator) validateOutput(output *OutputConfig) {
 	// Validate reasoning effort
-	if output.ReasoningEffort != "" {
-		if !IsValidReasoningEffort(output.ReasoningEffort) {
-			v.addError("output.reasoning_effort", "must be 'low', 'medium', or 'high'")
+	if output.ReasoningEffort == "" {
+		return
+	}
+	valid := GetValidReasoningEffortValues()
+	if !IsValidReasoningEffort(output.ReasoningEffort) {
+		msg := fmt.Sprintf("%q is not valid (must be one of: %s)", output.ReasoningEffort, strings.Join(valid, ", "))
+		if suggestion := SuggestEnum(output.ReasoningEffort, valid, enumSuggestMaxDistance); suggestion != "" {
+			msg += fmt.Sprintf(`. Did you mean %q?`, suggestion)
 		}
+		v.addError("output.reasoning_effort", msg)
 	}
 }
 
@@ -195,10 +236,10 @@ func (v *Validator) validateProfiles(profiles map[string]*Profile) {
 				fmt.Sprintf("profile name mismatch: key is '%s' but name field is '%s'", name, profile.Name))
 		}
 
-		// Validate nested configurations
-		v.validateDefaults(&profile.Defaults)
-		v.validateSearch(&profile.Search)
-		v.validateOutput(&profile.Output)
+		// Profile field values use pointer-based types (ProfileDefaults, ProfileSearch,
+		// ProfileOutput) which are incompatible with the concrete config validators.
+		// Field-level validation happens after the profile is merged into ConfigData
+		// via MergeProfile, so we skip redundant per-profile field validation here.
 	}
 }
 

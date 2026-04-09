@@ -26,7 +26,7 @@ var queryCmd = &cobra.Command{
 		// Graceful degradation: If config load fails, continue with CLI flags only.
 		// Rationale: User may not have a config file yet, but CLI should still work.
 		// This allows the tool to be used immediately after installation without setup.
-		cfg, err := config.LoadAndMergeConfig(cmd, configFilePath)
+		cfg, err := config.LoadAndMergeConfig(cmd, configFilePath, runtimeProfile)
 		if err != nil {
 			// Non-fatal: continue with CLI flags only
 			cfg = config.NewConfigData()
@@ -75,16 +75,19 @@ var queryCmd = &cobra.Command{
 	},
 }
 
-// parseDateFilter parses a date string in MM/DD/YYYY format for API filters.
-// Returns the parsed time and an error if parsing fails.
+// parseDateFilter parses a date string in either YYYY-MM-DD (ISO 8601) or MM/DD/YYYY format.
+// ISO 8601 is tried first; MM/DD/YYYY is the fallback.
+// Returns the parsed time and an error if neither format matches.
 func parseDateFilter(fieldName, dateStr string) (time.Time, error) {
-	date, err := time.Parse("01/02/2006", dateStr)
-	if err != nil {
-		return time.Time{}, clerrors.NewValidationError(
-			fieldName, dateStr, "invalid date format, use MM/DD/YYYY",
-		)
+	if date, err := time.Parse("2006-01-02", dateStr); err == nil {
+		return date, nil
 	}
-	return date, nil
+	if date, err := time.Parse("01/02/2006", dateStr); err == nil {
+		return date, nil
+	}
+	return time.Time{}, clerrors.NewValidationError(
+		fieldName, dateStr, "invalid date format, use YYYY-MM-DD or MM/DD/YYYY",
+	)
 }
 
 // validateStringEnum validates that a value is in the allowed set.

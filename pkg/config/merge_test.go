@@ -542,7 +542,7 @@ output:
 	cmd := createTestCommand()
 	// Don't set any flags
 
-	cfg, err := LoadAndMergeConfig(cmd, configPath)
+	cfg, err := LoadAndMergeConfig(cmd, configPath, "")
 	if err != nil {
 		t.Fatalf("LoadAndMergeConfig failed: %v", err)
 	}
@@ -584,7 +584,7 @@ defaults:
 
 	cmd := createTestCommand()
 
-	cfg, err := LoadAndMergeConfig(cmd, configPath)
+	cfg, err := LoadAndMergeConfig(cmd, configPath, "")
 	if err != nil {
 		t.Fatalf("LoadAndMergeConfig failed: %v", err)
 	}
@@ -602,7 +602,7 @@ func TestLoadAndMergeConfig_NoConfigFile(t *testing.T) {
 	cmd := createTestCommand()
 
 	// Pass empty path
-	cfg, err := LoadAndMergeConfig(cmd, "")
+	cfg, err := LoadAndMergeConfig(cmd, "", "")
 	if err != nil {
 		t.Fatalf("LoadAndMergeConfig should not fail without config file: %v", err)
 	}
@@ -637,7 +637,7 @@ defaults:
 	_ = cmd.Flags().Set("model", "cli-model")
 	_ = cmd.Flags().Set("temperature", "0.9")
 
-	cfg, err := LoadAndMergeConfig(cmd, configPath)
+	cfg, err := LoadAndMergeConfig(cmd, configPath, "")
 	if err != nil {
 		t.Fatalf("LoadAndMergeConfig failed: %v", err)
 	}
@@ -676,7 +676,7 @@ profiles:
 
 	cmd := createTestCommand()
 
-	cfg, err := LoadAndMergeConfig(cmd, configPath)
+	cfg, err := LoadAndMergeConfig(cmd, configPath, "")
 	if err != nil {
 		t.Fatalf("LoadAndMergeConfig failed: %v", err)
 	}
@@ -694,7 +694,7 @@ func TestLoadAndMergeConfig_InvalidConfigPath(t *testing.T) {
 	cmd := createTestCommand()
 
 	// Try to load non-existent file
-	_, err := LoadAndMergeConfig(cmd, "/nonexistent/path/config.yaml")
+	_, err := LoadAndMergeConfig(cmd, "/nonexistent/path/config.yaml", "")
 	if err == nil {
 		t.Error("Expected error for invalid config path")
 	}

@@ -1,7 +1,6 @@
 package config
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -32,42 +31,19 @@ func NewLoader() *Loader {
 }
 
 // Load loads configuration from the standard location ~/.config/pplx/
-// Searches for pplx.yaml, config.yaml, pplx.yml, or config.yml in that directory.
+// Searches for config.yaml, pplx.yaml, config.yml, or pplx.yml in that directory.
 func (l *Loader) Load() error {
-	l.viper.SetConfigName("pplx")
-	l.viper.SetConfigType("yaml")
-
-	// Add config directory search path
-	for _, path := range ConfigPaths {
-		expandedPath := os.ExpandEnv(path)
-		l.viper.AddConfigPath(expandedPath)
+	// Use FindConfigFile which implements the correct precedence logic,
+	// then delegate to LoadFrom. This avoids a viper limitation where
+	// SetConfigName only retains the last value, making it impossible
+	// to search for multiple file names (e.g., both "config" and "pplx").
+	configPath, err := FindConfigFile()
+	if err != nil {
+		// No config file found — return defaults (not an error)
+		return nil
 	}
 
-	// Also support config.yaml as filename
-	l.viper.SetConfigName("config")
-	for _, path := range ConfigPaths {
-		expandedPath := os.ExpandEnv(path)
-		l.viper.AddConfigPath(expandedPath)
-	}
-
-	// Reset to pplx as primary name
-	l.viper.SetConfigName("pplx")
-
-	// Try to read config file
-	if err := l.viper.ReadInConfig(); err != nil {
-		// It's okay if config file doesn't exist
-		var configFileNotFoundError viper.ConfigFileNotFoundError
-		if !errors.As(err, &configFileNotFoundError) {
-			return fmt.Errorf("error reading config file %s: %w", l.viper.ConfigFileUsed(), err)
-		}
-	}
-
-	// Unmarshal config into data structure
-	if err := l.viper.Unmarshal(l.data); err != nil {
-		return fmt.Errorf("error unmarshaling config from %s: %w", l.viper.ConfigFileUsed(), err)
-	}
-
-	return nil
+	return l.LoadFrom(configPath)
 }
 
 // LoadFrom loads configuration from a specific file path.

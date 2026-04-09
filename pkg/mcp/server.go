@@ -21,7 +21,7 @@ type MCPServer struct {
 
 // ServerConfig contains configuration for the MCP server.
 type ServerConfig struct {
-	APIKey  string //nolint:gosec // G117: field name is intentional for API key config
+	APIKey  string
 	Version string
 	Name    string
 }

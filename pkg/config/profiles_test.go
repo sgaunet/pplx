@@ -5,6 +5,13 @@ import (
 	"testing"
 )
 
+// Test helpers for creating pointer values.
+func strPtr(s string) *string    { return &s }
+func float64Ptr(f float64) *float64 { return &f }
+func intPtr(i int) *int          { return &i }
+func boolPtr(b bool) *bool       { return &b }
+func strSlicePtr(s []string) *[]string { return &s }
+
 func TestProfileManagerCreate(t *testing.T) {
 	data := NewConfigData()
 	pm := NewProfileManager(data)
@@ -62,8 +69,10 @@ func TestProfileManagerLoadDefault(t *testing.T) {
 		t.Errorf("Expected profile name 'default', got '%s'", profile.Name)
 	}
 
-	if profile.Defaults.Model != "test-model" {
-		t.Errorf("Expected model 'test-model', got '%s'", profile.Defaults.Model)
+	// The default profile carries no pointer overrides (nil = "not set").
+	// Base config values are visible only after MergeProfile, not on the Profile itself.
+	if profile.Defaults.Model != nil {
+		t.Errorf("Expected default profile Model to be nil (no overrides), got '%s'", *profile.Defaults.Model)
 	}
 }
 
@@ -201,8 +210,8 @@ func TestProfileManagerMerge(t *testing.T) {
 
 	// Create a profile with overrides
 	profile, _ := pm.CreateProfile("test", "")
-	profile.Defaults.Model = "override-model"
-	profile.Search.Recency = "week"
+	profile.Defaults.Model = strPtr("override-model")
+	profile.Search.Recency = strPtr("week")
 	data.Profiles["test"] = profile
 
 	// Merge the profile
@@ -233,8 +242,8 @@ func TestProfileManagerExportImport(t *testing.T) {
 
 	// Create and configure a profile
 	original, _ := pm.CreateProfile("test", "Test profile")
-	original.Defaults.Model = "test-model"
-	original.Search.Recency = "week"
+	original.Defaults.Model = strPtr("test-model")
+	original.Search.Recency = strPtr("week")
 	data.Profiles["test"] = original
 
 	// Export
@@ -263,8 +272,12 @@ func TestProfileManagerExportImport(t *testing.T) {
 		t.Fatalf("LoadProfile after import failed: %v", err)
 	}
 
-	if imported.Defaults.Model != "test-model" {
-		t.Errorf("Expected model 'test-model', got '%s'", imported.Defaults.Model)
+	if imported.Defaults.Model == nil || *imported.Defaults.Model != "test-model" {
+		got := "<nil>"
+		if imported.Defaults.Model != nil {
+			got = *imported.Defaults.Model
+		}
+		t.Errorf("Expected model 'test-model', got '%s'", got)
 	}
 }
 
@@ -330,8 +343,8 @@ func TestMergeProfile_WithEnvVarExpansion(t *testing.T) {
 		Profiles: map[string]*Profile{
 			"test": {
 				Name: "test",
-				Defaults: DefaultsConfig{
-					Temperature: 0.8, // Override temperature
+				Defaults: ProfileDefaults{
+					Temperature: float64Ptr(0.8), // Override temperature
 				},
 			},
 		},
@@ -371,12 +384,8 @@ func TestMergeProfile_AllFieldsZero(t *testing.T) {
 		Profiles: map[string]*Profile{
 			"zeros": {
 				Name: "zeros",
-				Defaults: DefaultsConfig{
-					// All zero values
-					Model:       "",
-					Temperature: 0,
-					MaxTokens:   0,
-				},
+				// All pointer fields are nil — represents "no overrides".
+				// Nil (not set) preserves base config values, which is the expected behaviour.
 			},
 		},
 	}
@@ -410,13 +419,10 @@ func TestMergeProfile_ArrayMerging(t *testing.T) {
 		Profiles: map[string]*Profile{
 			"test": {
 				Name: "test",
-				Search: SearchConfig{
-					Domains: []string{"profile1.com", "profile2.com"},
+				Search: ProfileSearch{
+					Domains: strSlicePtr([]string{"profile1.com", "profile2.com"}),
 				},
-				Output: OutputConfig{
-					// Empty array - should be ignored
-					ImageFormats: []string{},
-				},
+				// ImageFormats left nil — nil means "not set", so base is preserved.
 			},
 		},
 	}
@@ -454,10 +460,10 @@ func TestMergeProfile_BooleanPrecedence(t *testing.T) {
 		Profiles: map[string]*Profile{
 			"test": {
 				Name: "test",
-				Output: OutputConfig{
-					Stream:        false, // Override to false
-					ReturnImages:  true,  // Override to true
-					// ReturnRelated not set (should preserve base)
+				Output: ProfileOutput{
+					Stream:       boolPtr(false), // Override to false (nil-safe: distinguishes false from "not set")
+					ReturnImages: boolPtr(true),  // Override to true
+					// ReturnRelated left nil — preserves base value
 				},
 			},
 		},
@@ -499,15 +505,15 @@ func TestMergeProfile_ChainedExpansion(t *testing.T) {
 		Profiles: map[string]*Profile{
 			"production": {
 				Name: "production",
-				Defaults: DefaultsConfig{
-					Model:       "prod-model",
-					Temperature: 0.8,
-					// MaxTokens not set (should preserve base)
-					TopK:        50, // Override
+				Defaults: ProfileDefaults{
+					Model:       strPtr("prod-model"),
+					Temperature: float64Ptr(0.8),
+					// MaxTokens left nil — preserves base value
+					TopK:        intPtr(50), // Override
 				},
-				Search: SearchConfig{
-					Recency: "month", // Override
-					// Mode not set (should preserve base)
+				Search: ProfileSearch{
+					Recency: strPtr("month"), // Override
+					// Mode left nil — preserves base value
 				},
 			},
 		},

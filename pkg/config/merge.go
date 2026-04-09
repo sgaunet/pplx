@@ -1,10 +1,12 @@
 package config
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"time"
 
+	"github.com/sgaunet/pplx/pkg/logger"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -185,83 +187,68 @@ func ApplyToGlobals(cfg *ConfigData, opts *GlobalOptions) {
 }
 
 // applyDefaults applies default configuration values to GlobalOptions.
-// Pattern: Only apply config value if global variable is at zero value (CLI flag not set).
-// This ensures CLI flags take precedence over config file values.
-//
-// Example with temperature flag:
-//   - User runs `pplx query "test"` → opts.Temperature == 0, apply config value 0.7
-//   - User runs `pplx query "test" --temperature=0.5` → opts.Temperature == 0.5, keep it
-//   - User runs `pplx query "test" --temperature=0` → opts.Temperature == 0, keep it (explicit zero)
-//
-// Note: This pattern can't distinguish "flag not provided" from "flag set to zero",
-// which is why Changed() is used in MergeWithFlags. Here we rely on the merge already happening.
-//
-//nolint:cyclop // Function complexity is inherent - checks 8 different default configuration fields.
+// Only applies non-zero config values to avoid overwriting SDK defaults in GlobalOptions
+// with zero values from an absent config field. The profile merge bug (zero values ignored)
+// is fixed in MergeProfile (using pointer types), not here.
 func applyDefaults(cfg *ConfigData, opts *GlobalOptions) {
-	if cfg.Defaults.Model != "" && opts.Model == "" {
+	if cfg.Defaults.Model != "" {
 		opts.Model = cfg.Defaults.Model
 	}
-	if cfg.Defaults.Temperature != 0 && opts.Temperature == 0 {
+	if cfg.Defaults.Temperature != 0 {
 		opts.Temperature = cfg.Defaults.Temperature
 	}
-	if cfg.Defaults.MaxTokens != 0 && opts.MaxTokens == 0 {
+	if cfg.Defaults.MaxTokens != 0 {
 		opts.MaxTokens = cfg.Defaults.MaxTokens
 	}
-	if cfg.Defaults.TopK != 0 && opts.TopK == 0 {
+	if cfg.Defaults.TopK != 0 {
 		opts.TopK = cfg.Defaults.TopK
 	}
-	if cfg.Defaults.TopP != 0 && opts.TopP == 0 {
+	if cfg.Defaults.TopP != 0 {
 		opts.TopP = cfg.Defaults.TopP
 	}
-	if cfg.Defaults.FrequencyPenalty != 0 && opts.FrequencyPenalty == 0 {
+	if cfg.Defaults.FrequencyPenalty != 0 {
 		opts.FrequencyPenalty = cfg.Defaults.FrequencyPenalty
 	}
-	if cfg.Defaults.PresencePenalty != 0 && opts.PresencePenalty == 0 {
+	if cfg.Defaults.PresencePenalty != 0 {
 		opts.PresencePenalty = cfg.Defaults.PresencePenalty
 	}
 	if cfg.Defaults.Timeout != "" {
-		if d, err := time.ParseDuration(cfg.Defaults.Timeout); err == nil && opts.Timeout == 0 {
+		if d, err := time.ParseDuration(cfg.Defaults.Timeout); err == nil {
 			opts.Timeout = d
 		}
 	}
 }
 
 // applySearchOptions applies search configuration values to GlobalOptions.
-// Same zero-value precedence pattern for search options.
-// CLI flags for search options override config file values.
-//
-//nolint:cyclop // Function complexity is inherent - checks 7 different search configuration fields.
+// Numeric fields assigned unconditionally (MergeWithFlags handles Changed()).
+// String/slice fields: only overwrite when config has a value.
 func applySearchOptions(cfg *ConfigData, opts *GlobalOptions) {
-	if len(cfg.Search.Domains) > 0 && len(opts.SearchDomains) == 0 {
+	if len(cfg.Search.Domains) > 0 {
 		opts.SearchDomains = cfg.Search.Domains
 	}
-	if cfg.Search.Recency != "" && opts.SearchRecency == "" {
+	if cfg.Search.Recency != "" {
 		opts.SearchRecency = cfg.Search.Recency
 	}
-	if cfg.Search.LocationLat != 0 && opts.LocationLat == 0 {
-		opts.LocationLat = cfg.Search.LocationLat
-	}
-	if cfg.Search.LocationLon != 0 && opts.LocationLon == 0 {
-		opts.LocationLon = cfg.Search.LocationLon
-	}
-	if cfg.Search.LocationCountry != "" && opts.LocationCountry == "" {
+	opts.LocationLat = cfg.Search.LocationLat
+	opts.LocationLon = cfg.Search.LocationLon
+	if cfg.Search.LocationCountry != "" {
 		opts.LocationCountry = cfg.Search.LocationCountry
 	}
-	if cfg.Search.Mode != "" && opts.SearchMode == "" {
+	if cfg.Search.Mode != "" {
 		opts.SearchMode = cfg.Search.Mode
 	}
-	if cfg.Search.ContextSize != "" && opts.SearchContextSize == "" {
+	if cfg.Search.ContextSize != "" {
 		opts.SearchContextSize = cfg.Search.ContextSize
 	}
 }
 
 // applyOutputOptions applies output configuration values to GlobalOptions.
-// Boolean handling: No zero-value check needed because false is a valid user choice.
-// If config sets a boolean flag to true, always apply it.
-// This means config file can enable features, but CLI flags are still needed to explicitly disable.
-//
-// Rationale: User explicitly enabling in config file (return_images: true) should take effect.
-// If CLI flag is used (--return-images or --no-return-images), cobra sets the global directly.
+// For booleans: only set to true (enable). This is safe because:
+//   - GlobalOptions defaults are false (from NewGlobalOptions)
+//   - If config enables a feature (true), we apply it
+//   - If profile disables a feature (false via MergeProfile), the merged cfg is false,
+//     so we don't touch globalOpts, which stays at its default (false) — correct result
+//   - CLI flags override via Changed() in MergeWithFlags, not here
 func applyOutputOptions(cfg *ConfigData, opts *GlobalOptions) {
 	if cfg.Output.ReturnImages {
 		opts.ReturnImages = true
@@ -309,18 +296,30 @@ func expandString(s string) string {
 	return os.ExpandEnv(s)
 }
 
+// loadConfig loads configuration from an explicit path or auto-discovers it.
+func loadConfig(loader *Loader, configPath string) error {
+	if configPath != "" {
+		// Explicit path: hard error on failure.
+		return loader.LoadFrom(configPath)
+	}
+	// Default locations: warn on parse/syntax errors, ignore "not found".
+	if err := loader.Load(); err != nil {
+		var configNotFound viper.ConfigFileNotFoundError
+		if !errors.As(err, &configNotFound) {
+			logger.Warn("config file has errors, using defaults",
+				"error", err)
+		}
+	}
+	return nil
+}
+
 // LoadAndMergeConfig loads configuration and merges with CLI flags.
-func LoadAndMergeConfig(cmd *cobra.Command, configPath string) (*ConfigData, error) {
+// If profileOverride is non-empty, it takes precedence over the active_profile in the config file.
+func LoadAndMergeConfig(cmd *cobra.Command, configPath, profileOverride string) (*ConfigData, error) {
 	loader := NewLoader()
 
-	// Load config file
-	if configPath != "" {
-		if err := loader.LoadFrom(configPath); err != nil {
-			return nil, err
-		}
-	} else {
-		// Try to load from standard locations (ignore error if not found)
-		_ = loader.Load()
+	if err := loadConfig(loader, configPath); err != nil {
+		return nil, err
 	}
 
 	cfg := loader.Data()
@@ -328,11 +327,24 @@ func LoadAndMergeConfig(cmd *cobra.Command, configPath string) (*ConfigData, err
 	// Expand environment variables
 	ExpandEnvVars(cfg)
 
-	// Apply active profile if set
-	if cfg.ActiveProfile != "" && cfg.ActiveProfile != "default" {
+	// Determine which profile to apply: CLI flag > config file active_profile.
+	activeProfile := cfg.ActiveProfile
+	if profileOverride != "" {
+		activeProfile = profileOverride
+	}
+
+	// Apply profile if set
+	if activeProfile != "" && activeProfile != DefaultProfileName {
 		pm := NewProfileManager(cfg)
-		merged, err := pm.MergeProfile(cfg.ActiveProfile)
-		if err == nil {
+		merged, err := pm.MergeProfile(activeProfile)
+		if err != nil {
+			if profileOverride != "" {
+				// Explicit --profile flag: hard error if profile doesn't exist.
+				return nil, fmt.Errorf("failed to apply profile %q: %w", activeProfile, err)
+			}
+			logger.Warn("failed to apply profile, using base config",
+				"profile", activeProfile, "error", err)
+		} else {
 			cfg = merged
 		}
 	}

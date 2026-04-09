@@ -175,7 +175,6 @@ func (pm *ProfileManager) ImportProfile(profile *Profile, overwrite bool) error 
 
 // MergeProfile merges a profile with the base configuration
 // Returns a new ConfigData with the profile settings applied.
-//nolint:cyclop // Function complexity is inherent - it merges multiple config sections.
 func (pm *ProfileManager) MergeProfile(profileName string) (*ConfigData, error) {
 	profile, err := pm.LoadProfile(profileName)
 	if err != nil {
@@ -192,61 +191,234 @@ func (pm *ProfileManager) MergeProfile(profileName string) (*ConfigData, error) 
 		ActiveProfile: pm.data.ActiveProfile,
 	}
 
-	// Override with profile settings (only non-zero values)
-	if profile.Defaults.Model != "" {
-		merged.Defaults.Model = profile.Defaults.Model
-	}
-	if profile.Defaults.Temperature != 0 {
-		merged.Defaults.Temperature = profile.Defaults.Temperature
-	}
-	if profile.Defaults.MaxTokens != 0 {
-		merged.Defaults.MaxTokens = profile.Defaults.MaxTokens
-	}
-	if profile.Defaults.TopK != 0 {
-		merged.Defaults.TopK = profile.Defaults.TopK
-	}
-	if profile.Defaults.TopP != 0 {
-		merged.Defaults.TopP = profile.Defaults.TopP
-	}
-	if profile.Defaults.FrequencyPenalty != 0 {
-		merged.Defaults.FrequencyPenalty = profile.Defaults.FrequencyPenalty
-	}
-	if profile.Defaults.PresencePenalty != 0 {
-		merged.Defaults.PresencePenalty = profile.Defaults.PresencePenalty
-	}
-	if profile.Defaults.Timeout != "" {
-		merged.Defaults.Timeout = profile.Defaults.Timeout
-	}
-
-	// Override search settings
-	if len(profile.Search.Domains) > 0 {
-		merged.Search.Domains = profile.Search.Domains
-	}
-	if profile.Search.Recency != "" {
-		merged.Search.Recency = profile.Search.Recency
-	}
-	if profile.Search.Mode != "" {
-		merged.Search.Mode = profile.Search.Mode
-	}
-	if profile.Search.ContextSize != "" {
-		merged.Search.ContextSize = profile.Search.ContextSize
-	}
-
-	// Override output settings
-	merged.Output.Stream = profile.Output.Stream || merged.Output.Stream
-	merged.Output.ReturnImages = profile.Output.ReturnImages || merged.Output.ReturnImages
-	merged.Output.ReturnRelated = profile.Output.ReturnRelated || merged.Output.ReturnRelated
+	mergeProfileDefaults(&merged.Defaults, &profile.Defaults)
+	mergeProfileSearch(&merged.Search, &profile.Search)
+	mergeProfileOutput(&merged.Output, &profile.Output)
 
 	return merged, nil
 }
 
-// getDefaultProfile returns the default profile (constructed from base config).
+// mergeProfileDefaults applies non-nil ProfileDefaults fields onto a DefaultsConfig.
+func mergeProfileDefaults(dst *DefaultsConfig, src *ProfileDefaults) {
+	if src.Model != nil {
+		dst.Model = *src.Model
+	}
+	if src.Temperature != nil {
+		dst.Temperature = *src.Temperature
+	}
+	if src.MaxTokens != nil {
+		dst.MaxTokens = *src.MaxTokens
+	}
+	if src.TopK != nil {
+		dst.TopK = *src.TopK
+	}
+	if src.TopP != nil {
+		dst.TopP = *src.TopP
+	}
+	if src.FrequencyPenalty != nil {
+		dst.FrequencyPenalty = *src.FrequencyPenalty
+	}
+	if src.PresencePenalty != nil {
+		dst.PresencePenalty = *src.PresencePenalty
+	}
+	if src.Timeout != nil {
+		dst.Timeout = *src.Timeout
+	}
+}
+
+// mergeProfileSearch applies non-nil ProfileSearch fields onto a SearchConfig.
+func mergeProfileSearch(dst *SearchConfig, src *ProfileSearch) {
+	if src.Domains != nil {
+		dst.Domains = *src.Domains
+	}
+	if src.Recency != nil {
+		dst.Recency = *src.Recency
+	}
+	if src.Mode != nil {
+		dst.Mode = *src.Mode
+	}
+	if src.ContextSize != nil {
+		dst.ContextSize = *src.ContextSize
+	}
+	mergeProfileSearchLocation(dst, src)
+	mergeProfileSearchDates(dst, src)
+}
+
+// mergeProfileSearchLocation applies non-nil location fields onto a SearchConfig.
+func mergeProfileSearchLocation(dst *SearchConfig, src *ProfileSearch) {
+	if src.LocationLat != nil {
+		dst.LocationLat = *src.LocationLat
+	}
+	if src.LocationLon != nil {
+		dst.LocationLon = *src.LocationLon
+	}
+	if src.LocationCountry != nil {
+		dst.LocationCountry = *src.LocationCountry
+	}
+}
+
+// mergeProfileSearchDates applies non-nil date fields onto a SearchConfig.
+func mergeProfileSearchDates(dst *SearchConfig, src *ProfileSearch) {
+	if src.AfterDate != nil {
+		dst.AfterDate = *src.AfterDate
+	}
+	if src.BeforeDate != nil {
+		dst.BeforeDate = *src.BeforeDate
+	}
+	if src.LastUpdatedAfter != nil {
+		dst.LastUpdatedAfter = *src.LastUpdatedAfter
+	}
+	if src.LastUpdatedBefore != nil {
+		dst.LastUpdatedBefore = *src.LastUpdatedBefore
+	}
+}
+
+// mergeProfileOutput applies non-nil ProfileOutput fields onto an OutputConfig.
+// Nil means "not set"; non-nil overrides base including false for booleans.
+func mergeProfileOutput(dst *OutputConfig, src *ProfileOutput) {
+	if src.Stream != nil {
+		dst.Stream = *src.Stream
+	}
+	if src.ReturnImages != nil {
+		dst.ReturnImages = *src.ReturnImages
+	}
+	if src.ReturnRelated != nil {
+		dst.ReturnRelated = *src.ReturnRelated
+	}
+	if src.JSON != nil {
+		dst.JSON = *src.JSON
+	}
+	if src.ImageDomains != nil {
+		dst.ImageDomains = *src.ImageDomains
+	}
+	if src.ImageFormats != nil {
+		dst.ImageFormats = *src.ImageFormats
+	}
+	if src.ResponseFormatJSONSchema != nil {
+		dst.ResponseFormatJSONSchema = *src.ResponseFormatJSONSchema
+	}
+	if src.ResponseFormatRegex != nil {
+		dst.ResponseFormatRegex = *src.ResponseFormatRegex
+	}
+	if src.ReasoningEffort != nil {
+		dst.ReasoningEffort = *src.ReasoningEffort
+	}
+}
+
+// CloneProfile creates a new profile as a deep copy of an existing profile.
+func (pm *ProfileManager) CloneProfile(name, sourceName string) (*Profile, error) {
+	if name == "" {
+		return nil, clerrors.ErrProfileNameEmpty
+	}
+
+	if name == DefaultProfileName {
+		return nil, clerrors.ErrProfileNameReserved
+	}
+
+	if _, exists := pm.data.Profiles[name]; exists {
+		return nil, fmt.Errorf("%w: '%s'", clerrors.ErrProfileAlreadyExists, name)
+	}
+
+	src, err := pm.LoadProfile(sourceName)
+	if err != nil {
+		return nil, err
+	}
+
+	clone := &Profile{
+		Name:        name,
+		Description: src.Description,
+		Defaults: ProfileDefaults{
+			Model:            copyStringPtr(src.Defaults.Model),
+			Temperature:      copyFloat64Ptr(src.Defaults.Temperature),
+			MaxTokens:        copyIntPtr(src.Defaults.MaxTokens),
+			TopK:             copyIntPtr(src.Defaults.TopK),
+			TopP:             copyFloat64Ptr(src.Defaults.TopP),
+			FrequencyPenalty: copyFloat64Ptr(src.Defaults.FrequencyPenalty),
+			PresencePenalty:  copyFloat64Ptr(src.Defaults.PresencePenalty),
+			Timeout:          copyStringPtr(src.Defaults.Timeout),
+		},
+		Search: ProfileSearch{
+			Domains:           copyStringSlicePtr(src.Search.Domains),
+			Recency:           copyStringPtr(src.Search.Recency),
+			Mode:              copyStringPtr(src.Search.Mode),
+			ContextSize:       copyStringPtr(src.Search.ContextSize),
+			LocationLat:       copyFloat64Ptr(src.Search.LocationLat),
+			LocationLon:       copyFloat64Ptr(src.Search.LocationLon),
+			LocationCountry:   copyStringPtr(src.Search.LocationCountry),
+			AfterDate:         copyStringPtr(src.Search.AfterDate),
+			BeforeDate:        copyStringPtr(src.Search.BeforeDate),
+			LastUpdatedAfter:  copyStringPtr(src.Search.LastUpdatedAfter),
+			LastUpdatedBefore: copyStringPtr(src.Search.LastUpdatedBefore),
+		},
+		Output: ProfileOutput{
+			Stream:                   copyBoolPtr(src.Output.Stream),
+			ReturnImages:             copyBoolPtr(src.Output.ReturnImages),
+			ReturnRelated:            copyBoolPtr(src.Output.ReturnRelated),
+			JSON:                     copyBoolPtr(src.Output.JSON),
+			ImageDomains:             copyStringSlicePtr(src.Output.ImageDomains),
+			ImageFormats:             copyStringSlicePtr(src.Output.ImageFormats),
+			ResponseFormatJSONSchema: copyStringPtr(src.Output.ResponseFormatJSONSchema),
+			ResponseFormatRegex:      copyStringPtr(src.Output.ResponseFormatRegex),
+			ReasoningEffort:          copyStringPtr(src.Output.ReasoningEffort),
+		},
+	}
+
+	pm.data.Profiles[name] = clone
+	return clone, nil
+}
+
+// getDefaultProfile returns the default profile.
+// The default profile carries no pointer overrides; merging it with the base
+// config simply returns the base config unchanged.
 func (pm *ProfileManager) getDefaultProfile() *Profile {
 	return &Profile{
 		Name:        DefaultProfileName,
 		Description: "Default configuration",
-		Defaults:    pm.data.Defaults,
-		Search:      pm.data.Search,
-		Output:      pm.data.Output,
 	}
+}
+
+// copyStringPtr returns a new *string with the same value, or nil if p is nil.
+func copyStringPtr(p *string) *string {
+	if p == nil {
+		return nil
+	}
+	v := *p
+	return &v
+}
+
+// copyFloat64Ptr returns a new *float64 with the same value, or nil if p is nil.
+func copyFloat64Ptr(p *float64) *float64 {
+	if p == nil {
+		return nil
+	}
+	v := *p
+	return &v
+}
+
+// copyIntPtr returns a new *int with the same value, or nil if p is nil.
+func copyIntPtr(p *int) *int {
+	if p == nil {
+		return nil
+	}
+	v := *p
+	return &v
+}
+
+// copyBoolPtr returns a new *bool with the same value, or nil if p is nil.
+func copyBoolPtr(p *bool) *bool {
+	if p == nil {
+		return nil
+	}
+	v := *p
+	return &v
+}
+
+// copyStringSlicePtr returns a new *[]string backed by a fresh slice copy, or nil if p is nil.
+func copyStringSlicePtr(p *[]string) *[]string {
+	if p == nil {
+		return nil
+	}
+	cp := make([]string, len(*p))
+	copy(cp, *p)
+	return &cp
 }
