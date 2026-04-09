@@ -1,6 +1,7 @@
 package config
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -37,10 +38,14 @@ func (l *Loader) Load() error {
 	// then delegate to LoadFrom. This avoids a viper limitation where
 	// SetConfigName only retains the last value, making it impossible
 	// to search for multiple file names (e.g., both "config" and "pplx").
-	configPath, err := FindConfigFile()
-	if err != nil {
-		// No config file found — return defaults (not an error)
-		return nil
+	configPath, findErr := FindConfigFile()
+	if findErr != nil {
+		if errors.Is(findErr, clerrors.ErrNoConfigFound) {
+			// No config file found — return defaults (not an error)
+			return nil
+		}
+
+		return findErr
 	}
 
 	return l.LoadFrom(configPath)
