@@ -148,6 +148,11 @@ func addImageFlags(cmd *cobra.Command) {
 		"Filter images by formats (jpg, png, etc.)")
 }
 
+func addFileFlags(cmd *cobra.Command) {
+	cmd.PersistentFlags().StringSliceVarP(&globalOpts.Files, "file", "f", globalOpts.Files,
+		"Attach a file or https:// URL to the prompt (images: png,jpg,jpeg,webp,gif; documents: pdf,doc,docx,txt,rtf). Repeatable.")
+}
+
 func addFormatFlags(cmd *cobra.Command) {
 	cmd.PersistentFlags().StringVar(&globalOpts.ResponseFormatJSONSchema, "response-format-json-schema",
 		globalOpts.ResponseFormatJSONSchema, "JSON schema for structured output (sonar model only)")
@@ -300,6 +305,7 @@ func init() {
 	addDateFlags(queryCmd)
 	addResearchFlags(queryCmd)
 	addOutputFlags(queryCmd)
+	addFileFlags(queryCmd)
 	queryCmd.PersistentFlags().StringVar(&configFilePath, "config", "", "Path to config file")
 	queryCmd.PersistentFlags().StringVar(&runtimeProfile, "profile", "", "Use a named configuration profile")
 	registerFlagCompletions(queryCmd)
