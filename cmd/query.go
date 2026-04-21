@@ -10,7 +10,6 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/pterm/pterm"
@@ -552,68 +551,50 @@ func buildAllOptions() (*perplexity.CompletionRequest, error) {
 }
 
 // handleStreamingResponse processes a streaming completion request.
-// Uses goroutine-based concurrency to handle incremental token rendering while
-// maintaining the final response for complete metadata (citations, images, related questions).
-// The goroutine consumes from responseChannel while the main thread produces via SendSSEHTTPRequest.
+// The producer (perplexity.Client.StreamCompletion) runs in a worker goroutine and closes
+// responseChannel when finished; the main goroutine consumes events and renders them
+// incrementally. Consuming in the main goroutine guarantees all rendering completes before
+// this function returns — no goroutine leak, no use of os.Stdout after the caller returns.
 func handleStreamingResponse(client *perplexity.Client, req *perplexity.CompletionRequest) error {
-	// Unbuffered channel ensures backpressure: server won't send next chunk until we process current one
-	// This prevents memory buildup if rendering is slower than server response generation
 	responseChannel := make(chan perplexity.CompletionResponse)
-	var wg sync.WaitGroup
+	streamErrCh := make(chan error, 1)
 
-	// Start consumer goroutine - must be running before SendSSEHTTPRequest starts producing
-	// Goroutine lifecycle: spawn -> consume from channel -> terminate when channel closes
-	wg.Go(func() {
-		var lastResponse *perplexity.CompletionResponse
+	go func() {
+		streamErrCh <- client.StreamCompletion(req, responseChannel)
+	}()
 
-		if globalOpts.OutputJSON {
-			// JSON mode: skip incremental rendering, just collect final response
-			// Rationale: JSON clients expect complete, valid JSON - not streaming fragments
-			// The lastResponse will contain the full completion with all metadata
-			for response := range responseChannel {
-				lastResponse = &response
-			}
-		} else {
-			// Console mode: render tokens incrementally for better user experience
-			// Shows progress as the model generates output (similar to ChatGPT interface)
-			renderer := console.NewStreamingRenderer(os.Stdout)
-			for response := range responseChannel {
-				err := renderer.RenderIncremental(&response)
-				if err != nil {
-					logger.Error("failed to render streaming content", "error", err)
-				}
-				// Preserve last response for complete metadata (citations, images, related questions)
-				// Only the final chunk contains these - intermediate chunks have partial text only
-				lastResponse = &response
-			}
+	var lastResponse *perplexity.CompletionResponse
+	if globalOpts.OutputJSON {
+		// JSON mode: skip incremental rendering, just collect the final response.
+		// JSON clients expect complete, valid JSON — not streaming fragments.
+		for response := range responseChannel {
+			lastResponse = &response
 		}
-
-		// After channel closes (streaming complete), render final metadata
-		// This includes citations, images, and related questions that only arrive in the final chunk
-		if lastResponse != nil {
-			if !globalOpts.OutputJSON {
-				// Visual separation between streaming content and metadata sections
-				fmt.Println()
+	} else {
+		// Console mode: render tokens incrementally for a ChatGPT-style UX.
+		renderer := console.NewStreamingRenderer(os.Stdout)
+		for response := range responseChannel {
+			if err := renderer.RenderIncremental(&response); err != nil {
+				logger.Error("failed to render streaming content", "error", err)
 			}
-			err := console.RenderResponse(lastResponse, os.Stdout, globalOpts.OutputJSON)
-			if err != nil {
-				logger.Error("failed to render response", "error", err)
-			}
+			// Only the final chunk carries complete metadata (citations, images, related questions).
+			lastResponse = &response
 		}
-	})
+	}
 
-	// Producer: sends SSE request, server writes to responseChannel as tokens arrive
-	// Must happen after goroutine spawn to ensure consumer is ready to receive
-	// If called before goroutine starts, channel would block and deadlock
-	err := client.SendSSEHTTPRequest(&wg, req, responseChannel)
-	if err != nil {
+	if err := <-streamErrCh; err != nil {
 		return clerrors.NewAPIError("failed to send streaming request", err)
 	}
 
-	// Wait for consumer goroutine to finish processing all responses
-	// Critical: prevents goroutine leak and ensures all output is written before function returns
-	// Without this, main function might exit while goroutine is still rendering
-	wg.Wait()
+	if lastResponse != nil {
+		if !globalOpts.OutputJSON {
+			// Visual separation between streaming content and metadata sections.
+			fmt.Println()
+		}
+		if err := console.RenderResponse(lastResponse, os.Stdout, globalOpts.OutputJSON); err != nil {
+			logger.Error("failed to render response", "error", err)
+		}
+	}
 	return nil
 }
 

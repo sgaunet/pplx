@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"log"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/sgaunet/perplexity-go/v2"
@@ -349,63 +348,40 @@ func (h *QueryHandler) validateParameters(params QueryParams) error {
 }
 
 // executeStreaming handles streaming response execution.
-// Uses goroutine-based concurrency to consume the stream while the main thread produces
-// Server-Sent Events (SSE) via the HTTP request.
 //
-// Design rationale: Return last response, not concatenated content
+// Design rationale: Return last response, not concatenated content.
 // Perplexity's SSE stream sends cumulative responses where each event contains the
 // COMPLETE response so far, not just incremental deltas. Therefore:
-// - We don't need to concatenate content from multiple events
-// - The last response contains the final, complete answer
-// - Earlier responses are just intermediate states (useful for UI rendering but not final result)
-// - Returning lastResponse gives us the complete final answer plus all metadata (citations, etc.)
+//   - The last response contains the final, complete answer + metadata (citations, etc.)
+//   - Earlier responses are intermediate states useful for UI rendering but not for the final result
 //
-// Goroutine coordination pattern:
-// - Main thread: Calls SendSSEHTTPRequest which produces events to responseChannel
-// - Consumer goroutine: Reads from responseChannel, keeping only the last response
-// - WaitGroup: Ensures consumer goroutine finishes before we return
-// - Unbuffered channel: Provides natural backpressure (server waits if consumer is slow)
+// Concurrency model:
+//   - Producer goroutine: runs perplexity.Client.StreamCompletion, closes the channel on return
+//   - Main goroutine: drains the channel, keeping only the last response, then checks the error
 //
-// Alternative designs considered:
-// - Return first response: Would give incomplete answer
-// - Concatenate all responses: Would duplicate content since responses are cumulative
-// - Stream to caller: Would require caller to handle channel/goroutine complexity
-//
-// Error handling:
-// - If SendSSEHTTPRequest fails, return immediately (consumer goroutine will finish naturally)
-// - If stream completes but no responses received, return error (likely network issue).
+// Consuming in the main goroutine guarantees we never return while the producer is still running.
 func (h *QueryHandler) executeStreaming(
 	client *perplexity.Client,
 	req *perplexity.CompletionRequest,
 ) (*perplexity.CompletionResponse, error) {
 	responseChannel := make(chan perplexity.CompletionResponse)
-	var wg sync.WaitGroup
-	wg.Add(1)
+	streamErrCh := make(chan error, 1)
 
-	// Consumer goroutine: Drain channel and keep only the last response
-	// Rationale: Last response contains complete cumulative content
-	var lastResponse *perplexity.CompletionResponse
 	go func() {
-		defer wg.Done()
-		for res := range responseChannel {
-			// Overwrite with each new response; only last one matters for final result
-			lastResponse = &res
-		}
+		streamErrCh <- client.StreamCompletion(req, responseChannel)
 	}()
 
-	// Producer: Main thread sends SSE request which populates responseChannel
-	err := client.SendSSEHTTPRequest(&wg, req, responseChannel)
-	if err != nil {
-		return nil, NewStreamError("streaming request failed", err)
+	var lastResponse *perplexity.CompletionResponse
+	for res := range responseChannel {
+		lastResponse = &res
 	}
 
-	// Wait for consumer goroutine to finish draining channel
-	wg.Wait()
-
+	if err := <-streamErrCh; err != nil {
+		return nil, NewStreamError("streaming request failed", err)
+	}
 	if lastResponse == nil {
 		return nil, NewStreamError("no response received from stream", nil)
 	}
-
 	return lastResponse, nil
 }
 
