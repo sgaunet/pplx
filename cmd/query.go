@@ -2,8 +2,13 @@ package cmd
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
+	"net/url"
 	"os"
+	"path"
+	"path/filepath"
+	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -107,12 +112,12 @@ func validateStringEnum(fieldName, value string, validValues map[string]bool, va
 // These options are always included in every request.
 func buildBaseOptions() ([]perplexity.CompletionRequestOption, error) {
 	msg := perplexity.NewMessages(perplexity.WithSystemMessage(globalOpts.SystemPrompt))
-	if err := msg.AddUserMessage(globalOpts.UserPrompt); err != nil {
-		return nil, fmt.Errorf("failed to add user message to request: %w", err)
+	if err := addUserMessage(&msg); err != nil {
+		return nil, err
 	}
 
 	return []perplexity.CompletionRequestOption{
-		perplexity.WithMessages(msg.GetMessages()),
+		perplexity.WithMessagesFromMessages(&msg),
 		perplexity.WithModel(globalOpts.Model),
 		perplexity.WithFrequencyPenalty(globalOpts.FrequencyPenalty),
 		perplexity.WithMaxTokens(globalOpts.MaxTokens),
@@ -121,6 +126,129 @@ func buildBaseOptions() ([]perplexity.CompletionRequestOption, error) {
 		perplexity.WithTopK(globalOpts.TopK),
 		perplexity.WithTopP(globalOpts.TopP),
 	}, nil
+}
+
+// addUserMessage appends the user prompt (and any file attachments) to msg.
+// Without --file, it falls back to a plain text message.
+// With --file, it builds a multimodal message combining the prompt text with
+// each attachment routed to image or file content based on extension.
+func addUserMessage(msg *perplexity.Messages) error {
+	if len(globalOpts.Files) == 0 {
+		if err := msg.AddUserMessage(globalOpts.UserPrompt); err != nil {
+			return fmt.Errorf("failed to add user message to request: %w", err)
+		}
+		return nil
+	}
+
+	contents := []perplexity.Content{perplexity.NewTextContent(globalOpts.UserPrompt)}
+	for _, entry := range globalOpts.Files {
+		content, err := buildAttachmentContent(entry)
+		if err != nil {
+			return err
+		}
+		contents = append(contents, content)
+	}
+
+	if err := msg.AddMultimodalUserMessage(contents); err != nil {
+		return fmt.Errorf("failed to add multimodal user message: %w", err)
+	}
+	return nil
+}
+
+// buildAttachmentContent turns a local path or HTTPS URL into a perplexity.Content.
+// Library sentinel errors (size, format, missing file) are mapped to pplx typed errors.
+func buildAttachmentContent(entry string) (perplexity.Content, error) {
+	isImage, isURL, err := classifyAttachment(entry)
+	if err != nil {
+		return perplexity.Content{}, err
+	}
+
+	if isURL {
+		if isImage {
+			return perplexity.NewImageURLContent(entry), nil
+		}
+		return perplexity.NewFileURLContent(entry, path.Base(entry)), nil
+	}
+
+	if isImage {
+		content, libErr := perplexity.NewImageFileContent(entry)
+		if libErr != nil {
+			return perplexity.Content{}, mapAttachmentError("file", entry, libErr)
+		}
+		return content, nil
+	}
+	content, libErr := perplexity.NewFileFileContent(entry)
+	if libErr != nil {
+		return perplexity.Content{}, mapAttachmentError("file", entry, libErr)
+	}
+	return content, nil
+}
+
+// classifyAttachment inspects a --file entry and reports whether it is an image
+// or a document, and whether it is an https URL or a local path.
+// Returns a validation error when the entry is empty, the URL is not https, or
+// the extension is not supported by the Perplexity API.
+func classifyAttachment(entry string) (bool, bool, error) {
+	if entry == "" {
+		return false, false, clerrors.NewValidationError("file", entry, "file path or URL is required")
+	}
+
+	var (
+		ext   string
+		isURL bool
+	)
+	if strings.Contains(entry, "://") {
+		parsed, perr := url.Parse(entry)
+		if perr != nil || parsed.Host == "" {
+			return false, false, clerrors.NewValidationError("file", entry, "invalid URL")
+		}
+		if parsed.Scheme != "https" {
+			return false, false, clerrors.NewValidationError("file", entry, "URLs must use https://")
+		}
+		isURL = true
+		ext = strings.TrimPrefix(strings.ToLower(path.Ext(parsed.Path)), ".")
+	} else {
+		ext = strings.TrimPrefix(strings.ToLower(filepath.Ext(entry)), ".")
+	}
+
+	if ext == "" {
+		return false, isURL, clerrors.NewValidationError("file", entry,
+			"missing file extension; supported: "+supportedExtensionsList())
+	}
+	if slices.Contains(perplexity.SupportedImageFormats, ext) {
+		return true, isURL, nil
+	}
+	if slices.Contains(perplexity.SupportedFileFormats, ext) {
+		return false, isURL, nil
+	}
+	return false, isURL, clerrors.NewValidationError("file", entry,
+		"unsupported extension ."+ext+"; supported: "+supportedExtensionsList())
+}
+
+// supportedExtensionsList returns a human-readable comma-joined list of
+// every extension the Perplexity API accepts as an attachment.
+func supportedExtensionsList() string {
+	all := append([]string{}, perplexity.SupportedImageFormats...)
+	all = append(all, perplexity.SupportedFileFormats...)
+	return strings.Join(all, ", ")
+}
+
+// mapAttachmentError converts perplexity-go sentinel errors into pplx typed errors
+// so attachment issues map to the correct exit code (validation vs IO).
+func mapAttachmentError(field, value string, err error) error {
+	switch {
+	case errors.Is(err, perplexity.ErrImageFileNotFound), errors.Is(err, perplexity.ErrFileNotFound):
+		return clerrors.NewValidationError(field, value, "file not found")
+	case errors.Is(err, perplexity.ErrImageTooLarge), errors.Is(err, perplexity.ErrFileTooLarge):
+		return clerrors.NewValidationError(field, value, "file exceeds 50MB limit")
+	case errors.Is(err, perplexity.ErrImageFormatNotSupported),
+		errors.Is(err, perplexity.ErrFileFormatNotSupported):
+		return clerrors.NewValidationError(field, value,
+			"unsupported format; supported: "+supportedExtensionsList())
+	case errors.Is(err, perplexity.ErrImageReadFailed), errors.Is(err, perplexity.ErrFileReadFailed):
+		return clerrors.NewIOError("failed to read "+value, err)
+	}
+	return clerrors.NewIOError("failed to process "+value, err)
 }
 
 // buildSearchOptions creates search-related options for the completion request.
@@ -293,7 +421,33 @@ func validateInputs() error {
 		return err
 	}
 
+	if err := validateFiles(); err != nil {
+		return err
+	}
+
 	return validateResponseFormats()
+}
+
+// validateFiles checks every --file entry up front: that URLs are https, local
+// paths exist, and extensions are supported. The library re-validates size and
+// format during encoding, but fast-failing here keeps errors consistent with
+// the rest of the pre-request validation flow.
+func validateFiles() error {
+	for _, entry := range globalOpts.Files {
+		_, isURL, err := classifyAttachment(entry)
+		if err != nil {
+			return err
+		}
+		if !isURL {
+			if _, err := os.Stat(entry); err != nil {
+				if os.IsNotExist(err) {
+					return clerrors.NewValidationError("file", entry, "file not found")
+				}
+				return clerrors.NewIOError("cannot access "+entry, err)
+			}
+		}
+	}
+	return nil
 }
 
 // validateEnumFields validates all enum-based configuration options.

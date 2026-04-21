@@ -39,6 +39,9 @@ type GlobalOptions struct {
 	ImageDomains []string
 	ImageFormats []string
 
+	// File attachment options
+	Files []string
+
 	// Response format options
 	ResponseFormatJSONSchema string
 	ResponseFormatRegex      string
