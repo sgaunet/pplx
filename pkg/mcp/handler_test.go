@@ -293,8 +293,8 @@ func TestQueryHandler_BuildRequestOptions(t *testing.T) {
 
 				msg := perplexity.NewMessages()
 				if err := msg.AddUserMessage(params.UserPrompt); err != nil {
-			t.Fatalf("Failed to add user message: %v", err)
-		}
+					t.Fatalf("Failed to add user message: %v", err)
+				}
 
 				_, err := handler.buildRequestOptions(params, msg)
 				if err == nil {

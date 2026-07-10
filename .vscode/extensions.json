@@ -1,9 +1,6 @@
 {
-  "recommandations": [
-      "task.vscode-task",
-      "aaron-bond.better-comments",
-      "golang.go",
-      "mhutchie.git-graph",
-      "ms-vscode-remote.remote-ssh",
-  ],
+  "recommendations": [
+    "golang.go",
+    "task.vscode-task"
+  ]
 }

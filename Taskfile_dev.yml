@@ -1,0 +1,12 @@
+version: '3'
+
+tasks:
+  install-pre-commit:
+    desc: Install the pre-commit git hook
+    cmds:
+      - pre-commit install
+
+  pre-commit:
+    desc: Run all pre-commit hooks
+    cmds:
+      - pre-commit run --all-files

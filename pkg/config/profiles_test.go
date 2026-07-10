@@ -6,10 +6,10 @@ import (
 )
 
 // Test helpers for creating pointer values.
-func strPtr(s string) *string    { return &s }
-func float64Ptr(f float64) *float64 { return &f }
-func intPtr(i int) *int          { return &i }
-func boolPtr(b bool) *bool       { return &b }
+func strPtr(s string) *string          { return &s }
+func float64Ptr(f float64) *float64    { return &f }
+func intPtr(i int) *int                { return &i }
+func boolPtr(b bool) *bool             { return &b }
 func strSlicePtr(s []string) *[]string { return &s }
 
 func TestProfileManagerCreate(t *testing.T) {
@@ -509,7 +509,7 @@ func TestMergeProfile_ChainedExpansion(t *testing.T) {
 					Model:       strPtr("prod-model"),
 					Temperature: float64Ptr(0.8),
 					// MaxTokens left nil — preserves base value
-					TopK:        intPtr(50), // Override
+					TopK: intPtr(50), // Override
 				},
 				Search: ProfileSearch{
 					Recency: strPtr("month"), // Override

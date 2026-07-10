@@ -32,21 +32,21 @@ type Options struct {
 	Stream           bool
 	ImageDomains     []string
 	ImageFormats     []string
-	
+
 	// Response format options
 	ResponseFormatJSONSchema string
 	ResponseFormatRegex      string
-	
+
 	// Search mode options
 	SearchMode        string
 	SearchContextSize string
-	
+
 	// Date filtering options
 	SearchAfterDate   string
 	SearchBeforeDate  string
 	LastUpdatedAfter  string
 	LastUpdatedBefore string
-	
+
 	// Deep research options
 	ReasoningEffort string
 }

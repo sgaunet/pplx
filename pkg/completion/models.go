@@ -28,10 +28,10 @@ type ModelCache struct {
 // This list is based on https://docs.perplexity.ai/guides/model-cards
 func KnownModels() []string {
 	return []string{
-		"sonar",                      // Default fast model
-		"sonar-pro",                  // Pro model with enhanced capabilities
-		"sonar-reasoning",            // Model with reasoning capabilities
-		"sonar-deep-research",        // Deep research model with reasoning_effort
+		"sonar",               // Default fast model
+		"sonar-pro",           // Pro model with enhanced capabilities
+		"sonar-reasoning",     // Model with reasoning capabilities
+		"sonar-deep-research", // Deep research model with reasoning_effort
 		"llama-3.1-sonar-small-128k-online",
 		"llama-3.1-sonar-large-128k-online",
 		"llama-3.1-sonar-huge-128k-online",

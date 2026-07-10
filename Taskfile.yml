@@ -1,11 +1,29 @@
 # https://taskfile.dev
 version: '3'
+includes:
+  dev: ./Taskfile_dev.yml
+
+vars:
+  BINFILE: pplx
 
 tasks:
   default:
-    desc: "List tasks"
+    desc: "List all tasks"
+    preconditions:
+      - sh: test -f .git/hooks/pre-commit
+        msg: "Pre-commit hook not found. Please run 'pre-commit install' to set it up."
     cmds:
       - task -a
+
+  check-before-commit:
+    desc: "Run checks before committing"
+    preconditions:
+      - test -f .git/hooks/pre-commit
+    deps:
+      - test
+      - snapshot
+    cmds:
+      - task: lint
 
   lint:
     desc: "Run linter"
@@ -13,19 +31,40 @@ tasks:
       - go generate ./...
       - golangci-lint run
 
-  doc:
-    desc: "Start godoc server"
+  test:
+    desc: "Run unit tests with race detection"
     cmds:
-      - echo http://localhost:6060 
-      - godoc -http=:6060
+      - go test -count=2 -race ./...
+
+  coverage:
+    desc: "Generate coverage report"
+    cmds:
+      - go test -coverpkg=./... -coverprofile=profile.cov ./...
+      - |
+        if [ "$(uname)" = "Darwin" ]; then
+          sed -i '' '/cmd/d' profile.cov
+        else
+          sed -i '/cmd/d' profile.cov
+        fi
+      - go tool cover -func profile.cov | grep '^total:' | awk '{print $3}' | sed "s/%//"
+      - rm -f profile.cov
+
+  build:
+    desc: "Build binary"
+    cmds:
+      - CGO_ENABLED=0 go build -o {{.BINFILE}} .
 
   snapshot:
-    desc: "Create a snapshot release"
+    desc: "Create a snapshot"
     cmds:
-      - GITLAB_TOKEN="" goreleaser --clean --snapshot
-    
+      - GITLAB_TOKEN="" GITEA_TOKEN="" goreleaser --clean --snapshot
+
   release:
     desc: "Create a release"
     cmds:
-      - GITLAB_TOKEN="" goreleaser --clean
-    
+      - goreleaser --clean
+
+  godoc:
+    desc: "Go documentation of pplx"
+    cmds:
+      - go doc -http -c github.com/sgaunet/pplx

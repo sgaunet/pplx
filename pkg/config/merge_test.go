@@ -469,10 +469,10 @@ func TestPrecedence_FullChainIntegration(t *testing.T) {
 	// Config file with mix of literal and env var
 	cfg := &ConfigData{
 		Defaults: DefaultsConfig{
-			Model:       "config-model",        // Literal in config
-			Temperature: 0.5,                   // Will be overridden by CLI
-			MaxTokens:   1000,                  // Will stay from config
-			TopK:        50,                    // Will be overridden by CLI
+			Model:       "config-model", // Literal in config
+			Temperature: 0.5,            // Will be overridden by CLI
+			MaxTokens:   1000,           // Will stay from config
+			TopK:        50,             // Will be overridden by CLI
 		},
 		Search: SearchConfig{
 			Recency: "week", // Will stay from config
@@ -484,8 +484,8 @@ func TestPrecedence_FullChainIntegration(t *testing.T) {
 
 	// Set some CLI flags
 	cmd := createTestCommand()
-	_ = cmd.Flags().Set("temperature", "0.9")  // CLI override
-	_ = cmd.Flags().Set("top-k", "100")        // CLI override
+	_ = cmd.Flags().Set("temperature", "0.9") // CLI override
+	_ = cmd.Flags().Set("top-k", "100")       // CLI override
 
 	merger := NewMerger(cfg)
 	if err := merger.BindFlags(cmd); err != nil {

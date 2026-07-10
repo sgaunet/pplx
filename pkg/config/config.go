@@ -34,6 +34,7 @@ type Config interface {
 }
 
 // ConfigData represents the complete configuration structure.
+//
 //nolint:revive // ConfigData name is part of public API; renaming would be a breaking change.
 type ConfigData struct {
 	// Version is the config schema version for migration support
@@ -61,8 +62,8 @@ type ConfigData struct {
 // DefaultsConfig contains default values for common options.
 type DefaultsConfig struct {
 	Model            string  `json:"model,omitempty"             mapstructure:"model"             yaml:"model,omitempty"`
-	Temperature      float64 `json:"temperature,omitempty"       mapstructure:"temperature"       yaml:"temperature,omitempty"`       //nolint:lll
-	MaxTokens        int     `json:"max_tokens,omitempty"        mapstructure:"max_tokens"        yaml:"max_tokens,omitempty"`        //nolint:lll
+	Temperature      float64 `json:"temperature,omitempty"       mapstructure:"temperature"       yaml:"temperature,omitempty"` //nolint:lll
+	MaxTokens        int     `json:"max_tokens,omitempty"        mapstructure:"max_tokens"        yaml:"max_tokens,omitempty"`  //nolint:lll
 	TopK             int     `json:"top_k,omitempty"             mapstructure:"top_k"             yaml:"top_k,omitempty"`
 	TopP             float64 `json:"top_p,omitempty"             mapstructure:"top_p"             yaml:"top_p,omitempty"`
 	FrequencyPenalty float64 `json:"frequency_penalty,omitempty" mapstructure:"frequency_penalty" yaml:"frequency_penalty,omitempty"` //nolint:lll
@@ -129,8 +130,8 @@ type Profile struct {
 // ProfileDefaults uses pointers to distinguish "not set" (nil) from "set to zero".
 type ProfileDefaults struct {
 	Model            *string  `json:"model,omitempty"             mapstructure:"model"             yaml:"model,omitempty"`
-	Temperature      *float64 `json:"temperature,omitempty"       mapstructure:"temperature"       yaml:"temperature,omitempty"`       //nolint:lll
-	MaxTokens        *int     `json:"max_tokens,omitempty"        mapstructure:"max_tokens"        yaml:"max_tokens,omitempty"`        //nolint:lll
+	Temperature      *float64 `json:"temperature,omitempty"       mapstructure:"temperature"       yaml:"temperature,omitempty"` //nolint:lll
+	MaxTokens        *int     `json:"max_tokens,omitempty"        mapstructure:"max_tokens"        yaml:"max_tokens,omitempty"`  //nolint:lll
 	TopK             *int     `json:"top_k,omitempty"             mapstructure:"top_k"             yaml:"top_k,omitempty"`
 	TopP             *float64 `json:"top_p,omitempty"             mapstructure:"top_p"             yaml:"top_p,omitempty"`
 	FrequencyPenalty *float64 `json:"frequency_penalty,omitempty" mapstructure:"frequency_penalty" yaml:"frequency_penalty,omitempty"` //nolint:lll
@@ -155,9 +156,9 @@ type ProfileSearch struct {
 
 // ProfileOutput uses pointers to distinguish "not set" from "set to false".
 type ProfileOutput struct {
-	Stream                   *bool     `json:"stream,omitempty"                      mapstructure:"stream"                      yaml:"stream,omitempty"`                      //nolint:lll
-	ReturnImages             *bool     `json:"return_images,omitempty"               mapstructure:"return_images"               yaml:"return_images,omitempty"`               //nolint:lll
-	ReturnRelated            *bool     `json:"return_related,omitempty"              mapstructure:"return_related"              yaml:"return_related,omitempty"`              //nolint:lll
+	Stream                   *bool     `json:"stream,omitempty"                      mapstructure:"stream"                      yaml:"stream,omitempty"`         //nolint:lll
+	ReturnImages             *bool     `json:"return_images,omitempty"               mapstructure:"return_images"               yaml:"return_images,omitempty"`  //nolint:lll
+	ReturnRelated            *bool     `json:"return_related,omitempty"              mapstructure:"return_related"              yaml:"return_related,omitempty"` //nolint:lll
 	JSON                     *bool     `json:"json,omitempty"                        mapstructure:"json"                        yaml:"json,omitempty"`
 	ImageDomains             *[]string `json:"image_domains,omitempty"               mapstructure:"image_domains"               yaml:"image_domains,omitempty"`               //nolint:lll
 	ImageFormats             *[]string `json:"image_formats,omitempty"               mapstructure:"image_formats"               yaml:"image_formats,omitempty"`               //nolint:lll
@@ -167,6 +168,7 @@ type ProfileOutput struct {
 }
 
 // ConfigFileInfo represents metadata about a configuration file.
+//
 //nolint:revive // ConfigFileInfo name is part of public API; renaming would be a breaking change.
 type ConfigFileInfo struct {
 	Name         string    `json:"name"`          // File name (e.g., "config.yaml")

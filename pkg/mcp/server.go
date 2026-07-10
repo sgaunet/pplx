@@ -9,6 +9,7 @@ import (
 )
 
 // MCPServer wraps the MCP server with Perplexity query functionality.
+//
 //nolint:revive // MCPServer is the appropriate name for this MCP-specific server type
 type MCPServer struct {
 	server    *server.MCPServer

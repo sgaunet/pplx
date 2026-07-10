@@ -92,18 +92,18 @@ func (h *QueryHandler) Handle(
 // - Model compatibility warnings (response formats, reasoning effort)
 //
 // Parameter incompatibility patterns:
-// - search_recency + return_images: API constraint - when images are requested,
-//   search recency filter must be explicitly disabled (empty string) to avoid API error.
-//   Rationale: Image search uses different indexing that doesn't support time filtering.
-// - response_format_json_schema + response_format_regex: Logical conflict - can only
-//   constrain output format with one schema type at a time.
-// - response formats + non-sonar models: API constraint - structured output formats
-//   only work with sonar model family.
+//   - search_recency + return_images: API constraint - when images are requested,
+//     search recency filter must be explicitly disabled (empty string) to avoid API error.
+//     Rationale: Image search uses different indexing that doesn't support time filtering.
+//   - response_format_json_schema + response_format_regex: Logical conflict - can only
+//     constrain output format with one schema type at a time.
+//   - response formats + non-sonar models: API constraint - structured output formats
+//     only work with sonar model family.
 //
 // Warning vs error strategy:
-// - Hard errors: Invalid enum values, conflicting parameters, invalid JSON schema, date parse failures
-// - Warnings: Unsupported image formats (user might know better than our list),
-//   reasoning effort on non-deep-research models (degrades gracefully)
+//   - Hard errors: Invalid enum values, conflicting parameters, invalid JSON schema, date parse failures
+//   - Warnings: Unsupported image formats (user might know better than our list),
+//     reasoning effort on non-deep-research models (degrades gracefully)
 //
 //nolint:gocognit,cyclop,funlen // Complexity inherent to building 30+ request options with validation
 func (h *QueryHandler) buildRequestOptions(
@@ -269,21 +269,21 @@ func (h *QueryHandler) buildRequestOptions(
 //
 // Validation categories and their relationships:
 // 1. Search recency enum validation (day, week, month, year, hour)
-//    - Independent validation, no cross-parameter dependencies
+//   - Independent validation, no cross-parameter dependencies
 //
 // 2. Response format conflict detection (json_schema vs regex)
-//    - Mutual exclusivity constraint: only one structured format type allowed
-//    - Rationale: API can't simultaneously validate against JSON schema AND regex pattern
+//   - Mutual exclusivity constraint: only one structured format type allowed
+//   - Rationale: API can't simultaneously validate against JSON schema AND regex pattern
 //
 // 3. Response format model compatibility (requires sonar models)
-//    - Dependency: response formats depend on model capability
-//    - Rationale: Only sonar model family implements structured output parsing
+//   - Dependency: response formats depend on model capability
+//   - Rationale: Only sonar model family implements structured output parsing
 //
 // 4. Search mode enum validation (web, academic)
-//    - Independent validation, affects search backend selection
+//   - Independent validation, affects search backend selection
 //
 // 5. Search context size and reasoning effort enum validation (low, medium, high)
-//    - Independent validations, control resource allocation for query processing
+//   - Independent validations, control resource allocation for query processing
 //
 // Design choice: Map-based enum validation vs switch statements
 // Maps provide O(1) lookup and make valid values self-documenting in code.

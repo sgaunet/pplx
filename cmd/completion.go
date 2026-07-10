@@ -306,12 +306,13 @@ func getInstallTarget(homeDir, shell string) (*shellInstallTarget, error) {
 //
 // Path resolution strategy for bash (most complex of all shells):
 // 1. Try Homebrew system location: $HOMEBREW_PREFIX/etc/bash_completion.d/pplx
-//    - Honors HOMEBREW_PREFIX environment variable (custom Homebrew installations)
-//    - Falls back to /usr/local if HOMEBREW_PREFIX not set (default macOS Homebrew)
-//    - Tests if directory exists before using (Stat check on parent directory)
+//   - Honors HOMEBREW_PREFIX environment variable (custom Homebrew installations)
+//   - Falls back to /usr/local if HOMEBREW_PREFIX not set (default macOS Homebrew)
+//   - Tests if directory exists before using (Stat check on parent directory)
+//
 // 2. Fallback to user directory: ~/.bash_completion.d/pplx
-//    - Used when Homebrew directory doesn't exist (Linux, non-Homebrew macOS, etc.)
-//    - Requires manual sourcing in ~/.bashrc (returns setup instructions)
+//   - Used when Homebrew directory doesn't exist (Linux, non-Homebrew macOS, etc.)
+//   - Requires manual sourcing in ~/.bashrc (returns setup instructions)
 //
 // Rationale for Homebrew preference:
 // On macOS, Homebrew's bash-completion package provides automatic loading via

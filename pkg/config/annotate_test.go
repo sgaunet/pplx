@@ -595,22 +595,22 @@ func TestGenerateAnnotatedConfig_AllSections(t *testing.T) {
 
 	// Verify all 4 main sections are present
 	requiredSections := []string{
-		"# ╭",                    // Box header start
-		"Defaults",               // Section title
-		"defaults:",              // YAML key
-		"Search Options",         // Section title
-		"search:",                // YAML key
-		"Output Options",         // Section title
-		"output:",                // YAML key
-		"API Configuration",      // Section title
-		"api:",                   // YAML key
-		"model:",                 // A defaults field
-		"temperature:",           // Another defaults field
-		"mode:",                  // A search field
-		"stream:",                // An output field
-		"key:",                   // An api field
-		"Type:",                  // Field documentation
-		"Default:",               // Default value documentation
+		"# ╭",               // Box header start
+		"Defaults",          // Section title
+		"defaults:",         // YAML key
+		"Search Options",    // Section title
+		"search:",           // YAML key
+		"Output Options",    // Section title
+		"output:",           // YAML key
+		"API Configuration", // Section title
+		"api:",              // YAML key
+		"model:",            // A defaults field
+		"temperature:",      // Another defaults field
+		"mode:",             // A search field
+		"stream:",           // An output field
+		"key:",              // An api field
+		"Type:",             // Field documentation
+		"Default:",          // Default value documentation
 	}
 
 	for _, section := range requiredSections {

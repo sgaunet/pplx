@@ -14,9 +14,9 @@ import (
 
 	"github.com/pterm/pterm"
 	"github.com/sgaunet/perplexity-go/v2"
+	clerrors "github.com/sgaunet/pplx/pkg/clerrors"
 	"github.com/sgaunet/pplx/pkg/config"
 	"github.com/sgaunet/pplx/pkg/console"
-	clerrors "github.com/sgaunet/pplx/pkg/clerrors"
 	"github.com/sgaunet/pplx/pkg/logger"
 	"github.com/spf13/cobra"
 )
@@ -512,9 +512,9 @@ func buildAllOptions() (*perplexity.CompletionRequest, error) {
 	// Each builder checks its relevant flags and adds options if set
 	// Order doesn't matter for these - they're independent concerns
 	opts := baseOpts
-	opts = append(opts, buildSearchOptions()...)      // Domain filters, recency, location
-	opts = append(opts, buildResponseOptions()...)    // Return images, related questions
-	opts = append(opts, buildImageOptions()...)       // Image domain/format filters
+	opts = append(opts, buildSearchOptions()...)   // Domain filters, recency, location
+	opts = append(opts, buildResponseOptions()...) // Return images, related questions
+	opts = append(opts, buildImageOptions()...)    // Image domain/format filters
 
 	// Error-returning builders: handle validation during option creation
 	// These validate input format/syntax before API call to provide fast feedback
