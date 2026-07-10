@@ -19,20 +19,20 @@ const (
 	choiceSkip = "skip"
 
 	// Validation range constants.
-	minTemperature     = 0.0
-	maxTemperature     = 2.0
-	minTokens          = 1
-	maxTokens          = 100000
-	minLatitude        = -90.0
-	maxLatitude        = 90.0
-	minLongitude       = -180.0
-	maxLongitude       = 180.0
-	minTopK            = 0
-	maxTopK            = 2048
-	minTopP            = 0.0
-	maxTopP            = 1.0
-	minPenalty         = 0.0
-	maxPenalty         = 2.0
+	minTemperature = 0.0
+	maxTemperature = 2.0
+	minTokens      = 1
+	maxTokens      = 100000
+	minLatitude    = -90.0
+	maxLatitude    = 90.0
+	minLongitude   = -180.0
+	maxLongitude   = 180.0
+	minTopK        = 0
+	maxTopK        = 2048
+	minTopP        = 0.0
+	maxTopP        = 1.0
+	minPenalty     = 0.0
+	maxPenalty     = 2.0
 )
 
 // Validation error sentinels.

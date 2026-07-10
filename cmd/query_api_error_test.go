@@ -179,7 +179,7 @@ func TestHandleNonStreamingResponse_NetworkTimeout(t *testing.T) {
 		case <-time.After(5 * time.Second):
 		}
 	}))
-	t.Cleanup(srv.Close)           // registered 1st → runs 2nd (LIFO)
+	t.Cleanup(srv.Close)              // registered 1st → runs 2nd (LIFO)
 	t.Cleanup(func() { close(done) }) // registered 2nd → runs 1st (LIFO)
 
 	client := perplexity.NewClient("test-key")

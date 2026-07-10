@@ -495,10 +495,10 @@ func TestExpandEnvVars_MalformedSyntax(t *testing.T) {
 		input    string
 		expected string
 	}{
-		{"empty braces", "${}", ""},                   // os.ExpandEnv expands ${} to empty string
-		{"unclosed brace", "${VAR", "VAR"},            // os.ExpandEnv treats as literal after $
+		{"empty braces", "${}", ""},                     // os.ExpandEnv expands ${} to empty string
+		{"unclosed brace", "${VAR", "VAR"},              // os.ExpandEnv treats as literal after $
 		{"lone dollar", "test $ value", "test $ value"}, // Lone $ preserved
-		{"dollar at end", "test$", "test$"},           // $ at end preserved
+		{"dollar at end", "test$", "test$"},             // $ at end preserved
 	}
 
 	for _, tc := range testCases {

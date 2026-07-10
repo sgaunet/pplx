@@ -51,9 +51,9 @@ var (
 	initDryRun       bool
 	initUpdate       bool
 	// Config get flags.
-	getUnmask   bool
-	getJSON     bool
-	getProfile  string
+	getUnmask  bool
+	getJSON    bool
+	getProfile string
 	// Config set flags.
 	setProfile    string
 	setNoValidate bool

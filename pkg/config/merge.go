@@ -179,7 +179,6 @@ func (m *Merger) MergeWithFlags(cmd *cobra.Command) *ConfigData {
 // Design rationale: Uses pointer parameters instead of returning a struct to allow selective
 // application - caller controls which globals to update. This maintains backward compatibility
 // with existing cobra flag binding architecture.
-//
 func ApplyToGlobals(cfg *ConfigData, opts *GlobalOptions) {
 	applyDefaults(cfg, opts)
 	applySearchOptions(cfg, opts)

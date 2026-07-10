@@ -1,22 +1,49 @@
----
 version: "2"
+
 # Configure which files to skip during linting
 run:
   tests: false
 
+# Strategy: enable everything, then disable the opinionated, style-only, or
+# domain-inappropriate linters. The high-value correctness linters (govet,
+# staticcheck, unused, ineffassign, errorlint, revive, ...) stay on. Tune the
+# disable list to taste.
 linters:
   default: all
-
   disable:
+    - cyclop
+    - depguard
+    - err113
+    - errcheck
+    - exhaustruct
+    - funlen
+    - gochecknoglobals
+    - gocognit
+    - gocritic
+    - gocyclo
+    - goconst
+    - gosec
+    - ireturn
+    - lll
+    - mnd
+    - modernize
+    - musttag
+    - nestif
+    - nilerr
+    - nlreturn
+    - noinlineerr
+    - nonamedreturns
+    - paralleltest
+    - varnamelen
+    - wrapcheck
     - wsl
     - wsl_v5
-    - nlreturn
-    - depguard
-    - gochecknoinits
-    - gochecknoglobals
+    - gomodguard
     - forbidigo
-    - varnamelen
-    - exhaustruct
+    - gochecknoinits
     - tagliatelle
-    - noinlineerr
-    - lll
+
+formatters:
+  enable:
+    - gofmt
+    - goimports

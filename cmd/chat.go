@@ -6,9 +6,9 @@ import (
 	"github.com/pterm/pterm"
 	"github.com/sgaunet/perplexity-go/v2"
 	"github.com/sgaunet/pplx/pkg/chat"
+	clerrors "github.com/sgaunet/pplx/pkg/clerrors"
 	"github.com/sgaunet/pplx/pkg/config"
 	"github.com/sgaunet/pplx/pkg/console"
-	clerrors "github.com/sgaunet/pplx/pkg/clerrors"
 	"github.com/spf13/cobra"
 )
 

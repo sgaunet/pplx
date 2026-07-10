@@ -46,13 +46,13 @@ func TestConfigInit(t *testing.T) {
 	// Note: Cannot run in parallel due to shared global state (initTemplate, etc.)
 
 	tests := []struct {
-		name          string
-		template      string
-		force         bool
-		withExamples  bool
-		interactive   bool
-		expectError   bool
-		validateFunc  func(*testing.T, string)
+		name         string
+		template     string
+		force        bool
+		withExamples bool
+		interactive  bool
+		expectError  bool
+		validateFunc func(*testing.T, string)
 	}{
 		{
 			name:        "basic init creates config",
@@ -259,7 +259,7 @@ func TestConfigInit(t *testing.T) {
 func TestConfigShow(t *testing.T) {
 	// Note: Cannot use t.Parallel() because subtests modify global variables (configFilePath, profileName)
 
-	tests := []struct{
+	tests := []struct {
 		name         string
 		fixtureName  string
 		profileName  string
@@ -644,13 +644,13 @@ func TestConfigPrecedence(t *testing.T) {
 	// Note: Cannot use t.Parallel() because subtests use t.Setenv()
 
 	tests := []struct {
-		name              string
-		configTemp        float64
-		profileTemp       float64
-		envTemp           string
-		expectedTemp      float64
-		useProfile        bool
-		setEnv            bool
+		name         string
+		configTemp   float64
+		profileTemp  float64
+		envTemp      string
+		expectedTemp float64
+		useProfile   bool
+		setEnv       bool
 	}{
 		{
 			name:         "config only",

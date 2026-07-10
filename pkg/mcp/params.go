@@ -132,6 +132,7 @@ func (e *ParameterExtractor) Extract(args map[string]any) (*QueryParams, error) 
 }
 
 // extractString safely extracts a string parameter with a default value.
+//
 //nolint:unparam // defaultVal is kept for API consistency even though currently always ""
 func (e *ParameterExtractor) extractString(args map[string]any, key string, defaultVal string) string {
 	if val, ok := args[key].(string); ok {
@@ -141,6 +142,7 @@ func (e *ParameterExtractor) extractString(args map[string]any, key string, defa
 }
 
 // extractFloat safely extracts a float64 parameter with a default value.
+//
 //nolint:unparam // defaultVal is kept for API consistency even though currently always 0
 func (e *ParameterExtractor) extractFloat(args map[string]any, key string, defaultVal float64) float64 {
 	if val, ok := args[key].(float64); ok {

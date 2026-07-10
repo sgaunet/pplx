@@ -85,7 +85,7 @@ func TestValidatorInvalidMode(t *testing.T) {
 func TestValidatorInvalidCoordinates(t *testing.T) {
 	cfg := &ConfigData{
 		Search: SearchConfig{
-			LocationLat: 100.0, // Invalid: > 90
+			LocationLat: 100.0,  // Invalid: > 90
 			LocationLon: -200.0, // Invalid: < -180
 		},
 	}
@@ -130,8 +130,8 @@ func TestValidatorProfileNameValidation(t *testing.T) {
 func TestValidatorMultipleErrors(t *testing.T) {
 	cfg := &ConfigData{
 		Defaults: DefaultsConfig{
-			Temperature: 3.0,  // Invalid
-			TopP:        1.5,  // Invalid
+			Temperature: 3.0, // Invalid
+			TopP:        1.5, // Invalid
 		},
 		Search: SearchConfig{
 			Recency: "invalid", // Invalid
@@ -868,9 +868,9 @@ func TestValidator_RangeErrorIncludesValue(t *testing.T) {
 
 func TestValidator_EnumErrorIncludesValue(t *testing.T) {
 	tests := []struct {
-		name        string
-		cfg         *ConfigData
-		invalidVal  string
+		name       string
+		cfg        *ConfigData
+		invalidVal string
 	}{
 		{
 			name:       "recency includes value",

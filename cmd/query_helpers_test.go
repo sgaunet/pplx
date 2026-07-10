@@ -25,7 +25,7 @@ func TestParseDateFilter(t *testing.T) {
 		},
 		{
 			name:      "invalid format - European",
-			fieldName:      "test-date",
+			fieldName: "test-date",
 			dateStr:   "15/01/2024",
 			wantErr:   true,
 		},
@@ -351,7 +351,7 @@ func TestValidateInputs(t *testing.T) {
 		globalOpts.ReasoningEffort = origReasoningEffort
 		globalOpts.ResponseFormatJSONSchema = origResponseFormatJSONSchema
 		globalOpts.ResponseFormatRegex = origResponseFormatRegex
-		globalOpts.Model= origModel
+		globalOpts.Model = origModel
 	}()
 
 	t.Run("missing user prompt", func(t *testing.T) {
@@ -377,7 +377,7 @@ func TestValidateInputs(t *testing.T) {
 		globalOpts.ReasoningEffort = "high"
 		globalOpts.ResponseFormatJSONSchema = ""
 		globalOpts.ResponseFormatRegex = ""
-		globalOpts.Model= "sonar-pro"
+		globalOpts.Model = "sonar-pro"
 
 		err := validateInputs()
 		if err != nil {
@@ -423,7 +423,7 @@ func TestValidateInputs(t *testing.T) {
 		globalOpts.ReasoningEffort = ""
 		globalOpts.ResponseFormatJSONSchema = "{}"
 		globalOpts.ResponseFormatRegex = "test"
-		globalOpts.Model= "sonar-pro"
+		globalOpts.Model = "sonar-pro"
 
 		err := validateInputs()
 		if err == nil {
@@ -439,7 +439,7 @@ func TestValidateInputs(t *testing.T) {
 		globalOpts.ReasoningEffort = ""
 		globalOpts.ResponseFormatJSONSchema = "{}"
 		globalOpts.ResponseFormatRegex = ""
-		globalOpts.Model= "llama-3.1-70b"
+		globalOpts.Model = "llama-3.1-70b"
 
 		err := validateInputs()
 		if err == nil {

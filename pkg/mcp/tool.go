@@ -6,6 +6,7 @@ import (
 )
 
 // BuildQueryTool creates the MCP tool definition for Perplexity queries.
+//
 //nolint:funlen // Function length appropriate for defining 30+ parameters
 func BuildQueryTool() *mcp.Tool {
 	tool := mcp.NewTool("query",

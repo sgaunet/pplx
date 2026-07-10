@@ -76,33 +76,33 @@ func TestSentinelErrorsAreUnique(t *testing.T) {
 // This ensures that sentinel errors can be properly detected even when wrapped.
 func TestErrorsIsWorks(t *testing.T) {
 	tests := []struct {
-		name      string
-		err       error
-		target    error
+		name        string
+		err         error
+		target      error
 		shouldMatch bool
 	}{
 		{
-			name:      "exact match - ErrProfileNotFound",
-			err:       ErrProfileNotFound,
-			target:    ErrProfileNotFound,
+			name:        "exact match - ErrProfileNotFound",
+			err:         ErrProfileNotFound,
+			target:      ErrProfileNotFound,
 			shouldMatch: true,
 		},
 		{
-			name:      "wrapped match - ErrTemplateNotFound",
-			err:       fmt.Errorf("failed to load: %w", ErrTemplateNotFound),
-			target:    ErrTemplateNotFound,
+			name:        "wrapped match - ErrTemplateNotFound",
+			err:         fmt.Errorf("failed to load: %w", ErrTemplateNotFound),
+			target:      ErrTemplateNotFound,
 			shouldMatch: true,
 		},
 		{
-			name:      "no match - different errors",
-			err:       ErrProfileNotFound,
-			target:    ErrTemplateNotFound,
+			name:        "no match - different errors",
+			err:         ErrProfileNotFound,
+			target:      ErrTemplateNotFound,
 			shouldMatch: false,
 		},
 		{
-			name:      "double wrapped - ErrConfigFileExists",
-			err:       fmt.Errorf("operation failed: %w", fmt.Errorf("nested: %w", ErrConfigFileExists)),
-			target:    ErrConfigFileExists,
+			name:        "double wrapped - ErrConfigFileExists",
+			err:         fmt.Errorf("operation failed: %w", fmt.Errorf("nested: %w", ErrConfigFileExists)),
+			target:      ErrConfigFileExists,
 			shouldMatch: true,
 		},
 	}
@@ -248,7 +248,7 @@ func TestValidationErrorsCollection(t *testing.T) {
 func contains(s, substr string) bool {
 	return len(s) >= len(substr) && (s == substr || len(s) > len(substr) &&
 		(s[:len(substr)] == substr || s[len(s)-len(substr):] == substr ||
-		containsMiddle(s, substr)))
+			containsMiddle(s, substr)))
 }
 
 func containsMiddle(s, substr string) bool {

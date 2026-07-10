@@ -15,12 +15,12 @@ import (
 
 const (
 	// Exit codes for different error types.
-	exitCodeSuccess         = 0
-	exitCodeGeneral         = 1
-	exitCodeValidation      = 2
-	exitCodeAPI             = 3
-	exitCodeConfiguration   = 4
-	exitCodeIO              = 5
+	exitCodeSuccess       = 0
+	exitCodeGeneral       = 1
+	exitCodeValidation    = 2
+	exitCodeAPI           = 3
+	exitCodeConfiguration = 4
+	exitCodeIO            = 5
 )
 
 var (

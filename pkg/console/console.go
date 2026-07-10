@@ -81,12 +81,12 @@ func RenderImages(pplxResponse *perplexity.CompletionResponse, output io.Writer)
 	if len(images) == 0 {
 		return nil
 	}
-	
+
 	_, err := fmt.Fprintf(output, "\n📸 Images:\n")
 	if err != nil {
 		return fmt.Errorf("error writing images header to output: %w", err)
 	}
-	
+
 	for i, img := range images {
 		_, err := fmt.Fprintf(output, "[%d]: %s (origin: %s) - %dx%d\n",
 			i+1, img.ImageURL, img.OriginURL, img.Width, img.Height)
@@ -127,14 +127,14 @@ func RenderRelatedQuestions(_ *perplexity.CompletionResponse, _ io.Writer) error
 // StreamingRenderer handles incremental rendering of streaming content.
 type StreamingRenderer struct {
 	lastContentLength int
-	output           io.Writer
+	output            io.Writer
 }
 
 // NewStreamingRenderer creates a new streaming renderer.
 func NewStreamingRenderer(output io.Writer) *StreamingRenderer {
 	return &StreamingRenderer{
 		lastContentLength: 0,
-		output:           output,
+		output:            output,
 	}
 }
 
@@ -144,10 +144,11 @@ func NewStreamingRenderer(output io.Writer) *StreamingRenderer {
 // Perplexity's streaming behavior: Cumulative, not incremental
 // Each SSE event contains the COMPLETE response generated so far, not just the delta.
 // For example, if the answer is "The sky is blue":
-//   Event 1: "The"
-//   Event 2: "The sky"           (not just " sky")
-//   Event 3: "The sky is"         (not just " is")
-//   Event 4: "The sky is blue"    (not just " blue")
+//
+//	Event 1: "The"
+//	Event 2: "The sky"           (not just " sky")
+//	Event 3: "The sky is"         (not just " is")
+//	Event 4: "The sky is blue"    (not just " blue")
 //
 // This cumulative model is simpler for the API server (stateless) but requires
 // the client to track what's already been displayed to avoid reprinting.
@@ -157,10 +158,10 @@ func NewStreamingRenderer(output io.Writer) *StreamingRenderer {
 // it to extract the new suffix via string slicing: content[lastContentLength:]
 //
 // Alternative designs considered:
-// - String diffing: More robust but overkill and computationally expensive
-// - Content hashing: Could detect if server resends from start, but adds complexity
-//   without solving a real problem (server resend is not expected behavior)
-// - Simple approach wins: Track length, extract suffix, update length
+//   - String diffing: More robust but overkill and computationally expensive
+//   - Content hashing: Could detect if server resends from start, but adds complexity
+//     without solving a real problem (server resend is not expected behavior)
+//   - Simple approach wins: Track length, extract suffix, update length
 //
 // Edge cases handled:
 // - Empty content: No-op, skip rendering
@@ -231,21 +232,21 @@ func RenderJSON(pplxResponse *perplexity.CompletionResponse, output io.Writer) e
 // Field handling pattern: Conditional inclusion of optional fields
 // Core fields (content, model, usage) are always included.
 // Optional fields (search_results, images, related_questions) are only included if:
-//   1. The pointer is non-nil (field was present in API response)
-//   2. The dereferenced slice has length > 0 (not empty)
+//  1. The pointer is non-nil (field was present in API response)
+//  2. The dereferenced slice has length > 0 (not empty)
 //
 // Rationale for this pattern:
-// - Cleaner JSON: Omitting empty optional fields makes output more readable
-// - API compatibility: Matches common API design where absent fields mean "not applicable"
-// - Backward compatibility: If API adds new optional fields, old clients work fine
-// - JSON marshaling: json.Marshal honors omitempty tags, but we do explicit checks
-//   for clarity and to ensure consistency regardless of struct tags
+//   - Cleaner JSON: Omitting empty optional fields makes output more readable
+//   - API compatibility: Matches common API design where absent fields mean "not applicable"
+//   - Backward compatibility: If API adds new optional fields, old clients work fine
+//   - JSON marshaling: json.Marshal honors omitempty tags, but we do explicit checks
+//     for clarity and to ensure consistency regardless of struct tags
 //
 // The repeated pointer-check pattern (if field != nil && len(*field) > 0) is intentional:
-// - First check: Prevents nil pointer dereference
-// - Second check: Prevents including empty arrays in output
-// - Could be abstracted into a helper, but the 3 instances are simple enough
-//   that inline code is more readable than indirection
+//   - First check: Prevents nil pointer dereference
+//   - Second check: Prevents including empty arrays in output
+//   - Could be abstracted into a helper, but the 3 instances are simple enough
+//     that inline code is more readable than indirection
 func buildJSONResponse(pplxResponse *perplexity.CompletionResponse) map[string]any {
 	// Core fields: always included
 	result := map[string]any{
