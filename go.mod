@@ -7,7 +7,7 @@ toolchain go1.26.5
 require (
 	charm.land/huh/v2 v2.0.3
 	github.com/MichaelMure/go-term-markdown v0.1.4
-	github.com/mark3labs/mcp-go v0.56.0
+	github.com/mark3labs/mcp-go v0.57.0
 	github.com/pterm/pterm v0.12.83
 	github.com/sgaunet/perplexity-go/v2 v2.16.1
 	github.com/spf13/cobra v1.10.2
