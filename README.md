@@ -1,6 +1,5 @@
 # pplx
 
-[![Go Report Card](https://goreportcard.com/badge/github.com/sgaunet/pplx)](https://goreportcard.com/report/github.com/sgaunet/pplx)
 ![GitHub Downloads](https://img.shields.io/github/downloads/sgaunet/pplx/total)
 [![Snapshot](https://github.com/sgaunet/pplx/actions/workflows/snapshot.yml/badge.svg)](https://github.com/sgaunet/pplx/actions/workflows/snapshot.yml)
 [![Release](https://github.com/sgaunet/pplx/actions/workflows/release.yml/badge.svg)](https://github.com/sgaunet/pplx/actions/workflows/release.yml)
