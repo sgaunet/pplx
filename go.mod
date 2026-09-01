@@ -1,6 +1,6 @@
 module github.com/sgaunet/pplx
 
-go 1.26.0
+go 1.26
 
 toolchain go1.26.5
 
