@@ -61,6 +61,7 @@ homebrew_casks:
   - name: pplx
     homepage: "https://github.com/sgaunet/pplx"
     description: "Unofficial CLI to query and chat with the Perplexity API"
+    directory: Casks
     binaries:
       - pplx
     generate_completions_from_executable:
@@ -72,8 +73,11 @@ homebrew_casks:
         - zsh
         - fish
     # Unsigned binaries are quarantined by macOS Gatekeeper; strip the attribute.
+    # This must be a pre-install hook: postflight runs *after*
+    # generate_completions_from_executable, which has to execute the staged
+    # binary, and a quarantined binary cannot be executed.
     hooks:
-      post:
+      pre:
         install: |
           if OS.mac?
             system_command "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "#{staged_path}/pplx"]
