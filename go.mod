@@ -9,7 +9,7 @@ require (
 	github.com/MichaelMure/go-term-markdown v0.1.4
 	github.com/mark3labs/mcp-go v1.0.0
 	github.com/pterm/pterm v0.12.83
-	github.com/sgaunet/perplexity-go/v2 v2.16.1
+	github.com/sgaunet/perplexity-go/v2 v2.16.2
 	github.com/spf13/cobra v1.10.2
 	github.com/spf13/pflag v1.0.10
 	github.com/spf13/viper v1.21.0
