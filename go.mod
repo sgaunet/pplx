@@ -9,7 +9,7 @@ require (
 	github.com/MichaelMure/go-term-markdown v0.1.4
 	github.com/mark3labs/mcp-go v1.1.1
 	github.com/pterm/pterm v0.12.83
-	github.com/sgaunet/perplexity-go/v2 v2.16.2
+	github.com/sgaunet/perplexity-go/v2 v2.17.0
 	github.com/spf13/cobra v1.10.2
 	github.com/spf13/pflag v1.0.10
 	github.com/spf13/viper v1.21.0
@@ -49,7 +49,7 @@ require (
 	github.com/go-playground/universal-translator v0.18.2 // indirect
 	github.com/go-playground/validator/v10 v10.30.5 // indirect
 	github.com/go-viper/mapstructure/v2 v2.5.0 // indirect
-	github.com/gomarkdown/markdown v0.0.0-20261006014541-eb0281f1d676 // indirect
+	github.com/gomarkdown/markdown v0.0.0-20261006233006-5e92716d526e // indirect
 	github.com/google/jsonschema-go v0.4.3 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/gookit/color v1.6.1 // indirect

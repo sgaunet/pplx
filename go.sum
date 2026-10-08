@@ -120,6 +120,8 @@ github.com/gomarkdown/markdown v0.0.0-20260824154242-13c5cf49db8d h1:8VtgBGEPLZ2
 github.com/gomarkdown/markdown v0.0.0-20260824154242-13c5cf49db8d/go.mod h1:JDGcbDT52eL4fju3sZ4TeHGsQwhG9nbDV21aMyhwPoA=
 github.com/gomarkdown/markdown v0.0.0-20261006014541-eb0281f1d676 h1:0IDVvG265FV11V09iv/pWx7BpJM3r+VyFeGscBzVuvQ=
 github.com/gomarkdown/markdown v0.0.0-20261006014541-eb0281f1d676/go.mod h1:zLCvXLlUnS5tvOi4hpJgzzpJsq0+dliwn85VbPh1JbQ=
+github.com/gomarkdown/markdown v0.0.0-20261006233006-5e92716d526e h1:ZSAluLI8KkS21XM2FLoXiKmy01nJbzBvg+DPfnXapDs=
+github.com/gomarkdown/markdown v0.0.0-20261006233006-5e92716d526e/go.mod h1:zLCvXLlUnS5tvOi4hpJgzzpJsq0+dliwn85VbPh1JbQ=
 github.com/google/go-cmp v0.7.0 h1:wk8382ETsv4JYUZwIsn6YpYiWiBsYLSJiTsyBybVuN8=
 github.com/google/go-cmp v0.7.0/go.mod h1:pXiqmnSA92OHEEa9HXL2W4E7lf9JzCmGVUdgjX3N/iU=
 github.com/google/jsonschema-go v0.4.3 h1:/DBOLZTfDow7pe2GmaJNhltueGTtDKICi8V8p+DQPd0=
@@ -201,6 +203,8 @@ github.com/sgaunet/perplexity-go/v2 v2.16.1 h1://Xa7P0F/eOIcJ/6SehTqgr2MRnzPfI8L
 github.com/sgaunet/perplexity-go/v2 v2.16.1/go.mod h1:5dckcaxoFKtJEfNRc9+OhL6p/W/TKxd0gbSzc1YkmkI=
 github.com/sgaunet/perplexity-go/v2 v2.16.2 h1:nSPSLrcXfnkmIM3FUpHU2kntENzgGYHBFknlJDMBYZs=
 github.com/sgaunet/perplexity-go/v2 v2.16.2/go.mod h1:pN50a6v4k6tnE+ft/PI+6XWLg+fpSaglkddskoavXD4=
+github.com/sgaunet/perplexity-go/v2 v2.17.0 h1:uFMBeL3rnx92c5jGVnUasqFW054owRrOq3iSmU6WAqg=
+github.com/sgaunet/perplexity-go/v2 v2.17.0/go.mod h1:pN50a6v4k6tnE+ft/PI+6XWLg+fpSaglkddskoavXD4=
 github.com/spf13/afero v1.15.0 h1:b/YBCLWAJdFWJTN9cLhiXXcD7mzKn9Dm86dNnfyQw1I=
 github.com/spf13/afero v1.15.0/go.mod h1:NC2ByUVxtQs4b3sIUphxK0NioZnmxgyCrfzeuq8lxMg=
 github.com/spf13/cast v1.10.0 h1:h2x0u2shc1QuLHfxi+cTJvs30+ZAHOGRic8uyGTDWxY=
